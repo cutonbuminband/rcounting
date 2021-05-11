@@ -1,15 +1,24 @@
 # encoding=utf8
 import datetime
 import time
+import configparser
+import requests.auth
+from urllib.parse import urlunparse
+import pathlib
 
-import requests.auth    
+config = configparser.ConfigParser()
+config.read('secrets.txt')
+auth = config['AUTH']
 
-
-
-client_auth = requests.auth.HTTPBasicAuth('ACCESKEY', 'SECRETKEY')
-post_data = {"grant_type": "password", "username": "REDDITUSERNAME", "password": "PASSWORD"}
-headers = {"User-Agent": "Something"}
-response = requests.post("https://www.reddit.com/api/v1/access_token", auth=client_auth, data=post_data,
+client_auth = requests.auth.HTTPBasicAuth(auth['client_id'],
+                                          auth['secret_key'])
+post_data = {"grant_type": "password",
+             "username": auth['username'],
+             "password": auth['password']}
+headers = {"User-Agent": "sthaa/counting"}
+response = requests.post("https://www.reddit.com/api/v1/access_token",
+                         auth=client_auth,
+                         data=post_data,
                          headers=headers)
 k = response.json()
 print(k)
@@ -36,27 +45,27 @@ last_author = ''
 second_last_author = ''
 t_start = datetime.datetime.now()
 
-response_thread = requests.get("http://oauth.reddit.com/by_id/t3_" + id_thread + ".json", headers=headers)
-json_response_thread = response_thread.json()
-title = json_response_thread['data']['children'][0]['data']['title']
-##print(json_response_thread.values())
+response_thread = requests.get("http://oauth.reddit.com/by_id/t3_" + id_thread + ".json",
+                               headers=headers).json()
+title = response_thread['data']['children'][0]['data']['title']
+body = response_thread['data']['children'][0]['data']['selftext']
+netloc = 'oauth.reddit.com'
+scheme = 'https'
+path_root = pathlib.PurePath('/r/counting/comments')
 while True:
     try:
-        response_comments = requests.get(
-            u"https://oauth.reddit.com/r/counting/comments/" + id_thread + "/" + thread_partUrl + "/" + id_main +
-            "/?context=10", headers=headers)
-        json_response_comments = response_comments.json()
+        path = str(path_root / id_thread / thread_partUrl / id_main)
+        url = urlunparse([scheme, netloc, path, '', 'context=10', ''])
+        json_response_comments = requests.get(url, headers=headers).json()
         json_position_comments = json_response_comments[1]
-        #print(str(json_position_comments) + "\n")
         i += 1
         temp_data = []
         id_2_check_temp = json_position_comments['data']['children'][0]['data']['id']
-        #print(json_position_comments) ###
         while True:
             if json_position_comments['data']['children'][0]['data']['id'] == '_':
                 print("\n\nBroken chain detected\n" + "Last id_main: " + str(id_main) + "\n");
                 response_comment_broken = requests.get(
-                    "https://oauth.reddit.com/api/info.json?id=t1_" + id_main, headers=headers)
+                    urlunparse([scheme, netloc, "api/info.json?id=t1_" + id_main , '', '', '']), headers=headers)
                 json_response_comment_broken = response_comment_broken.json()
                 parent_id = json_response_comment_broken['data']['children'][0]['data']['parent_id'].split("_", 1)[1]
                 for x in range(25):
@@ -82,7 +91,6 @@ while True:
                 print("\nEnd of broken chain\n\n")
                 temp_data = []
                 break
-
             else:
                 comment_id = json_position_comments['data']['children'][0]['data']['id']
                 author = json_position_comments['data']['children'][0]['data']['author']
@@ -106,7 +114,7 @@ while True:
             timestamp_noted = True
         for l in reversed(temp_data):
             all_the_data.append(l)
-    except exception as e:
+    except Exception as e:
         time.sleep(30)
 
     print (id_main)
