@@ -5,6 +5,7 @@ import configparser
 import requests.auth
 from urllib.parse import urlunparse
 import pathlib
+from collections import OrderedDict
 
 config = configparser.ConfigParser()
 config.read('secrets.txt')
@@ -19,10 +20,9 @@ headers = {"User-Agent": "sthaa/counting"}
 response = requests.post("https://www.reddit.com/api/v1/access_token",
                          auth=client_auth,
                          data=post_data,
-                         headers=headers)
-k = response.json()
-print(k)
-access_token = k['access_token']
+                         headers=headers).json()
+
+access_token = response['access_token']
 headers = {"Authorization": "bearer " + access_token, "User-Agent": "Something"}
 
 all_the_data = []
@@ -31,9 +31,7 @@ id_first_comment = 'e1rvbvp'
 id_main = 'e1slcal'
 id_thread = '8w151j'
 thread_partUrl = '2171k_counting_thread'
-baseCount = 2171000
 title = ''
-i = 1
 dict_count = {}
 timestamp_last = 0
 timestamp_first = 0
@@ -45,10 +43,20 @@ last_author = ''
 second_last_author = ''
 t_start = datetime.datetime.now()
 
+def get_data(json_response):
+    return json_response['data']['children'][0]['data']
+
+def parse_data(comment_data):
+    return OrderedDict(message=comment_data['body'],
+                       author=comment_data['author'],
+                       timestamp=comment_data['created_utc'],
+                       comment_id=comment_data['id'],
+                       thread_id=comment_data['link_id'].split("_", 1)[1])
+
 response_thread = requests.get("http://oauth.reddit.com/by_id/t3_" + id_thread + ".json",
                                headers=headers).json()
-title = response_thread['data']['children'][0]['data']['title']
-body = response_thread['data']['children'][0]['data']['selftext']
+title = get_data(response_thread)['title']
+body = get_data(response_thread)['selftext']
 netloc = 'oauth.reddit.com'
 scheme = 'https'
 path_root = pathlib.PurePath('/r/counting/comments')
@@ -58,31 +66,30 @@ while True:
         url = urlunparse([scheme, netloc, path, '', 'context=10', ''])
         json_response_comments = requests.get(url, headers=headers).json()
         json_position_comments = json_response_comments[1]
-        i += 1
         temp_data = []
-        id_2_check_temp = json_position_comments['data']['children'][0]['data']['id']
+        id_2_check_temp = get_data(json_position_comments)['id']
         while True:
-            if json_position_comments['data']['children'][0]['data']['id'] == '_':
+            if get_data(json_position_comments)['id'] == '_':
                 print("\n\nBroken chain detected\n" + "Last id_main: " + str(id_main) + "\n");
                 response_comment_broken = requests.get(
                     urlunparse([scheme, netloc, "api/info.json?id=t1_" + id_main , '', '', '']), headers=headers)
                 json_response_comment_broken = response_comment_broken.json()
-                parent_id = json_response_comment_broken['data']['children'][0]['data']['parent_id'].split("_", 1)[1]
+                parent_id = get_data(json_response_comment_broken)['parent_id'].split("_", 1)[1]
                 for x in range(25):
                     id_main = parent_id
                     response_comment_broken = requests.get(
                         "https://oauth.reddit.com/api/info.json?id=t1_" + id_main, headers=headers)
                     json_response_comment_broken = response_comment_broken.json()
-                    parent_id = json_response_comment_broken['data']['children'][0]['data']['parent_id'].split("_", 1)[1]
-                    comment_id = json_response_comment_broken['data']['children'][0]['data']['id']
-                    author = json_response_comment_broken['data']['children'][0]['data']['author']
-                    timestamp = json_response_comment_broken['data']['children'][0]['data']['created_utc']
-                    thread_id = json_response_comment_broken['data']['children'][0]['data']['link_id'].split("_", 1)[1]
-                    message = json_response_comment_broken['data']['children'][0]['data']['body']
+                    comment_broken_data = get_data(json_response_comment_broken)
+                    parsed_data = parse_data(comment_broken_data)
+                    parent_id = comment_broken_data['parent_id'].split("_", 1)[1]
+                    comment_id = comment_broken_data['id']
+                    author = comment_broken_data['author']
+                    timestamp = comment_broken_data['created_utc']
+                    thread_id = comment_broken_data['link_id'].split("_", 1)[1]
 
-                    tuple_comment = (message, author, timestamp, comment_id, thread_id)
                     if id_main != '_':
-                        all_the_data.append(tuple_comment)
+                        all_the_data.append(tuple(parsed_data.values()))
                     if not timestamp_noted:
                         get_author = author
                         timestamp_last = timestamp
@@ -92,11 +99,12 @@ while True:
                 temp_data = []
                 break
             else:
-                comment_id = json_position_comments['data']['children'][0]['data']['id']
-                author = json_position_comments['data']['children'][0]['data']['author']
-                timestamp = json_position_comments['data']['children'][0]['data']['created_utc']
-                thread_id = json_position_comments['data']['children'][0]['data']['link_id'].split("_", 1)[1]
-                message = json_position_comments['data']['children'][0]['data']['body']
+                position_comment_data = get_data(json_position_comments)
+                parsed_data = parse_data(position_comment_data)
+                comment_id = position_comment_data['id']
+                author = position_comment_data['author']
+                timestamp = position_comment_data['created_utc']
+                thread_id = position_comment_data['link_id'].split("_", 1)[1]
                 second_last_timestamp = last_timestamp
                 last_timestamp = timestamp
                 second_last_author = last_author
@@ -104,9 +112,8 @@ while True:
                 if comment_id == id_main:
                     id_main = id_2_check_temp
                     break
-                tuple_comment = (message, author, timestamp, comment_id, thread_id)
-                temp_data.append(tuple_comment)
-                json_position_comments = json_position_comments['data']['children'][0]['data']['replies']
+                temp_data.append(tuple(parsed_data.values()))
+                json_position_comments = get_data(json_position_comments)['replies']
                 id = comment_id
         if not timestamp_noted:
             get_author = second_last_author
@@ -119,7 +126,7 @@ while True:
 
     print (id_main)
     try:
-        parent = json_position_comments['data']['children'][0]['data']['parent_id'].split("_", 1)[1]
+        parent = get_data(json_position_comments)['parent_id'].split("_", 1)[1]
     except:
         print (json_position_comments.values())
     if parent == id_thread:
