@@ -29,8 +29,8 @@ def walk_thread(id_thread, id_main, headers):
 
     Walk the reddit thread represented by id_thread from the leaf comment
     id_main up to the root, and return a flat list of the comments. This is
-    ordered so that the leaf node is the first entry, and the root node is the
-    last. For each comment, the list contains
+    ordered so that the root node is the first entry, and the leaf node is the
+    last.
 
     Parameters:
     id_thread (str): the base36 encoded id of the reddit thread in question
@@ -78,11 +78,10 @@ def walk_thread(id_thread, id_main, headers):
                 print("\nEnd of broken chain\n\n")
                 temp_data = []
                 break
-        for l in reversed(temp_data):
-            comments.append(l)
+        comments += temp_data[::-1]
 
         print (id_main)
-    return comments
+    return comments[::-1]
 
 if __name__ == "__main__":
     t_start = datetime.datetime.now()
@@ -108,15 +107,14 @@ if __name__ == "__main__":
     body = get_data(thread)['selftext']
 
     counts = walk_thread(id_thread, id_get, headers)
-
-    thread_duration = datetime.timedelta(seconds=counts[0][2] - counts[-1][2])
+    thread_duration = datetime.timedelta(seconds=counts[-1][2] - counts[0][2])
     days = thread_duration.days
     hours, mins, secs = str(thread_duration).split(':')[-3:]
 
-    dict_count = defaultdict(int)
+    counters = defaultdict(int)
     with open("thread_log.csv", "w") as hog_file:
-        for idx, x in enumerate(list(reversed(counts[:-1]))):
-            dict_count['/u/' + x[1]] += 1
+        for idx, x in enumerate(counts[1:]):
+            counters['/u/' + x[1]] += 1
             try:
                 print(baseCount + idx + 1, *x[1:], sep=",", file=hog_file)
             except:
@@ -128,13 +126,10 @@ if __name__ == "__main__":
         hoc_file.write("Rank|Username|Counts\n")
         hoc_file.write("---|---|---\n")
         unique_counters = 0
-        sorted_list = []
-        countSum = 0
-        for key, value in sorted(dict_count.items(), key=lambda kv: (kv[1], kv[0])):
-            sorted_list.append((key, value))
-            countSum = countSum + value
+        counters = sorted(counters.items(), key=lambda kv: (kv[1], kv[0]))[::-1]
+        total_counts = sum([x[1] for x in counters])
 
-        for counter in reversed(sorted_list):
+        for counter in counters:
             unique_counters += 1
             if counter[0][3:] == get_author:
                 counter = (f"**{counter[0]}**", counter[1])
@@ -143,7 +138,7 @@ if __name__ == "__main__":
         hoc_file.write(f"\nIt took {unique_counters} counters "
                        f"{days} days {hours} hours {mins} mins {secs} secs "
                        "to complete this thread. Bold is the user with the get"
-                       f"\ntotal counts in this chain logged: {countSum}")
+                       f"\ntotal counts in this chain logged: {total_counts}")
 
     elapsed_time = datetime.datetime.now() - t_start
     print (elapsed_time)
