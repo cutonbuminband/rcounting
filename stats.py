@@ -16,14 +16,15 @@ client_auth = requests.auth.HTTPBasicAuth(auth['client_id'],
 post_data = {"grant_type": "password",
              "username": auth['username'],
              "password": auth['password']}
-headers = {"User-Agent": "sthaa/counting"}
+headers = {"User-Agent": "cobibh/counting_stats/v1"}
 response = requests.post("https://www.reddit.com/api/v1/access_token",
                          auth=client_auth,
                          data=post_data,
                          headers=headers).json()
 
 access_token = response['access_token']
-headers = {"Authorization": "bearer " + access_token, "User-Agent": "Something"}
+headers = {"Authorization": "bearer " + access_token,
+           "User-Agent": "cobibh/counting_stats/v1"}
 
 all_the_data = []
 temp = True
