@@ -5,7 +5,7 @@ import configparser
 import requests.auth
 from urllib.parse import urlunparse
 import pathlib
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 config = configparser.ConfigParser()
 config.read('secrets.txt')
@@ -31,8 +31,6 @@ id_first_comment = 'e1rvbvp'
 id_main = 'e1slcal'
 id_thread = '8w151j'
 thread_partUrl = '2171k_counting_thread'
-title = ''
-dict_count = {}
 timestamp_last = 0
 timestamp_first = 0
 timestamp_noted = False
@@ -127,55 +125,43 @@ while True:
         timestamp_first = last_timestamp
         break
 
-time_taken = int(timestamp_last - timestamp_first)
-rem_sec = time_taken % 60
-min1 = time_taken // 60
-hours = min1 // 60
-rem_min = min1 % 60
-days = hours // 24
-rem_hours = hours % 24
+thread_time = int(timestamp_last - timestamp_first)
+days = (thread_time // (24 * 60 * 60))
+hours = (thread_time // (60 * 60)) % 24
+mins = (thread_time // 60) % 60
+secs = (thread_time) % 60
+baseCount = 2171000
 
-fileforhog = open("thread_log.csv", "w")
+dict_count = defaultdict(int)
+with open("thread_log.csv", "w") as hog_file:
+    for idx, x in enumerate(list(reversed(all_the_data))):
+        if x[3] != id_first_comment:
+            dict_count['/u/' + x[1]] += 1
+            try:
+                print(baseCount + idx, *x[1:], sep=",", file=hog_file)
+            except:
+                continue
 
-for idx, x in enumerate(list(reversed(all_the_data))):
-    if x[3] != id_first_comment:
-        if x[1] not in dict_count:
-            dict_count[x[1]] = 1
-        else:
-            dict_count[x[1]] += 1
-        try:
-            date_of_com = datetime.datetime.fromtimestamp(float(x[2])).strftime('%Y-%m-%d %H:%M:%S')
-            fileforhog.write(str(baseCount + idx) + "," +
-                             str(x[1]) + "," + str(x[2]) + "," + str(x[3]) + "," + str(x[4]) + "\n")
-        except:
-            continue
-fileforhoc = open("thread_participation.csv", "w")
-fileforhoc.write("Thread Participation Chart for " + title + "\n\n")
-fileforhoc.write("Rank|Username|Counts\n")
-fileforhoc.write("---|---|---\n")
-unique_counters = 0
+with open("thread_participation.csv", "w") as hoc_file:
+    hoc_file.write("Thread Participation Chart for " + title + "\n\n")
+    hoc_file.write("Rank|Username|Counts\n")
+    hoc_file.write("---|---|---\n")
+    unique_counters = 0
+    sorted_list = []
+    countSum = 0
+    for key, value in sorted(dict_count.items(), key=lambda kv: (kv[1], kv[0])):
+        sorted_list.append((key, value))
+        countSum = countSum + value
 
+    for counter in reversed(sorted_list):
+        unique_counters += 1
+        if counter[0][3:] == get_author:
+            counter = (f"**{counter[0]}**", counter[1])
+        print(unique_counters, *counter, sep="|", file=hoc_file)
 
+    hoc_file.write(f"\nIt took {unique_counters} counters {days} days {hours} hours {mins} mins {secs} secs "
+                   "to complete this thread. Bold is the user with the get"
+                   f"\ntotal counts in this chain logged: {countSum}")
 
-
-sorted_list = []
-countSum = 0
-for key, value in sorted(dict_count.items(), key=lambda kv: (kv[1], kv[0])):
-    sorted_list.append((key, value))
-    countSum = countSum + value
-
-for tuple_uc in reversed(sorted_list):
-    unique_counters += 1
-    if tuple_uc[0] == get_author:
-        fileforhoc.write(str(unique_counters) + "|**/u/" + str(tuple_uc[0]) + "**|" + str(tuple_uc[1]) + "\n")
-    else:
-        fileforhoc.write(str(unique_counters) + "|/u/" + str(tuple_uc[0]) + "|" + str(tuple_uc[1]) + "\n")
-
-fileforhoc.write("\nIt took " + str(unique_counters) + " counters " + str(days) + " days " + str(rem_hours) + " hours " + str(
-        rem_min) + " mins " + str(rem_sec) + " secs to complete this thread. Bold is the user with the get" + "\ntotal counts in this chain logged: "
-                 + str(countSum))
-t_end = datetime.datetime.now()
-
-Time_taken = t_end - t_start
-
-print (Time_taken)
+elapsed_time = datetime.datetime.now() - t_start
+print (elapsed_time - t_start)
