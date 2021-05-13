@@ -59,48 +59,44 @@ while id_main != id_thread:
     # Request 10 comments in the thread, based on the latest count we have
     # received. The returned data is a nested dict, starting at the 10th parent
     # of the base comment and moving down from there.
-    json_position_comments = requests.get(url.format(id_main),
-                                          headers=headers).json()[1]
+    current_comments = requests.get(url.format(id_main),
+                                    headers=headers).json()[1]
     temp_data = []
-    data = parse_data(get_data(json_position_comments))
+    data = parse_data(get_data(current_comments))
     next_target = data['parent_id']
     timestamp_first = data['timestamp']
     id_first_comment = data['comment_id']
     while id_main != next_target:
-        if get_data(json_position_comments)['id'] != '_':
+        if get_data(current_comments)['id'] != '_':
             # The happy path. We parse all the comments we have received, and
             # when we are done we ask for a new batch.
-            position_comment_data = get_data(json_position_comments)
-            parsed_data = parse_data(position_comment_data)
-            timestamp = parsed_data['timestamp']
-            if parsed_data['comment_id'] == id_main:
+            current_data = parse_data(get_data(current_comments))
+            timestamp = current_data['timestamp']
+            if current_data['comment_id'] == id_main:
                 id_main = next_target
-            temp_data.append(tuple(parsed_data.values())[:-1])
-            json_position_comments = get_data(json_position_comments)['replies']
+            temp_data.append(tuple(current_data.values())[:-1])
+            current_comments = get_data(current_comments)['replies']
         else:
             print("\n\nBroken chain detected\n" + f"Last id_main: {id_main}\n")
             for x in range(25):
-                response_comment_broken = requests.get(
-                    "https://oauth.reddit.com/api/info.json?id=t1_" + id_main, headers=headers)
-                json_response_comment_broken = response_comment_broken.json()
-                comment_broken_data = get_data(json_response_comment_broken)
-                parsed_data = parse_data(comment_broken_data)
-                parent_id = parsed_data['parent_id']
+                broken_comment = requests.get(failure_url.format(id_main),
+                                              headers=headers).json()
+                broken_data = parse_data(get_data(broken_comment))
 
                 if id_main != '_':
-                    all_the_data.append(tuple(parsed_data.values())[:-1])
+                    all_the_data.append(tuple(broken_data.values())[:-1])
                 if not timestamp_noted:
-                    get_author = parsed_data['author']
-                    timestamp_last = parsed_data['timestamp']
+                    get_author = broken_data['author']
+                    timestamp_last = broken_data['timestamp']
                     timestamp_noted = True
-                id_main = parent_id
+                id_main = broken_data['parent_id']
             print(f"\nNew id_main: {id_main}")
             print("\nEnd of broken chain\n\n")
             temp_data = []
             break
     if not timestamp_noted:
-        get_author = parsed_data['author']
-        timestamp_last = parsed_data['timestamp']
+        get_author = current_data['author']
+        timestamp_last = current_data['timestamp']
         timestamp_noted = True
     for l in reversed(temp_data):
         all_the_data.append(l)
