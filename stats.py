@@ -126,21 +126,18 @@ if __name__ == "__main__":
         hoc_file.write("Thread Participation Chart for " + title + "\n\n")
         hoc_file.write("Rank|Username|Counts\n")
         hoc_file.write("---|---|---\n")
-        unique_counters = 0
         counters = sorted(counters.items(), key=lambda kv: (kv[1], kv[0]))[::-1]
         total_counts = sum([x[1] for x in counters])
 
-        for counter in counters:
-            unique_counters += 1
+        for rank, counter in enumerate(counters):
             if counter[0][3:] == get_author:
                 counter = (f"**{counter[0]}**", counter[1])
-            print(unique_counters, *counter, sep="|", file=hoc_file)
+            print(rank + 1, *counter, sep="|", file=hoc_file)
 
-        hoc_file.write(f"\nIt took {unique_counters} counters "
+        hoc_file.write(f"\nIt took {rank+1} counters "
                        f"{days} days {hours} hours {mins} mins {secs} secs "
                        "to complete this thread. Bold is the user with the get"
                        f"\ntotal counts in this chain logged: {total_counts}")
 
     elapsed_time = datetime.datetime.now() - t_start
     print (elapsed_time)
-
