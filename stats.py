@@ -4,7 +4,7 @@ import time
 import configparser
 import requests.auth
 from urllib.parse import urlunparse
-import pathlib
+from pathlib import PurePath
 from collections import OrderedDict, defaultdict
 
 config = configparser.ConfigParser()
@@ -59,14 +59,15 @@ title = get_data(response_thread)['title']
 body = get_data(response_thread)['selftext']
 netloc = 'oauth.reddit.com'
 scheme = 'https'
-path = pathlib.PurePath('/r/counting/comments') / id_thread / thread_partUrl
+path = f'/r/counting/comments/{id_thread}/{thread_partUrl}/' + '{}'
+url = urlunparse([scheme, netloc, path, '', 'context=10', ''])
+failure_url = urlunparse([scheme, netloc, 'api/info.json', '', 'id=t1_{}', ''])
 while True:
     # Request 10 comments in the thread, based on the latest count we have
     # received. The returned data is a nested dict, starting at the 10th parent
     # of the base comment and moving down from there.
-    url = urlunparse([scheme, netloc, str(path / id_main),
-                      '', 'context=10', ''])
-    json_response_comments = requests.get(url, headers=headers).json()
+    json_response_comments = requests.get(url.format(id_main),
+                                          headers=headers).json()
     json_position_comments = json_response_comments[1]
     temp_data = []
     id_2_check_temp = get_data(json_position_comments)['id']
@@ -86,9 +87,9 @@ while True:
             temp_data.append(tuple(parsed_data.values())[:-1])
             json_position_comments = get_data(json_position_comments)['replies']
         else:
-            print("\n\nBroken chain detected\n" + "Last id_main: " + str(id_main) + "\n");
-            response_comment_broken = requests.get(
-                "https://oauth.reddit.com/api/info.json?id=t1_" + id_main, headers=headers)
+            print("\n\nBroken chain detected\n" + f"Last id_main: {id_main}\n")
+            response_comment_broken = requests.get(failure_url.format(id_main),
+                                                   headers=headers)
             json_response_comment_broken = response_comment_broken.json()
             parent_id = get_data(json_response_comment_broken)['parent_id'].split("_", 1)[1]
             for x in range(25):
