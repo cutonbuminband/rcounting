@@ -125,11 +125,9 @@ while True:
         timestamp_first = last_timestamp
         break
 
-thread_time = int(timestamp_last - timestamp_first)
-days = (thread_time // (24 * 60 * 60))
-hours = (thread_time // (60 * 60)) % 24
-mins = (thread_time // 60) % 60
-secs = (thread_time) % 60
+thread_time = datetime.timedelta(seconds=(timestamp_last - timestamp_first))
+days = thread_time.days
+hours, mins, secs = str(thread_time).split(':')[-3:]
 baseCount = 2171000
 
 dict_count = defaultdict(int)
@@ -159,9 +157,10 @@ with open("thread_participation.csv", "w") as hoc_file:
             counter = (f"**{counter[0]}**", counter[1])
         print(unique_counters, *counter, sep="|", file=hoc_file)
 
-    hoc_file.write(f"\nIt took {unique_counters} counters {days} days {hours} hours {mins} mins {secs} secs "
+    hoc_file.write(f"\nIt took {unique_counters} counters "
+                   f"{days} days {hours} hours {mins} mins {secs} secs "
                    "to complete this thread. Bold is the user with the get"
                    f"\ntotal counts in this chain logged: {countSum}")
 
 elapsed_time = datetime.datetime.now() - t_start
-print (elapsed_time - t_start)
+print (elapsed_time)
