@@ -12,7 +12,6 @@ path = f"r/counting/comments/{id_thread}/c/" + "{}"
 batch_url = f"http://{netloc}/{path}?context=10"
 single_url = f"https://{netloc}/api/info.json?id=t1_" + "{}"
 
-
 def get_data(json_response):
     return json_response['data']['children'][0]['data']
 
@@ -22,8 +21,7 @@ def parse_data(comment):
                        author=comment_data['author'],
                        timestamp=comment_data['created_utc'],
                        comment_id=comment_data['id'],
-                       thread_id=comment_data['link_id'].split("_", 1)[1],
-                       parent_id=comment_data['parent_id'].split("_", 1)[1])
+                       thread_id=comment_data['link_id'].split("_", 1)[1])
 
 def walk_thread(id_thread, id_main, headers):
     """Walk a reddit thread and return a list of comments
@@ -53,7 +51,7 @@ def walk_thread(id_thread, id_main, headers):
                                         headers=headers).json()[1]
         temp_data = []
         data = parse_data(current_comments)
-        next_target = data['parent_id']
+        next_target = get_data(current_comments)['parent_id'].split("_", 1)[1]
         thread_start = data['timestamp']
         id_first_comment = data['comment_id']
         while id_main != next_target:
@@ -63,7 +61,7 @@ def walk_thread(id_thread, id_main, headers):
                 current_data = parse_data(current_comments)
                 if current_data['comment_id'] == id_main:
                     id_main = next_target
-                temp_data.append(tuple(current_data.values())[:-1])
+                temp_data.append(tuple(current_data.values()))
                 current_comments = get_data(current_comments)['replies']
             else:
                 print("\n\nBroken chain detected\n" + f"Last id_main: {id_main}\n")
@@ -73,8 +71,9 @@ def walk_thread(id_thread, id_main, headers):
                     broken_data = parse_data(broken_comment)
 
                     if id_main != '_':
-                        comments.append(tuple(broken_data.values())[:-1])
-                    id_main = broken_data['parent_id']
+                        comments.append(tuple(broken_data.values()))
+                    parent_id = get_data(broken_comment)['parent_id'].split("_", 1)[1]
+                    id_main = parent_id
                 print(f"\nNew id_main: {id_main}")
                 print("\nEnd of broken chain\n\n")
                 temp_data = []
