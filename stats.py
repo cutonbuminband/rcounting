@@ -16,7 +16,8 @@ single_url = f"https://{netloc}/api/info.json?id=t1_" + "{}"
 def get_data(json_response):
     return json_response['data']['children'][0]['data']
 
-def parse_data(comment_data):
+def parse_data(comment):
+    comment_data = get_data(comment)
     return OrderedDict(message=comment_data['body'],
                        author=comment_data['author'],
                        timestamp=comment_data['created_utc'],
@@ -51,7 +52,7 @@ def walk_thread(id_thread, id_main, headers):
         current_comments = requests.get(batch_url.format(id_main),
                                         headers=headers).json()[1]
         temp_data = []
-        data = parse_data(get_data(current_comments))
+        data = parse_data(current_comments)
         next_target = data['parent_id']
         thread_start = data['timestamp']
         id_first_comment = data['comment_id']
@@ -59,7 +60,7 @@ def walk_thread(id_thread, id_main, headers):
             if get_data(current_comments)['id'] != '_':
                 # The happy path. We process all the comments we have received,
                 # and when we are done we ask for a new batch.
-                current_data = parse_data(get_data(current_comments))
+                current_data = parse_data(current_comments)
                 if current_data['comment_id'] == id_main:
                     id_main = next_target
                 temp_data.append(tuple(current_data.values())[:-1])
@@ -69,7 +70,7 @@ def walk_thread(id_thread, id_main, headers):
                 for x in range(25):
                     broken_comment = requests.get(single_url.format(id_main),
                                                   headers=headers).json()
-                    broken_data = parse_data(get_data(broken_comment))
+                    broken_data = parse_data(broken_comment)
 
                     if id_main != '_':
                         comments.append(tuple(broken_data.values())[:-1])
