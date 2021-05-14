@@ -8,7 +8,8 @@ from urllib.parse import urlparse
 import re
 
 id_get = 'e1slbz0'
-baseCount = 2171000
+id_thread = '8w151j'
+
 netloc = "oauth.reddit.com"
 single_url = f"https://{netloc}/api/info.json?id=t1_" + "{}"
 
@@ -29,6 +30,15 @@ def get_oauth_headers():
 
     headers['Authorization'] = "bearer " + response['access_token']
     return headers
+
+def get_count_from_comment_body(body):
+    try:
+        regex = '^\[?[\d, ]*\]?'
+        count = re.findall(regex, body)[0]
+        stripped_count = count.translate(str.maketrans('', '', '[] ,'))
+        return int(stripped_count)
+    except:
+        raise ValueError(f"Unable to extract count from comment body: {body}")
 
 def find_previous_get(id_thread, headers):
     thread = requests.get(f"https://{netloc}/by_id/t3_{id_thread}",
@@ -130,9 +140,9 @@ if __name__ == "__main__":
     thread = requests.get(f"https://{netloc}/by_id/t3_{id_thread}.json",
                           headers=headers).json()
     title = get_data(thread)['title']
-    body = get_data(thread)['selftext']
 
     counts = walk_thread(id_thread, id_get, headers)
+    base_count = get_count_from_comment_body(counts[0][0])
     thread_duration = datetime.timedelta(seconds=counts[-1][2] - counts[0][2])
     days = thread_duration.days
     hours, mins, secs = str(thread_duration).split(':')[-3:]
@@ -142,7 +152,7 @@ if __name__ == "__main__":
         for idx, x in enumerate(counts[1:]):
             counters['/u/' + x[1]] += 1
             try:
-                print(baseCount + idx + 1, *x[1:], sep=",", file=hog_file)
+                print(base_count + idx + 1, *x[1:], sep=",", file=hog_file)
             except:
                 continue
 
