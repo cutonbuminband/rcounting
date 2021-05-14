@@ -5,7 +5,6 @@ import requests.auth
 from collections import OrderedDict, defaultdict
 
 id_get = 'e1slbz0'
-id_thread = '8w151j'
 baseCount = 2171000
 netloc = "oauth.reddit.com"
 path = f"r/counting/comments/{id_thread}/c/" + "{}"
@@ -104,6 +103,9 @@ def walk_thread(id_thread, id_main, headers):
 if __name__ == "__main__":
     t_start = datetime.datetime.now()
     headers = get_headers()
+    get = get_data(requests.get(single_url.format(id_get),
+                                headers=headers).json())
+    id_thread = get['link_id'].split('_')[1]
     thread = requests.get(f"https://{netloc}/by_id/t3_{id_thread}.json",
                           headers=headers).json()
     title = get_data(thread)['title']
@@ -123,7 +125,6 @@ if __name__ == "__main__":
             except:
                 continue
 
-    get_author = counts[0][1]
     with open("thread_participation.csv", "w") as hoc_file:
         hoc_file.write("Thread Participation Chart for " + title + "\n\n")
         hoc_file.write("Rank|Username|Counts\n")
@@ -132,7 +133,7 @@ if __name__ == "__main__":
         total_counts = sum([x[1] for x in counters])
 
         for rank, counter in enumerate(counters):
-            if counter[0][3:] == get_author:
+            if counter[0][3:] == get['author']:
                 counter = (f"**{counter[0]}**", counter[1])
             print(rank + 1, *counter, sep="|", file=hoc_file)
 
