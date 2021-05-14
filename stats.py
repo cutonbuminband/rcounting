@@ -12,6 +12,24 @@ path = f"r/counting/comments/{id_thread}/c/" + "{}"
 batch_url = f"http://{netloc}/{path}?context=10"
 single_url = f"https://{netloc}/api/info.json?id=t1_" + "{}"
 
+def get_headers():
+    config = configparser.ConfigParser()
+    config.read('secrets.txt')
+    auth = config['AUTH']
+    client_auth = requests.auth.HTTPBasicAuth(auth['client_id'],
+                                              auth['secret_key'])
+    post_data = {"grant_type": "password",
+                 "username": auth['username'],
+                 "password": auth['password']}
+    headers = {"User-Agent": "cobibh/counting_stats/v1"}
+    response = requests.post("https://www.reddit.com/api/v1/access_token",
+                             auth=client_auth,
+                             data=post_data,
+                             headers=headers).json()
+
+    headers['Authorization'] = "bearer " + response['access_token']
+    return headers
+
 def get_data(json_response):
     return json_response['data']['children'][0]['data']
 
@@ -85,22 +103,7 @@ def walk_thread(id_thread, id_main, headers):
 
 if __name__ == "__main__":
     t_start = datetime.datetime.now()
-
-    config = configparser.ConfigParser()
-    config.read('secrets.txt')
-    auth = config['AUTH']
-    client_auth = requests.auth.HTTPBasicAuth(auth['client_id'],
-                                              auth['secret_key'])
-    post_data = {"grant_type": "password",
-                 "username": auth['username'],
-                 "password": auth['password']}
-    headers = {"User-Agent": "cobibh/counting_stats/v1"}
-    response = requests.post("https://www.reddit.com/api/v1/access_token",
-                             auth=client_auth,
-                             data=post_data,
-                             headers=headers).json()
-
-    headers['Authorization'] = "bearer " + response['access_token']
+    headers = get_headers()
     thread = requests.get(f"https://{netloc}/by_id/t3_{id_thread}.json",
                           headers=headers).json()
     title = get_data(thread)['title']
