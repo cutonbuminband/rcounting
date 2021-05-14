@@ -3,12 +3,13 @@ import datetime
 import configparser
 import requests.auth
 from collections import OrderedDict, defaultdict
+from pathlib import PurePath
+from urllib.parse import urlparse
+import re
 
 id_get = 'e1slbz0'
 baseCount = 2171000
 netloc = "oauth.reddit.com"
-path = f"r/counting/comments/{id_thread}/c/" + "{}"
-batch_url = f"http://{netloc}/{path}?context=10"
 single_url = f"https://{netloc}/api/info.json?id=t1_" + "{}"
 
 def get_oauth_headers():
@@ -28,6 +29,26 @@ def get_oauth_headers():
 
     headers['Authorization'] = "bearer " + response['access_token']
     return headers
+
+def find_previous_get(id_thread, headers):
+    thread = requests.get(f"https://{netloc}/by_id/t3_{id_thread}",
+                          headers=headers).json()
+    body = get_data(thread)['selftext']
+    urls = re.findall('\[[^][]+]\((https?://[^()]+)\)', body)
+    print(urls)
+    for url in urls:
+        try:
+            parsed_url = urlparse(url)
+            parsed_url._replace(netloc=netloc)
+            requests.get(parsed_url.geturl(), headers=headers)
+            path = PurePath(parsed_url.path)
+            components = path.parts
+            new_id_thread = components[-3]
+            new_id_get = components[-1]
+            return new_id_thread, new_id_get
+        except:
+            continue
+    raise ValueError(f"Unable to find url in body of post {id_thread}")
 
 def get_data(json_response):
     return json_response['data']['children'][0]['data']
