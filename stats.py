@@ -11,6 +11,8 @@ id_get = 'e1slbz0'
 id_thread = '8w151j'
 
 netloc = "oauth.reddit.com"
+path = f"r/counting/comments/{id_thread}/c/" + "{}"
+batch_url = f"http://{netloc}/{path}?context=10"
 single_url = f"https://{netloc}/api/info.json?id=t1_" + "{}"
 
 def get_oauth_headers():
@@ -31,7 +33,7 @@ def get_oauth_headers():
     headers['Authorization'] = "bearer " + response['access_token']
     return headers
 
-def get_count_from_comment_body(body):
+def get_count_from_text(body):
     try:
         regex = '^\[?[\d, ]*\]?'
         count = re.findall(regex, body)[0]
@@ -44,21 +46,39 @@ def find_previous_get(id_thread, headers):
     thread = requests.get(f"https://{netloc}/by_id/t3_{id_thread}",
                           headers=headers).json()
     body = get_data(thread)['selftext']
-    urls = re.findall('\[[^][]+]\((https?://[^()]+)\)', body)
-    print(urls)
-    for url in urls:
+    url_regex = "(?:www\.)?(?:old\.)?reddit.com(/[^ )]+)(?:[ )]|$)"
+    markdown_link_regex = '\[[^][]+]\(([^()]+)\)'
+    urls = re.findall(url_regex, body)
+    if not urls:
+        urls = re.findall(markdown_link_regex, body)
+    url = urls[0]
+    path_components = PurePath(urlparse(url).path).parts
+    new_id_thread = path_components[-3]
+    new_id_get = path_components[-1]
+    new_id_get = find_get_from_comment(new_id_thread,
+                                       new_id_get,
+                                       headers)
+    print(new_id_thread, new_id_get)
+    return new_id_thread, new_id_get
+
+
+def find_get_from_comment(id_thread, id_comment, headers):
+    path = f"r/counting/comments/{id_thread}/_/{id_comment}"
+    batch_url = f"http://{netloc}/{path}?depth=10&sort=old"
+    current_thread = requests.get(batch_url,
+                                  headers=headers).json()[1]
+    current_count = get_count_from_text(get_data(current_thread)['body'])
+    current_id = id_comment
+    while current_count % 1000 != 0:
         try:
-            parsed_url = urlparse(url)
-            parsed_url._replace(netloc=netloc)
-            requests.get(parsed_url.geturl(), headers=headers)
-            path = PurePath(parsed_url.path)
-            components = path.parts
-            new_id_thread = components[-3]
-            new_id_get = components[-1]
-            return new_id_thread, new_id_get
-        except:
-            continue
-    raise ValueError(f"Unable to find url in body of post {id_thread}")
+            current_thread = get_data(current_thread)['replies']
+        except KeyError:
+            new_id = get_data(current_thread)['id']
+            return find_get_from_comment(id_thread, new_id, headers)
+        data = get_data(current_thread)
+        current_count = get_count_from_text(data['body'])
+        current_id = data['id']
+    return current_id
 
 def get_data(json_response):
     return json_response['data']['children'][0]['data']
@@ -70,6 +90,22 @@ def parse_data(comment):
                        timestamp=comment_data['created_utc'],
                        comment_id=comment_data['id'],
                        thread_id=comment_data['link_id'].split("_", 1)[1])
+
+def extract_gets_and_assists(id_get, id_thread, n_threads=1000):
+    headers = get_headers()
+    gets = []
+    assists = []
+    for n in range(n_threads):
+        rows = []
+        url = f"http://{netloc}/r/counting/comments/{id_thread}/_/{id_get}?context=2"
+        comments = requests.get(url, headers).json([1])
+        for i in range(3):
+            rows.append(tuple(parse_data(comments.values())))
+            comments = get_data(comments)['replies']
+        gets.append(rows[2] + (int(rows[2][2]) - int(rows[1][2]),))
+        assists.append(rows[1] + (rows[1][2] - rows[0][2],))
+        id_thread, id_get = find_previous_get(id_thread, headers=headers)
+    return gets, assists
 
 def walk_thread(id_thread, id_main, headers):
     """Walk a reddit thread and return a list of comments
@@ -142,7 +178,7 @@ if __name__ == "__main__":
     title = get_data(thread)['title']
 
     counts = walk_thread(id_thread, id_get, headers)
-    base_count = get_count_from_comment_body(counts[0][0])
+    base_count = get_count_from_text(counts[0][0])
     thread_duration = datetime.timedelta(seconds=counts[-1][2] - counts[0][2])
     days = thread_duration.days
     hours, mins, secs = str(thread_duration).split(':')[-3:]
