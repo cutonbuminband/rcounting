@@ -11,7 +11,7 @@ path = f"r/counting/comments/{id_thread}/c/" + "{}"
 batch_url = f"http://{netloc}/{path}?context=10"
 single_url = f"https://{netloc}/api/info.json?id=t1_" + "{}"
 
-def get_headers():
+def get_oauth_headers():
     config = configparser.ConfigParser()
     config.read('secrets.txt')
     auth = config['AUTH']
@@ -102,7 +102,7 @@ def walk_thread(id_thread, id_main, headers):
 
 if __name__ == "__main__":
     t_start = datetime.datetime.now()
-    headers = get_headers()
+    headers = get_oauth_headers()
     get = get_data(requests.get(single_url.format(id_get),
                                 headers=headers).json())
     id_thread = get['link_id'].split('_')[1]
