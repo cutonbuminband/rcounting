@@ -8,7 +8,7 @@ from praw.models import MoreComments
 from praw.exceptions import ClientException
 from pprint import pprint
 
-id_get = 'e1slbz0'
+id_get = 'gy85g6c'
 reddit_instance = praw.Reddit("stats_bot")
 
 def find_count_in_text(body):
