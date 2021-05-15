@@ -7,35 +7,46 @@ import re
 import praw
 from praw.models import MoreComments
 from praw.exceptions import ClientException
+from pprint import pprint
 
 id_get = 'e1slbz0'
 reddit_instance = praw.Reddit("stats_bot")
 
-def get_count_from_text(body):
+def find_count_in_text(body):
     try:
-        regex = '^\[?>?([\d, ]*)\]?'
+        regex = ("^[^\d]*"    # We strip non-numeric characters from the start
+                 "([\d, \.]*)"  # And then we take all digits and separators
+                 "")
         count = re.findall(regex, body)[0]
-        stripped_count = count.translate(str.maketrans('', '', ' ,'))
+        # We remove any separators, and try to convert the remainder to an int.
+        stripped_count = count.translate(str.maketrans('', '', ' ,.'))
         return int(stripped_count)
     except:
         raise ValueError(f"Unable to extract count from comment body: {body}")
 
-def find_urls_in_body(body):
-    url_regex = "(?:www\.)?(?:old\.)?reddit.com(/[^ )]+)(?:[ )]|$)"
-    markdown_link_regex = '\[[^][]+]\(([^()]+)\)'
+def find_urls_in_text(body):
+    # reddit lets you link to comments and posts with just /comments/stuff,
+    # so everything before that is optional. We only capture the bit after
+    # r/counting/comments, since that's what has the information we are
+    # interested in.
+    url_regex = ("(?:www\.)?"
+                 "(?:old\.)?"
+                 "(?:reddit\.com)?"
+                 "(?:/r/counting)?"
+                 "(/comments/[^ )\n?]+)")
     urls = re.findall(url_regex, body)
-    if not urls:
-        urls = re.findall(markdown_link_regex, body)
     return urls
 
 def find_previous_get(comment):
     thread = comment.submission
-    urls = find_urls_in_body(thread.selftext)
+    urls = find_urls_in_text(thread.selftext)
     if not urls:
-        urls = [find_urls_in_body(comment.body) for comment in thread.comments]
+        urls = [find_urls_in_text(comment.body) for comment in thread.comments]
         urls = [url for comment_urls in urls for url in comment_urls]
     url = urls[0]
-    path_components = PurePath(urlparse(url).path).parts
+    # Why yes, we did import the whole pathlib library just to deal with
+    # potential trailing slashes in the path for us.
+    path_components = PurePath(url).parts
     new_id_get = path_components[-1]
     comment = reddit_instance.comment(new_id_get)
     new_get = find_get_from_comment(comment)
@@ -43,14 +54,20 @@ def find_previous_get(comment):
     return new_get
 
 def find_get_from_comment(comment):
-    count = get_count_from_text(comment.body)
+    try:
+        count = find_count_in_text(comment.body)
+    except ValueError:
+        # Maybe somebody linked the gz instead of the get. Let's try one more
+        # time.
+        comment = comment.parent()
+        count = find_count_in_text(comment.body)
     comment.refresh()
 
     while count % 1000 != 0:
         comment = comment.replies[0]
         if isinstance(comment, MoreComments):
             comment = comment.comments()[0]
-        count = get_count_from_text(comment.body)
+        count = find_count_in_text(comment.body)
     return comment
 
 def parse_data(comment):
@@ -102,7 +119,7 @@ if __name__ == "__main__":
     title = thread.title
 
     counts = walk_thread(get_comment)
-    base_count = get_count_from_text(counts[0][0])
+    base_count = find_count_in_text(counts[0][0])
     thread_duration = datetime.timedelta(seconds=counts[-1][2] - counts[0][2])
     days = thread_duration.days
     hours, mins, secs = str(thread_duration).split(':')[-3:]
