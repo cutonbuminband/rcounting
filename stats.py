@@ -2,7 +2,6 @@
 import datetime
 from collections import defaultdict
 from pathlib import PurePath
-from urllib.parse import urlparse
 import re
 import praw
 from praw.models import MoreComments
