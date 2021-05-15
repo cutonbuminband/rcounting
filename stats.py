@@ -54,8 +54,9 @@ def find_get_from_comment(comment):
     return comment
 
 def parse_data(comment):
-    return (comment.body, str(comment.author), comment.created_utc,
-            comment.id, str(comment.submission))
+    author = str(comment.author) if comment.author is not None else "[deleted]"
+    return (comment.body, author,
+            comment.created_utc, comment.id, str(comment.submission))
 
 def extract_gets_and_assists(id_get, n_threads=1000):
     gets = []
@@ -84,14 +85,14 @@ def walk_thread(leaf_comment):
         if refresh_counter % 9 == 0:
             try:
                 comment.refresh()
+                print(comment.id)
             except ClientException:
                 print(f"Broken chain detected at {comment.id}")
                 print(f"Fetching the next 9 comments one by one")
         comments.append(parse_data(comment))
-        print(comment.id)
         comment = comment.parent()
         refresh_counter += 1
-    # comments.append(parse_data(comment))
+    comments.append(parse_data(comment))
     return comments[::-1]
 
 if __name__ == "__main__":
