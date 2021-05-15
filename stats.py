@@ -13,9 +13,9 @@ reddit_instance = praw.Reddit("stats_bot")
 
 def get_count_from_text(body):
     try:
-        regex = '^\[?[\d, ]*\]?'
+        regex = '^\[?>?([\d, ]*)\]?'
         count = re.findall(regex, body)[0]
-        stripped_count = count.translate(str.maketrans('', '', '[] ,'))
+        stripped_count = count.translate(str.maketrans('', '', ' ,'))
         return int(stripped_count)
     except:
         raise ValueError(f"Unable to extract count from comment body: {body}")
