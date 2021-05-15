@@ -32,7 +32,7 @@ def find_previous_get(comment):
     thread = comment.submission
     urls = find_urls_in_body(thread.selftext)
     if not urls:
-        urls = [find_url_in_body(comment.body) for comment in thread.comments]
+        urls = [find_urls_in_body(comment.body) for comment in thread.comments]
         urls = [url for comment_urls in urls for url in comment_urls]
     url = urls[0]
     path_components = PurePath(urlparse(url).path).parts
@@ -44,21 +44,20 @@ def find_previous_get(comment):
 
 def find_get_from_comment(comment):
     count = get_count_from_text(comment.body)
-    if count % 1000 == 0:
-        return comment
-    replies = comment.replies.list()
-    for reply in replies:
-        if not isinstance(reply, MoreComments):
-            count = get_count_from_text(reply.body)
-            if count % 1000 == 0:
-                return reply
-    raise(ValueError, "Unable to locate get near comment id {comment.id}")
+    comment.refresh()
+
+    while count % 1000 != 0:
+        comment = comment.replies[0]
+        if isinstance(comment, MoreComments):
+            comment = comment.comments()[0]
+        count = get_count_from_text(comment.body)
+    return comment
 
 def parse_data(comment):
     return (comment.body, str(comment.author), comment.created_utc,
             comment.id, str(comment.submission))
 
-def extract_gets_and_assists(id_get, n_threads=2):
+def extract_gets_and_assists(id_get, n_threads=1000):
     gets = []
     assists = []
     comment = reddit_instance.comment(id_get)
