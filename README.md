@@ -5,7 +5,7 @@ A small repository with a collection of tools for getting data on the counting t
 ## Contributing
 ## License
 
-This project is licensed under the terms of the GNU General Public License v3.0, or, at your discretion, any later version. You can read the license terms in [LICENSE.md]()
+This project is licensed under the terms of the GNU General Public License v3.0, or, at your discretion, any later version. You can read the license terms in [LICENSE.md](https://github.com/cutonbuminband/counting_stats/blob/master/LICENSE.md)
 
 ## Dependencies
 
