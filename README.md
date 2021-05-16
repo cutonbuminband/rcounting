@@ -41,7 +41,7 @@ e1sl8sh
 ...
 ```
 
-Reddit limits us to 60 api requests per minute, and we can get at most nine comments for each api requests, so it takes a bit of time.
+Reddit limits us to 60 api requests per minute, and we can get at most nine comments for each api request, so it takes a bit of time.
 
 Finally, the program prints how long it took to run, and writes two files: `thread_log.csv` and `thread_participation.csv`. Taking a peek at the past one, it looks as follows:
 
