@@ -1,11 +1,19 @@
 # encoding=utf8
+import argparse
 import datetime
 from collections import defaultdict
 import praw
 from parsing import find_count_in_text
 from thread_navigation import walk_thread
+from pprint import pprint
 
-id_get = 'e1slbz0'
+parser = argparse.ArgumentParser(description="Log the reddit thread which contains the comment with id `id_thread`")
+parser.add_argument("id_get",
+                    help="The id of the leaf comment (get) to start logging from")
+args = parser.parse_args()
+
+id_get = args.id_get
+print(f"Logging reddit thread starting at {id_get} and moving towards the root")
 
 
 t_start = datetime.datetime.now()
@@ -46,4 +54,4 @@ with open("thread_participation.csv", "w") as hoc_file:
                    f"\ntotal counts in this chain logged: {total_counts}")
 
 elapsed_time = datetime.datetime.now() - t_start
-print (elapsed_time)
+print (f"Running the script took {elapsed_time}")
