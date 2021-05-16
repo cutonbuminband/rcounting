@@ -30,7 +30,7 @@ password = PASSWORD
 
 If you only intend to scrape public posts, and don't want to comment or access private posts, the `username` and `password` lines are unnecessary.
 
-To check that everything is working properly, you can type `python3 log_thread.py e1slbz0`. `e1slbz0` is the reddit id of count `2 172 000`, the last count in [this thread](https://www.reddit.com/r/counting/comments/8w151j/2171k_counting_thread/e1slbz0/). To log a different thread, you should supply a different `get_id` on the command line. The `get_id` is the last part of the
+To check that everything is working properly, you can type `python3 log_thread.py e1slbz0`. `e1slbz0` is the reddit id of count `2 172 000`, the last count in [this thread](https://www.reddit.com/r/counting/comments/8w151j/2171k_counting_thread/e1slbz0/). To log a different thread, you should supply a different `get_id` on the command line. The `get_id` is the last part of the url, which is usually of the form `http://reddit.com/r/counting/comments/thread_id/thread_title/get_id`
 
 You should see the following text being printed
 ```
@@ -93,6 +93,7 @@ This is a loosely organised list of things which could be done in the future. If
 
 * Adding a command line interface for the get and assist finding functionality: Currently only the thread logging script has any form of command line interface
 * Recovering gracefully if a linked comment is inaccessible because it's been deleted or removed
+* Making the comment and url extraction less brittle
 * Adding more analyis tools: currently most of the code is focussed on data gathering, rather than analysis
 * Adding code to local storage to save and extract data, and to keep track of what has already been extracted. Long-term, it might make sense to try and get a complete listing of all threads and completely bypass the reddit interface. That would also resolve the problem of deleted counts and usernames.
 ## License
