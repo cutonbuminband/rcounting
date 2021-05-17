@@ -5,9 +5,9 @@ from collections import defaultdict
 import praw
 from parsing import find_count_in_text
 from thread_navigation import walk_thread
-from pprint import pprint
 
-parser = argparse.ArgumentParser(description="Log the reddit thread which contains the comment with id `id_thread`")
+parser = argparse.ArgumentParser(description="Log the reddit thread which"
+                                 " contains the comment with id `id_get`")
 parser.add_argument("id_get",
                     help="The id of the leaf comment (get) to start logging from")
 args = parser.parse_args()
@@ -31,10 +31,7 @@ counters = defaultdict(int)
 with open("thread_log.csv", "w") as hog_file:
     for idx, x in enumerate(counts[1:]):
         counters['/u/' + x[1]] += 1
-        try:
-            print(base_count + idx + 1, *x[1:], sep=",", file=hog_file)
-        except:
-            continue
+        print(base_count + idx + 1, *x[1:], sep=",", file=hog_file)
 
 with open("thread_participation.csv", "w") as hoc_file:
     hoc_file.write("Thread Participation Chart for " + title + "\n\n")
@@ -54,4 +51,4 @@ with open("thread_participation.csv", "w") as hoc_file:
                    f"\ntotal counts in this chain logged: {total_counts}")
 
 elapsed_time = datetime.datetime.now() - t_start
-print (f"Running the script took {elapsed_time}")
+print(f"Running the script took {elapsed_time}")

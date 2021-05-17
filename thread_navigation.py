@@ -4,7 +4,8 @@ from praw.exceptions import ClientException
 from parsing import find_urls_in_text, find_count_in_text
 
 
-def find_previous_get(comment):
+def find_previous_get(get_id, reddit_instance):
+    comment = reddit_instance.comment(get_id)
     thread = comment.submission
     urls = find_urls_in_text(thread.selftext)
     if not urls:
@@ -19,6 +20,7 @@ def find_previous_get(comment):
     new_get = find_get_from_comment(comment)
     print(new_get.submission, new_get.id)
     return new_get
+
 
 def find_get_from_comment(comment):
     try:
@@ -58,6 +60,7 @@ def comment_to_tuple(comment):
     return (comment.body, author,
             comment.created_utc, comment.id, str(comment.submission))
 
+
 def walk_thread(leaf_comment):
     "Return a list of comments in a reddit thread from leaf to root"
     comments = []
@@ -74,7 +77,7 @@ def walk_thread(leaf_comment):
                 print(comment.id)
             except ClientException:
                 print(f"Broken chain detected at {comment.id}")
-                print(f"Fetching the next 9 comments one by one")
+                print("Fetching the next 9 comments one by one")
         comments.append(comment_to_tuple(comment))
         comment = comment.parent()
         refresh_counter += 1
