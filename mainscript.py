@@ -4,12 +4,13 @@ from collections import defaultdict
 import re
 import praw
 import os
+from pathlib import Path
 
 #the ids are now in a list (array). much easier to do 
 #and you can have it idle in the background
 
-client_id="14 char client secret"
-client_secret="30 char client secret"
+client_id="14 char"
+client_secret="30 char"
  
 def find_count_in_text(body):
     try:
@@ -49,8 +50,22 @@ def walk_thread(leaf_comment):
     # We need to include the root comment as well
     comments.append(comment_to_tuple(comment))
     return comments
- 
+
+def find_alias(user):
+    aliaseslist = []
+    f = open(Path(os.getcwd()) / "input/prefs/Aliases.txt","r")
+    lines = f.readlines()
+    for line in lines:
+        aliaseslist.append(line.replace("\n","",1).split(","))
+
+    for x in aliaseslist:
+        if (user in x) and (user != x[0]):
+            return x[0]
+    return user
+
 if __name__ == "__main__":
+    
+
     ids = []
     threads = ""
     while threads is not "idk lmao just make it throw an error and it will work":
@@ -78,30 +93,17 @@ if __name__ == "__main__":
      
         counters = defaultdict(int)
 
-        aliaseslist = []
-        f = open((os.getcwd()+"\input\prefs\Aliases.txt"),"r")
-        lines = f.readlines()
-        for line in lines:
-            aliaseslist.append(line.replace("\n","",1).split(","))
         
-        with open(os.getcwd()+"\\results\\LOG_"+str(base_count)+"to"+str(base_count+1000)+".csv", "w") as hog_file:
+        
+        with open(Path(os.getcwd()) / ("results/LOG_"+str(base_count)+"to"+str(base_count+1000)+".csv"), "w") as hog_file:
             for idx, x in enumerate(counts[1:]):
-                replacealt = False
-                for user in aliaseslist:
-                    if (x[1] in user) and (user[0] != x[1]):
-                        replacealt = True
-                        counters['/u/' + user[0]] += 1
-                        break
-                if replacealt is False:
-                    counters['/u/' + x[1]] += 1
-
-                #print(str(x[0]) + str(x[1]) + str(x[2]) + str(x[3]))
+                counters['/u/' + find_alias(x[1])] += 1
                 try:
                     print(base_count + idx + 1, *x[1:], sep=",", file=hog_file)
                 except:
                     continue
      
-        with open(os.getcwd()+"\\results\\TABLE_"+str(base_count)+"to"+str(base_count+1000)+".csv", "w") as hoc_file:
+        with open(Path(os.getcwd()) / ("results/TABLE_"+str(base_count)+"to"+str(base_count+1000)+".csv"), "w") as hoc_file:
             hoc_file.write("Thread Participation Chart for " + title + "\n\n")
             hoc_file.write("Rank|Username|Counts\n")
             hoc_file.write("---|---|---\n")
@@ -109,7 +111,7 @@ if __name__ == "__main__":
             total_counts = sum([x[1] for x in counters])
      
             for rank, counter in enumerate(counters):
-                if counter[0][3:] == str(get_comment.author):
+                if counter[0][3:] == find_alias(str(get_comment.author)):
                     counter = (f"**{counter[0]}**", counter[1])
                 print(rank + 1, *counter, sep="|", file=hoc_file)
      
@@ -120,7 +122,7 @@ if __name__ == "__main__":
      
         elapsed_time = datetime.datetime.now() - t_start
         print(elapsed_time)
-        print(os.getcwd()+"\\results\\LOG_"+str(base_count)+"to"+str(base_count+1000)+".csv")
-        print(os.getcwd()+"\\results\\TABLE_"+str(base_count)+"to"+str(base_count+1000)+".csv")
+        print(Path(os.getcwd()) / ("results/LOG_"+str(base_count)+"to"+str(base_count+1000)+".csv"))
+        print(Path(os.getcwd()) / ("results/TABLE_"+str(base_count)+"to"+str(base_count+1000)+".csv"))
         print(base_count)
      
