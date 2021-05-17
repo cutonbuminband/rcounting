@@ -7,7 +7,7 @@ import os
 
 #the ids are now in a list (array). much easier to do 
 #and you can have it idle in the background
-ids = ["gy3vnuk"]
+
 client_id="14 char client secret"
 client_secret="30 char client secret"
  
@@ -51,6 +51,16 @@ def walk_thread(leaf_comment):
     return comments
  
 if __name__ == "__main__":
+    ids = []
+    threads = ""
+    while threads is not "idk lmao just make it throw an error and it will work":
+        try:
+            context = (input().split("/"))[8]
+            print(context)
+            ids.append(context)
+        except:
+            break
+    
     for current_id in ids:
         t_start = datetime.datetime.now()
         reddit_instance = praw.Reddit(client_id=client_id,
