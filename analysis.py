@@ -20,6 +20,11 @@ def is_mod(username):
     return username in mods
 
 
+def capture_the_flag_score(thread):
+    thread['score'] = elapsed_time = thread['timestamp'].diff().shift(-1)
+    return thread.groupby('username')['score'].sum()
+
+
 gets = pd.read_csv('gets.csv')
 assists = pd.read_csv('assists.csv')
 
