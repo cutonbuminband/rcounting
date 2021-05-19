@@ -35,7 +35,7 @@ def find_get_from_comment(comment):
     return comment
 
 
-def extract_gets_and_assists(comment, n_threads=1000):
+def extract_gets_and_assists(comment, reddit_instance, n_threads=1000):
     gets = []
     assists = []
     comment.refresh()
@@ -46,7 +46,7 @@ def extract_gets_and_assists(comment, n_threads=1000):
             comment = comment.parent()
         gets.append(rows[0] + (rows[0][2] - rows[1][2],))
         assists.append(rows[1] + (rows[1][2] - rows[2][2],))
-        comment = find_previous_get(comment)
+        comment = find_previous_get(comment, reddit_instance)
     return gets, assists
 
 
