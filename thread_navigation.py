@@ -17,14 +17,23 @@ def find_previous_get(get_id, reddit_instance):
     return new_get
 
 
+def search_up_from_gz(comment, max_retries=5):
+    "Find a count up to max_retries above the linked_comment"
+    for i in range(max_retries):
+        try:
+            count = find_count_in_text(comment.body)
+            break
+        except ValueError:
+            if i == max_retries:
+                raise
+            else:
+                comment = comment.parent()
+
+    return count, comment
+
+
 def find_get_from_comment(comment):
-    try:
-        count = find_count_in_text(comment.body)
-    except ValueError:
-        # Maybe somebody linked the gz instead of the get. Let's try one more
-        # time.
-        comment = comment.parent()
-        count = find_count_in_text(comment.body)
+    count, comment = search_up_from_gz(comment)
     comment.refresh()
 
     while count % 1000 != 0:
