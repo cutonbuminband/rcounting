@@ -1,4 +1,3 @@
-from pathlib import PurePath
 from praw.models import MoreComments
 from praw.exceptions import ClientException
 from parsing import find_urls_in_text, find_count_in_text
@@ -11,12 +10,8 @@ def find_previous_get(get_id, reddit_instance):
     if not urls:
         urls = [find_urls_in_text(comment.body) for comment in thread.comments]
         urls = [url for comment_urls in urls for url in comment_urls]
-    url = urls[0]
-    # Why yes, we did import the whole pathlib library just to deal with
-    # potential trailing slashes in the path for us.
-    path_components = PurePath(url).parts
-    new_id_get = path_components[-1]
-    comment = reddit_instance.comment(new_id_get)
+    new_thread_id, title_url, new_get_id = urls[0]
+    comment = reddit_instance.comment(new_get_id)
     new_get = find_get_from_comment(comment)
     print(new_get.submission, new_get.id)
     return new_get
