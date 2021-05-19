@@ -1,6 +1,9 @@
+import requests.auth
 from praw.models import MoreComments
 from praw.exceptions import ClientException
 from parsing import find_urls_in_text, find_count_in_text
+
+ps_url = 'https://api.pushshift.io/reddit'
 
 
 def find_previous_get(get_id, reddit_instance):
@@ -11,10 +14,27 @@ def find_previous_get(get_id, reddit_instance):
         urls = [find_urls_in_text(comment.body) for comment in thread.comments]
         urls = [url for comment_urls in urls for url in comment_urls]
     new_thread_id, title_url, new_get_id = urls[0]
+    if not new_get_id:
+        new_get_id = find_get_in_thread(new_thread_id, reddit_instance)
     comment = reddit_instance.comment(new_get_id)
     new_get = find_get_from_comment(comment)
     print(new_get.submission, new_get.id)
     return new_get
+
+
+def find_get_in_thread(thread, reddit):
+    "Find the get based on thread id"
+    comment_ids = requests.get('/submission/'
+                               f'comment_ids/{thread.id}').json()['data'][::-1]
+    for comment_id in comment_ids[:-1]:
+        comment = reddit.comment(comment_id)
+        try:
+            count = find_count_in_text(comment.body)
+            if count % 1000 == 0:
+                return comment.id
+        except ValueError:
+            continue
+    raise ValueError(f"Unable to locate get in thread {thread.id}")
 
 
 def search_up_from_gz(comment, max_retries=5):
