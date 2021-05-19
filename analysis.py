@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import timedelta
 from pathlib import Path
+from pandas.plotting import register_matplotlib_converters
+register_matplotlib_converters()
 
 mods = ['Z3F',
         '949paintball',
