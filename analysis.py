@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import timedelta
+from pathlib import Path
 
 mods = ['Z3F',
         '949paintball',
@@ -14,6 +15,18 @@ mods = ['Z3F',
         'KingCaspianX',
         'Urbul',
         'Zaajdaeon']
+
+
+def combine_csvs(start, n):
+    results = [''] * n
+    for i in range(n):
+        hog_path = Path(f"results/LOG_{start}to{start+1000}.csv")
+        df = pd.read_csv(hog_path,
+                         names=['count', 'username', 'timestamp', 'comment_id', 'thread_id'])
+        df = df.set_index('count')
+        results[i] = df
+        start += 1000
+    return pd.concat(results)
 
 
 def is_mod(username):
