@@ -53,6 +53,36 @@ def time_of_day_histogram(df, ax, n=4):
     return ax
 
 
+def time_of_day_kde(df, ax, n=4):
+    alpha = 0.8
+    nbins = 24 * 60 * 2
+    sigma = 0.02
+    df = df.copy()
+    df['time_of_day'] = df['timestamp'].astype(int) % (24 * 3600)
+    counts = df['username'].value_counts()
+    top_counters = counts.index[:n]
+    x, kde = fft_kde(df['time_of_day'], nbins, kernel='normal_distribution', sigma=sigma)
+    kde *= len(df)
+    ax.fill_between(x, kde, label='All Counts', color='0.8')
+    for idx, counter in enumerate(top_counters):
+        data = df.query(f'username=="{counter}"')['time_of_day']
+        x, kde = fft_kde(data, nbins, kernel='normal_distribution', sigma=sigma)
+        kde *= counts.loc[counter]
+        ax.fill_between(x, kde, color=standard_colors[idx], alpha=alpha)
+        ax.plot(x, kde, label=counter, color=standard_colors[idx], lw=2)
+    ax.set_xlim(0, 24*3600 + 1)
+    hour = 3600
+    ax.set_xticks([0*hour, 3*hour, 6*hour, 9*hour, 12*hour,
+                   15*hour, 18*hour, 21*hour, 24*hour])
+    ax.set_xticklabels(['00:00', '03:00', '06:00', '09:00', '12:00',
+                        '15:00', '18:00', '21:00', '00:00'])
+    ax.set_ylim(bottom=0)
+    ax.legend()
+    ax.set_xlabel("Time of day [UTC]")
+    ax.set_ylabel("Counts per second")
+    return ax
+
+
 def plot_get_time(df, ax, **kwargs):
     markers = {"get": "v", "assist": "s"}
     colors = {True: "C1", False: "C0"}

@@ -2,6 +2,7 @@ import pandas as pd
 from pathlib import Path
 import numpy as np
 from numpy.fft import fftshift, rfft, irfft
+from numpy import pi
 from scipy.special import i0
 
 mods = ['Z3F',
@@ -40,11 +41,15 @@ def capture_the_flag_score(thread):
     return thread.groupby('username')['score'].sum()
 
 
-def vonmises_distribution(x, mu, kappa):
+def vonmises_distribution(x, mu=0, kappa=1):
     return np.exp(kappa * np.cos(x - mu)) / (2. * np.pi * i0(kappa))
 
 
-def fft_kde(data, n_bins, kernel=vonmises_distribution, **params):
+def normal_distribution(x, mu=0, sigma=1):
+    return np.exp(-0.5 * ((x - mu) / sigma) ** 2) / (sigma * np.sqrt(np.pi * 2))
+
+
+def fft_kde_on_unit_circle(data, n_bins, kernel=vonmises_distribution, **params):
     """The fft approximation to the kde of data on the unit circle
 
     params:
@@ -68,10 +73,24 @@ def fft_kde(data, n_bins, kernel=vonmises_distribution, **params):
 
     """
 
-    x_axis = np.linspace(-np.pi, np.pi, n_bins + 1, endpoint=True)
+    x_axis = np.linspace(-pi, pi, n_bins + 1, endpoint=True)
     hist, edges = np.histogram(data, bins=x_axis)
     x = np.mean([edges[1:], edges[:-1]], axis=0)
     kernel = kernel(x=x, **params)
     kde = fftshift(irfft(rfft(kernel) * rfft(hist)))
+    kde /= np.trapz(kde, x=x)
+    return x, kde
+
+
+def fft_kde(data, n_bins, kernel=vonmises_distribution, **params):
+    minval = 0
+    maxval = 24 * 3600
+    if kernel == 'vonmises_distribution':
+        kernel = vonmises_distribution
+    elif kernel == 'normal_distribution':
+        kernel = normal_distribution
+    data_on_unit_circle = (data - minval) / (maxval - minval) * 2 * pi - pi
+    x, kde = fft_kde_on_unit_circle(data_on_unit_circle, n_bins, kernel, **params)
+    x = (x + pi) / (2 * pi) * (maxval - minval) + minval
     kde /= np.trapz(kde, x=x)
     return x, kde
