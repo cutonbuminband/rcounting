@@ -2,10 +2,17 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib.colors as mcolors
 from datetime import timedelta
+from cycler import cycler
 from pandas.plotting import register_matplotlib_converters
 from parsing import find_count_in_text
+from analysis import fft_kde
+
 register_matplotlib_converters()
+
+standard_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+                   '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 
 def format_x_date_month(ax):
@@ -17,20 +24,23 @@ def format_x_date_month(ax):
     ax.xaxis.set_minor_locator(months)
 
 
-def speedrun_histogram(df, ax, n=3):
+def speedrun_histogram(df, n=3):
     bins = np.arange(0, 21)
     df = df.copy()
     df['dt'] = df['timestamp'].diff()
     counters = df.query('dt < 20').groupby('username').mean()['dt'].sort_values().index
-    for counter in counters[:n]:
+    fig, axes = plt.subplots(n, sharex=True, sharey=True)
+    for idx, counter in enumerate(counters[:n]):
+        ax = axes[idx]
         ax.hist(df.query(f'username == "{counter}"')['dt'],
                 bins=bins, alpha=0.6, label=counter, density=True,
+                color=standard_colors[idx],
                 edgecolor='k')
-    ax.set_xlim(0, 20)
-    ax.set_xticks([0.5, 5.5, 10.5, 15.5])
-    ax.set_xticklabels(['0', '5', '10', '15'])
-    ax.legend()
-    return ax
+        ax.legend()
+    ax.set_xlim(0, 11)
+    ax.set_xticks([0.5, 5.5, 10.5])
+    ax.set_xticklabels(['0', '5', '10'])
+    return fig
 
 
 def time_of_day_histogram(df, ax, n=4):
@@ -46,8 +56,10 @@ def time_of_day_histogram(df, ax, n=4):
                 edgecolor='k')
     ax.set_xlim(0, 24*3600 + 1)
     hour = 3600
-    ax.set_xticks([0*hour, 6*hour, 12*hour, 18*hour, 24*hour])
-    ax.set_xticklabels(['00:00', '06:00', '12:00', '18:00', '00:00'])
+    ax.set_xticks([0*hour, 3*hour, 6*hour, 9*hour, 12*hour,
+                   15*hour, 18*hour, 21*hour, 24*hour])
+    ax.set_xticklabels(['00:00', '03:00', '06:00', '09:00', '12:00',
+                        '15:00', '18:00', '21:00', '00:00'])
     ax.legend()
     ax.set_ylabel("Number of counts per 5 min interval")
     return ax
@@ -84,8 +96,8 @@ def time_of_day_kde(df, ax, n=4):
 
 
 def plot_get_time(df, ax, **kwargs):
-    markers = {"get": "v", "assist": "s"}
-    colors = {True: "C1", False: "C0"}
+    cc = cycler(color=['C0', 'C1']) * cycler(marker=list('vs'))
+    ax.set_prop_cycle(cc)
     modstring = {False: "Non-mod", True: "Mod"}
     get_type = {"get": "Get", "assist": "Assist"}
 
@@ -93,11 +105,8 @@ def plot_get_time(df, ax, **kwargs):
         for modness in [False, True]:
             subset = df.query(f'is_moderator == {modness} and count_type == "{count_type}"')
             ax.plot(subset['timestamp'], subset['elapsed_time'],
-                    marker=markers[count_type],
-                    color=colors[modness],
                     linestyle="None",
                     label=f"{get_type[count_type]} by {modstring[modness]}",
-                    markeredgecolor=colors[modness],
                     alpha=0.8,
                     **kwargs)
 
@@ -109,6 +118,11 @@ def plot_get_time(df, ax, **kwargs):
     ax.set_ylabel('Elapsed time for assists and gets [s]')
     ax.legend(loc='upper right')
     return ax
+
+
+def simulate_alpha(color, alpha):
+    white = np.array((1, 1, 1))
+    return tuple(np.array(mcolors.to_rgb(color)) * alpha + (1 - alpha) * white)
 
 
 if __name__ == "__main__":
