@@ -32,7 +32,7 @@ def speedrun_histogram(df, n=3):
     fig, axes = plt.subplots(n, sharex=True, sharey=True)
     for idx, counter in enumerate(counters[:n]):
         ax = axes[idx]
-        ax.hist(df.query(f'username == "{counter}"')['dt'],
+        ax.hist(df.query(f'username == @counter')['dt'],
                 bins=bins, alpha=0.6, label=counter, density=True,
                 color=standard_colors[idx],
                 edgecolor='k')
@@ -51,7 +51,7 @@ def time_of_day_histogram(df, ax, n=4):
     ax.hist(df['time_of_day'], bins=bins, alpha=0.8, label='total', color='C3',
             edgecolor='k')
     for counter in top_counters:
-        data = df.query(f'username=="{counter}"')['time_of_day']
+        data = df.query('username==@counter')['time_of_day']
         ax.hist(data, bins=bins, alpha=0.7, label=counter,
                 edgecolor='k')
     ax.set_xlim(0, 24*3600 + 1)
@@ -77,7 +77,7 @@ def time_of_day_kde(df, ax, n=4):
     kde *= len(df)
     ax.fill_between(x, kde, label='All Counts', color='0.8')
     for idx, counter in enumerate(top_counters):
-        data = df.query(f'username=="{counter}"')['time_of_day']
+        data = df.query('username==@counter')['time_of_day']
         x, kde = fft_kde(data, nbins, kernel='normal_distribution', sigma=sigma)
         kde *= counts.loc[counter]
         ax.fill_between(x, kde, color=standard_colors[idx], alpha=alpha)
@@ -103,7 +103,7 @@ def plot_get_time(df, ax, **kwargs):
 
     for count_type in ['get', 'assist']:
         for modness in [False, True]:
-            subset = df.query(f'is_moderator == {modness} and count_type == "{count_type}"')
+            subset = df.query('is_moderator == @modness and count_type == @count_type')
             ax.plot(subset['timestamp'], subset['elapsed_time'],
                     linestyle="None",
                     label=f"{get_type[count_type]} by {modstring[modness]}",
