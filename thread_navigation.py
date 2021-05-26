@@ -2,6 +2,7 @@ import requests.auth
 from praw.models import MoreComments
 from praw.models import Comment
 from praw.exceptions import ClientException
+from prawcore.exceptions import ServerError
 from parsing import find_urls_in_text, find_count_in_text
 
 ps_url = 'https://api.pushshift.io/reddit'
@@ -126,7 +127,7 @@ def walk_thread(leaf_comment):
             try:
                 comment.refresh()
                 print(comment.id)
-            except ClientException:
+            except (ClientException, ServerError):
                 print(f"Broken chain detected at {comment.id}")
                 print("Fetching the next 9 comments one by one")
         comments.append(comment_to_tuple(comment))
