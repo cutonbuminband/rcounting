@@ -53,7 +53,7 @@ def walk_thread(leaf_comment):
 
 def find_alias(user):
     aliaseslist = []
-    f = open(Path(os.getcwd()) / "input/prefs/Aliases.txt","r")
+    f = open(Path(os.getcwd()) / "input/prefs/aliases.txt","r")
     lines = f.readlines()
     for line in lines:
         aliaseslist.append(line.replace("\n","",1).split(","))
