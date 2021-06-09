@@ -1,4 +1,5 @@
 import re
+from models import RedditPost
 
 
 def find_count_in_text(body):
@@ -21,3 +22,11 @@ def find_urls_in_text(body):
     url_regex = (r"comments/([\w]+)/([\w]+)/([\w]*)")
     urls = re.findall(url_regex, body)
     return urls
+
+
+def post_to_count(reddit_post):
+    return find_count_in_text(RedditPost(reddit_post).body)
+
+
+def post_to_urls(reddit_post):
+    return find_urls_in_text(RedditPost(reddit_post).body)

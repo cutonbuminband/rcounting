@@ -41,9 +41,9 @@ e1sl8sh
 ...
 ```
 
-Reddit limits us to 60 api requests per minute, and we can get at most nine comments for each api request, so it takes a bit of time.
+Reddit limits us to 60 api requests per minute, and we can get at most nine comments for each api request, so it takes a bit of time. If you have the [Pushshift API Wrapper](https://psaw.readthedocs.io/en/latest/#) you can ask the logging tool to use that instead by passing an `--engine` parameter on the command line. This is faster, but doesn't work for the very oldest threads, or the very newest ones, and some comments are just missing. For full usage information, try typing `python3 log_thread.py -h`.
 
-Finally, the program prints how long it took to run, and writes two files: `thread_log.csv` and `thread_participation.csv`. Taking a peek at the past one, it looks as follows:
+The output of the logging script is two csv files called `results/table_{something}.csv` and `results/log_{something}.csv`. Taking a peek at the past one, it looks as follows:
 
 ```
 Thread Participation Chart for 2171k counting thread
@@ -92,7 +92,7 @@ Rank|Username|Counts
 This is a loosely organised list of things which could be done in the future. If you have any suggestions, don't hesitate to write, or to send a pull request.
 
 * Adding a command line interface for the get and assist finding functionality: Currently only the thread logging script has any form of command line interface
-* Recovering gracefully if a linked comment is inaccessible because it's been deleted or removed
+* ~~Recovering gracefully if a linked comment is inaccessible because it's been deleted or removed~~ This has been done more or less, in that the code tries to see if the reddit object is accessible on pushshift.
 * Making the comment and url extraction less brittle
 * Adding more analyis tools: currently most of the code is focussed on data gathering, rather than analysis
 * Adding code to local storage to save and extract data, and to keep track of what has already been extracted. Long-term, it might make sense to try and get a complete listing of all threads and completely bypass the reddit interface. That would also resolve the problem of deleted counts and usernames.
@@ -105,6 +105,10 @@ This project is licensed under the terms of the GNU General Public License v3.0,
 The program has only been tested on python 3.8
 
 The program makes use of the [Python Reddit API Wrapper](https://praw.readthedocs.io/en/latest/) to interact with reddit.
+
+The program also uses the [Pushshift API Wrapper](https://psaw.readthedocs.io/en/latest/#)
+
+The program uses the `pandas` package to work with tabular data
 
 ## Get in touch
 
