@@ -7,8 +7,8 @@ api = PushshiftAPI()
 class RedditPost():
     def __init__(self, post, cached=False):
         self.id = post.id
-        self.timestamp = post.timestamp if hasattr(post, 'timestamp') else int(post.created_utc)
-        self.username = post.username if hasattr(post, 'username') else str(post.author)
+        self.created_utc = post.created_utc
+        self.author = str(post.author)
         self.body = post.body if hasattr(post, 'body') else post.selftext
         self.cached = cached or hasattr(post, 'cached')
         if hasattr(post, 'post_type'):
@@ -19,25 +19,22 @@ class RedditPost():
         if not self.cached:
             if (self.body == '[deleted]'
                 or (self.body == '[removed]')
-                or self.username == '[deleted]'):
-                self.body, self.username = self.find_missing()
+                or self.author == '[deleted]'):
+                self.body, self.author = self.find_missing()
         self.cached = True
 
     def find_missing(self):
-        post = next(self.search(ids=[self.id], metadata='true', limit=0))
         try:
-            username = post.author
-        except (KeyError, IndexError):
-            username = self.username
-        try:
-            body = post.body if hasattr(post, 'body') else post.selftext
-        except (KeyError, IndexError):
-            body = self.body
-        return body, username
+            post = next(self.search(ids=[self.id], metadata='true', limit=0))
+        except StopIteration:
+            return self.body, self.author
+        author = post.author
+        body = post.body if hasattr(post, 'body') else post.selftext
+        return body, author
 
     def to_dict(self):
-        return {'username': self.username,
-                'timestamp': self.timestamp,
+        return {'username': self.author,
+                'timestamp': self.created_utc,
                 'comment_id': self.id,
                 'thread_id': self.thread_id[3:],
                 'body': self.body}
@@ -50,8 +47,8 @@ class Submission(RedditPost):
         self.thread_id = s.thread_id if hasattr(s, 'thread_id') else s.name
 
     def to_dict(self):
-        return {'username': self.username,
-                'timestamp': self.timestamp,
+        return {'username': self.author,
+                'timestamp': self.created_utc,
                 'comment_id': self.id,
                 'thread_id': self.thread_id[3:],
                 'body': self.body,
