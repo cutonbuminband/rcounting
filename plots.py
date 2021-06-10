@@ -24,6 +24,29 @@ def format_x_date_month(ax):
     ax.xaxis.set_minor_locator(months)
 
 
+def parts_vs_counts(df):
+    k_parts = df.groupby('username')['thread_id'].nunique()
+    hoc = df.groupby('username')['thread_id'].count()
+    combined = pd.merge(k_parts, hoc, left_index=True, right_index=True)
+    combined.columns = ["k_parts", "total_counts"]
+    combined = combined.query('k_parts > 10')
+    linear_model = np.polyfit(np.log10(combined.k_parts),
+                              np.log10(combined.total_counts), 1)
+    print(linear_model)
+    axis = np.linspace(1, combined.k_parts.max(), endpoint=True)
+
+    plt.scatter(combined.k_parts, combined.total_counts, alpha=0.7)
+    plt.plot(axis, 10**(np.poly1d(linear_model)(np.log10(axis))), linestyle='--', color='0.3',
+             lw=2)
+    plt.xlabel('Threads participated in ')
+    plt.ylabel('Total counts made')
+    plt.yscale('log')
+    plt.xscale('log')
+    plt.xlim(left=10)
+    plt.ylim(bottom=10)
+    plt.savefig('parts_vs_counts.png', dpi=300, bbox_inches='tight')
+
+
 def speedrun_histogram(df, n=3):
     bins = np.arange(0, 21)
     df = df.copy()
