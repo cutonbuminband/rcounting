@@ -32,7 +32,7 @@ def speedrun_histogram(df, n=3):
     fig, axes = plt.subplots(n, sharex=True, sharey=True)
     for idx, counter in enumerate(counters[:n]):
         ax = axes[idx]
-        ax.hist(df.query(f'username == @counter')['dt'],
+        ax.hist(df.query('username == @counter')['dt'],
                 bins=bins, alpha=0.6, label=counter, density=True,
                 color=standard_colors[idx],
                 edgecolor='k')
@@ -54,10 +54,10 @@ def time_of_day_histogram(df, ax, n=4):
         data = df.query('username==@counter')['time_of_day']
         ax.hist(data, bins=bins, alpha=0.7, label=counter,
                 edgecolor='k')
-    ax.set_xlim(0, 24*3600 + 1)
+    ax.set_xlim(0, 24 * 3600 + 1)
     hour = 3600
-    ax.set_xticks([0*hour, 3*hour, 6*hour, 9*hour, 12*hour,
-                   15*hour, 18*hour, 21*hour, 24*hour])
+    ax.set_xticks([0 * hour, 3 * hour, 6 * hour, 9 * hour, 12 * hour,
+                   15 * hour, 18 * hour, 21 * hour, 24 * hour])
     ax.set_xticklabels(['00:00', '03:00', '06:00', '09:00', '12:00',
                         '15:00', '18:00', '21:00', '00:00'])
     ax.legend()
@@ -82,10 +82,10 @@ def time_of_day_kde(df, ax, n=4):
         kde *= counts.loc[counter]
         ax.fill_between(x, kde, color=standard_colors[idx], alpha=alpha)
         ax.plot(x, kde, label=counter, color=standard_colors[idx], lw=2)
-    ax.set_xlim(0, 24*3600 + 1)
+    ax.set_xlim(0, 24 * 3600 + 1)
     hour = 3600
-    ax.set_xticks([0*hour, 3*hour, 6*hour, 9*hour, 12*hour,
-                   15*hour, 18*hour, 21*hour, 24*hour])
+    ax.set_xticks([0 * hour, 3 * hour, 6 * hour, 9 * hour, 12 * hour,
+                   15 * hour, 18 * hour, 21 * hour, 24 * hour])
     ax.set_xticklabels(['00:00', '03:00', '06:00', '09:00', '12:00',
                         '15:00', '18:00', '21:00', '00:00'])
     ax.set_ylim(bottom=0)
