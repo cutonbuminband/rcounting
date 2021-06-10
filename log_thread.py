@@ -22,7 +22,7 @@ def log_one_thread(leaf_comment, engine='praw'):
         raise ValueError(f'Engine must be one of `praw` or `psaw` not {engine}')
 
     title = leaf_comment.submission.title
-    df = pd.DataFrame([x.to_dict() for x in walk(get_comment)[::-1]])
+    df = pd.DataFrame(walk(get_comment))
     hog_columns = ['username', 'timestamp', 'comment_id', 'thread_id']
     df.set_index(df.index + basecount)[hog_columns].iloc[1:].to_csv(hog_path, header=None)
     with open(hoc_path, 'w') as f:

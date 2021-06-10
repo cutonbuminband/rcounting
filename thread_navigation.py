@@ -100,7 +100,7 @@ def walk_thread(leaf_comment):
         refresh_counter += 1
     # We need to include the root comment as well
     comments.append(OfflineComment(comment))
-    return comments
+    return [x.to_dict() for x in comments[::-1]]
 
 
 def psaw_walk_thread(comment):
@@ -124,6 +124,4 @@ def psaw_walk_thread(comment):
     thread_tree = CommentTree(psaw_comment_list)
     print(comment.id)
     comment = find_get_from_comment(thread_tree.comment(comment.id))
-    comments = walk_thread(comment)
-
-    return comments
+    return walk_thread(comment)
