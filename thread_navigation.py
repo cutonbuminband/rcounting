@@ -122,6 +122,11 @@ def psaw_walk_thread(comment):
         psaw_comment_list += comments
 
     thread_tree = CommentTree(psaw_comment_list)
+    missing_comments = thread_tree.missing_comments()
+    if len(missing_comments) < 10:
+        for missing_comment in missing_comments:
+            comment_from_praw = OfflineComment(missing_comment._reddit(comment))
+            thread_tree.add_comment(comment_from_praw)
     print(comment.id)
     comment = find_get_from_comment(thread_tree.comment(comment.id))
     return walk_thread(comment)
