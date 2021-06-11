@@ -40,8 +40,8 @@ def response_graphf(df, n=250):
     undeleted_users = df['username'] != '[deleted]'
     user_counts = df.loc[undeleted_users].groupby('username')['timestamp'].count()
     top = user_counts.sort_values().tail(n).index
-    edges = df.username.isin(top) & df.username.shift(-1).isin(top)
-    df['replying_to'] = df.username.shift(-1)
+    edges = df.username.isin(top) & df.username.shift(1).isin(top)
+    df['replying_to'] = df.username.shift(1)
     graph = df.loc[edges].groupby(['username', 'replying_to'], as_index=False)['timestamp'].count()
     return graph
 

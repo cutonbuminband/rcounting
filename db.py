@@ -47,6 +47,7 @@ if __name__ == "__main__":
         df = find_missing_ids(df)
     db = sqlite3.connect(Path('results/counting.sqlite'))
     tables = pd.read_sql_query("SELECT name from sqlite_master WHERE type='table'", db)
+    print(f"{len(tables) - 1} threads already logged")
     if not (tables['name'] == 'threads').any():
         threads = get_thread_list(df)
         threads.to_sql('threads', db, index=False)
@@ -54,9 +55,9 @@ if __name__ == "__main__":
 
     archived_threads = df.groupby('thread_id')
     for thread, thread_df in archived_threads:
-        print(f"Writing thread {thread} to db")
         if (tables['name'] == thread_to_table_name(thread)).any():
             continue
+        print(f"Writing thread {thread} to db")
         comment = r.comment(thread_df.iloc[-1]['comment_id'])
         try:
             comments = psaw_walk_thread(comment)
