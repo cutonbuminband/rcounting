@@ -1,0 +1,55 @@
+#+PROPERTY: header-args:jupyter-python  :session py
+#+PROPERTY: header-args    :pandoc t
+
+* The weighted k-shell decomposition method
+
+Here we propose a generalization of the k-shell decomposition method, which we call the weighted k-shell decomposition method (Wk-shell). This method applies the same pruning routine that was described earlier, but is based on an alternative measure for the node degree. This measure considers both the degree of a node and the weights of its links, and we assign for each node a weighted degree, k'. The weighted degree of a node i is defined as $k'_{i}=\sqrt {k_{i} \sum _{j}^{k_{i}}{w_{ij}}}$ .
+
+Using the above approach in the case of unweighted networks, where wij = 1, the weighted degree is equivalent to the node degree (k' ≡ k), and we resume the same network partitioning as with the Uk-shell decomposition method. However, in order that a typical weighted link be regarded as of unit weight before we calculate k' using equation (1), we perform the following steps. First, we normalize all the weights with their mean value 〈w〉, next we divide the resulting weights with their minimum value, and we discretize them by rounding to the closest integer; this way the minimum link weight is equal to 1
+
+Here's what that means in code:
+#+begin_src jupyter-python
+  def weighted_degree(node):
+      degree = node.degree()
+      edge_weights = [edge.weight for edge in node.edges()]
+      return np.sqrt(degree * np.sum(edge_weights))
+
+#+end_src
+The [[https://networkx.org/documentation/stable/][networkx]] library offers a lot of nice functions for working with graphs, including the unweighted k-shell decomposition method. Unfortunately, there's no option there for adding weights yet.
+
+That said, here's their function for calculating the coreness of each vertex:
+#+begin_src jupyter-python
+def core_number(G):
+    degrees = dict(G.degree())
+    # Sort nodes by degree.
+    nodes = sorted(degrees, key=degrees.get)
+    bin_boundaries = [0]
+    curr_degree = 0
+    for i, v in enumerate(nodes):
+        if degrees[v] > curr_degree:
+            bin_boundaries.extend([i] * (degrees[v] - curr_degree))
+            curr_degree = degrees[v]
+    node_pos = {v: pos for pos, v in enumerate(nodes)}
+    # The initial guess for the core number of a node is its degree.
+    core = degrees
+    neighbors = {v: list(nx.all_neighbors(G, v)) for v in G}
+    for v in nodes:
+        for u in neighbors[v]:
+            if core[u] > core[v]:
+                neighbors[u].remove(v)
+                pos = node_pos[u]
+                bin_start = bin_boundaries[core[u]]
+                node_pos[u] = bin_start
+                node_pos[nodes[bin_start]] = pos
+                nodes[bin_start], nodes[pos] = nodes[pos], nodes[bin_start]
+                bin_boundaries[core[u]] += 1
+                core[u] -= 1
+    return core
+#+end_src
+
+Making it work with weighted graphs requires a bit of thought. All references to `degree` can be changed to `weighted_degree`, but the line `core[u] -= 1` needs a bit of rejiggering, since it needs to be converted to a recalculation of what the weighted degree would be if we removed v as a neighbor of u.
+* The onion decomposition
+https://www.nature.com/articles/srep31708
+
+Idea: make a k-shell decomposition (recursively remove nodes of degree <= k from the graph until there are no more, then do the same for k+1), but keep track of which/how nodes are removed for each pass *within* a shell, and not just what the k value is.
+
