@@ -1,0 +1,230 @@
+#+PROPERTY: header-args:jupyter-python  :session py
+#+PROPERTY: header-args    :pandoc t
+
+* Updating the thread directory
+We want to be able to automatically update the thread directory in r/c.
+
+The thread directory is a markdown page with several tables of data recording information about each active /r/c counting thread, in the following format:
+
+| Name & First thread | Latest comment | Total comments |
+
+When updating the directory, the first column does not change, only the second and the third do
+
+In order to update a row in a single table table, we need to [[Parsing][parse]] the existing row, find the [[Getting threads][correct reddit submission]] of the latest count, and find the [[Finding the latest comment][latest comment in the thread]]. Finally, we need to print the row in the correct format
+
+** Imports and initialisation
+#+begin_src jupyter-python
+  import praw
+  import re
+  import pandas as pd
+  import numpy as np
+  import datetime
+  
+  r = praw.Reddit('stats_bot')
+  subreddit = r.subreddit('counting')
+#+end_src
+
+#+RESULTS:
+
+** Parsing
+We can get the markdown of the file using the `content_md` attribute of the wiki page. Sometimes the lines are windows terminated, so we replace those with regular newlines
+#+begin_src jupyter-python
+  directory_page = subreddit.wiki['directory'].content_md
+  directory_page = directory_page.replace("\r\n", "\n")
+  directory_page = open("directory.md", "r").read()
+  
+#+end_src
+
+#+RESULTS:
+
+The file consists of a header and a footer. In the middle, there are headers and tables separated by blank lines. We split the file into paragraphs, and then process each paragraph one at a time. That way, we can (In theory) just glue everything together with double newlines when we're done
+
+We process paragraph by paragraph, and the criterion for finding a table is a whole paragraph that matches the regex.
+#+begin_src jupyter-python
+  paragraphs = directory_page.split("\n\n")
+  regex = r"^.*\|.*\|.*$"
+  tagged_results = []
+  for paragraph in paragraphs:
+      lines = paragraph.split("\n")
+      mask = np.all([bool(re.match(regex, line)) for line in lines])
+      if not mask:
+          tagged_results.append(['text', paragraph])
+      else:
+          tagged_results.append(['table', [x.split('|') for x in lines]])
+  print(len(tagged_results))
+  
+        #+end_src
+
+        #+RESULTS:
+        : 29
+The result of all this is a tagged list, with the text portion saved as it originally was under the 'text' tag, and the tables stored as nested lists and tagged as 'table'.
+** Getting threads
+We get all threads from the last six months:
+
+#+begin_src jupyter-python
+  from parsing import find_urls_in_text
+  
+  six_months = datetime.timedelta(weeks=26.5)
+  now = datetime.datetime.utcnow()
+  posts = r.subreddit('counting').new(limit=1000)
+  tidbits_regex = "(T|t)idbits"
+  ftf_regex = "free talk friday"
+  tree = {}
+  posts_dict = {}
+  new_threads = []
+  weird_threads = ['nehhvf']
+  for post in posts:
+      if post.id in weird_threads:
+          continue
+      posts_dict[post.id] = post
+      title = post.title
+      if re.match(tidbits_regex, title) or re.match(ftf_regex, title.lower()):
+          continue
+      body = post.selftext
+      try:
+          urls = find_urls_in_text(body)
+          if not urls:
+              urls = [find_urls_in_text(comment.body) for comment in post.comments]
+              # flatten
+              urls = [url for comment_urls in urls for url in comment_urls]
+          url = urls[0]
+          if url[0] == post.id:
+              url = urls[1]
+          tree[post.id] = url[0]
+      except IndexError:
+          if post.removed_by_category is None:
+              new_threads.append(post.id)
+      post_time  = datetime.datetime.utcfromtimestamp(post.created_utc)
+      if now - post_time > six_months:
+          break
+  else:  # no break
+      print('Threads between {now - six_months} and {post_time} have not been collected')
+  
+#+end_src
+
+#+RESULTS:
+
+#+begin_src jupyter-python
+  child_tree  = {v: k for k, v in tree.items()}
+  def find_leaf_thread(submission_id):
+      if submission_id not in posts_dict and submission_id not in child_tree:
+          # Post has been archived with no children
+          return None
+      while submission_id in child_tree:
+          submission_id = child_tree[submission_id]
+      return submission_id
+  
+#+end_src
+#+RESULTS:
+We check that everything works by looking up the leaf thread for all of our tables. Threads which are leaves, but have been archived are separated out.
+
+#+begin_src jupyter-python
+  counter = 1
+  latest_threads = {}
+  archived_threads = []
+  for idx, entry in enumerate(tagged_results):
+      if entry[0] == "text":
+          continue
+      elif entry[0] == "table":
+          table = entry[1][2:]
+          for line in table:
+              counter += 1
+              thread_id, comment_id = find_urls_in_text(line[1])[0]
+              if thread_id in new_threads:
+                  new_threads.remove(thread_id)
+              leaf_thread = find_leaf_thread(thread_id)
+              if leaf_thread is not None:
+                  if leaf_thread == thread_id:
+                      latest_threads[thread_id] = [leaf_thread, comment_id]
+                  else:
+                      latest_threads == [leaf_thread, None]
+              else:
+                  archived_threads.append([thread_id, comment_id])
+    
+#+end_src
+
+#+RESULTS:
+
+
+** COMMENT Finding the latest comment
+Finding the latest comment is incredibly tricky to do robustly, because people aren't robots and mistakes are made. Ideally, we need to account for
+
+- Late counts
+- Early counts
+- Invalid counts
+- Random conversation happening in the middle of a thread
+
+Solving this generally is not possible. Instead, I'll use a heuristic approach.
+
+Let the "root node" be either the latest logged comment in the thread if no new submissions have been posted of this type since the directory was last updated, and let it be the first valid comment in the thread otherwise. Then we walk down the thread from the root comment, taking the first valid comment every time. We keep going until a comment has no children; that might be the comment we want.  
+#+begin_src jupyter-python
+  from validation import validate_thread
+  def walk_down_thread(comment_id, thread_type, thread_id=None):
+      if comment_id is None:
+          comment = r.submission(thread_id).comments[0]
+          history = pd.DataFrame()
+      else:
+          comment = r.comment(comment_id)
+  
+          thread = get_history(comment, thread_type)
+  
+      # get all leaf comments of a type
+      comment.refresh()
+      replies = comment.replies
+      replies.replace_more(limit=None)
+      print(comment.body)
+      while(len(replies) > 0):
+          for reply in replies:
+              new_thread = update_history(thread, reply)
+              if validate_thread(thread=new_thread, rule=thread_type)[0]:
+                  comment = reply
+                  thread = new_thread
+                  break
+          else:  # No break: we looped over all replies without finding a valid one
+              print("No valid replies found to {comment.id}")
+              break
+          replies = comment.replies
+      # We've arrived at a leaf. Somewhere
+      return comment
+  
+  
+  def comment_to_dict(comment):
+      return {'comment_id': comment.id, 'username': str(comment.author), 'timestamp': comment.created_utc}
+  def update_history(history, comment):
+      return history.append(comment_to_dict(comment), ignore_index=True)
+  
+  def get_history(comment, thread_type):
+      weird_threads = {}
+      if thread_type not in weird_threads:
+          return pd.DataFrame([comment_to_dict(comment)])
+  
+#+end_src  
+
+#+RESULTS:
+
+To check if it is we should do something along the lines of:
+
+- Use a per-thread "valid counts" rule to see if it looks like it might be a count.
+- If it is, we just return it.
+- If it's not, or we don't have a rule for this thread, we print the body of the comment and ask the user if it looks like a valid count.
+- If they say yes, we are done.
+- If they say no we go up one comment and try again. If that fails, we print the url and ask the user to fix things themselves; this thread won't be updated automatically.
+
+Check if it works:
+This works, but takes forever. Can we do something smarter?
+
+#+begin_src jupyter-python
+  from thread_navigation import psaw_get_comments
+  root = r.comment('h1f7wtb')
+  tree = psaw_get_comments(root.submission, root)
+  print(len(tree))
+#+end_src
+
+#+RESULTS:
+: h1f7wtb
+: h1g8qnv
+: 138
+
+** Printing the output
+
+
