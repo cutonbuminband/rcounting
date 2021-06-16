@@ -80,14 +80,17 @@ class Comment(RedditPost):
 class CommentTree():
     def __init__(self, comments):
         self.comments = {x.id: x for x in comments}
-        self.in_tree = {x.id: x.parent_id[3:] for x in comments if x.parent_id[1] == "3"}
+        self.in_tree = {x.id: x.parent_id[3:] for x in comments if x.parent_id[1] == "1"}
         self.out_tree = edges_to_tree([(parent, child) for child, parent in self.in_tree.items()])
+
+    def __len__(self):
+        return len(self.in_tree.keys())
 
     def add_comment(self, comment):
         child = comment.id
         parent = comment.parent_id
         self.comments.update({child: comment})
-        if parent[1] == "3":
+        if parent[1] == "1":
             self.in_tree[child] = parent[3:]
             self.out_tree[parent[3:]].append(child)
 
