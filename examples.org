@@ -1,0 +1,118 @@
+#+PROPERTY: header-args:jupyter-python  :session py
+#+PROPERTY: header-args    :pandoc t
+
+We start with some imports
+#+begin_src jupyter-python
+  from pathlib import Path
+  import pandas as pd
+  import numpy as np
+  import praw
+  import os
+  from models import Submission as OfflineSubmission
+  from psaw import PushshiftAPI
+#+end_src
+
+Then we load some data
+#+begin_src jupyter-python
+  df = pd.read_csv(Path('~/Downloads/ALL_clean.csv'), usecols=[1, 2, 3, 4, 5])
+  df.head()
+#+end_src
+
+We can try plotting thread participation vs total counts
+#+begin_src jupyter-python
+  import matplotlib.pyplot as plt
+  from aliases import apply_alias
+  print(len(df))
+  k_parts = df.groupby('username')['thread_id'].nunique()
+  hoc = df.groupby('username')['thread_id'].count()
+  combined = pd.merge(k_parts, hoc, left_index=True, right_index=True)
+  combined.columns = ["k_parts", "total_counts"]
+  combined = combined.query('k_parts >= 10')
+#+end_src
+
+#+begin_src jupyter-python
+  linear_model=np.polyfit(np.log10(combined.k_parts), np.log10(combined.total_counts), 1)
+  print(linear_model)
+  axis = np.linspace(1, combined.k_parts.max(), endpoint=True)
+  fig, ax = plt.subplots(1, figsize=(8,5))
+  ax.scatter(combined.k_parts, combined.total_counts, alpha=0.7)
+  ax.plot(axis, 10**(np.poly1d(linear_model)(np.log10(axis))), linestyle='--', color='0.3',
+           lw=2)
+  ax.set_xlabel('Threads participated in ')
+  ax.set_ylabel('Total counts made')
+  ax.set_yscale('log')
+  ax.set_xscale('log')
+  ax.set_xlim(left=10)
+  ax.set_ylim(bottom=10)
+  plt.savefig('graphs/parts_vs_counts.png', dpi=300, bbox_inches='tight')
+
+#+end_src
+
+#+begin_src jupyter-python
+  for idx, row in combined.reset_index().iterrows():
+      print(row.username, row.k_parts, row.total_counts)
+
+#+end_src
+
+We can do some network analysis
+#+begin_src jupyter-python
+  from analysis import response_graph
+  n = 250
+  deleted_users = df['username'] == '[deleted]'
+  graph = response_graph(df.loc[!deleted_users], n)
+  graph.to_csv(f'graph_{n}.csv', index=False)
+
+#+end_src
+
+Or play with thread validation
+#+begin_src jupyter-python
+  import praw
+  from validation import validate_thread
+  r = praw.Reddit("stats_bot")
+  comment = r.comment('h1g6m3w')
+  validate_thread(comment, 'slowestest')
+#+end_src
+
+Let's try calculating the effective number of replies
+#+begin_src jupyter-python
+  df = df.loc[df.username != '[deleted]']
+  top = df.groupby('username')['timestamp'].count().sort_values(ascending=False).head(30)
+  def effective_number_of_counters(counters):
+      normalised_counters = counters / counters.sum()
+      return 1 / (normalised_counters ** 2).sum()
+
+  df['replying_to'] = df.username.shift(1)
+  counts = df.loc[df.username.isin(top.index)].groupby(['username', 'replying_to'])['timestamp'].count()
+  effective_partners = counts.groupby(level=0).apply(effective_number_of_counters).to_frame()
+  partners = counts.groupby(level=0).count()
+  updated_score = pd.merge(effective_partners, partners, right_index=True, left_index=True)
+  combined = pd.merge(top, updated_score, left_index=True, right_index=True)
+  combined['HOC rank'] = range(1, len(combined) + 1)
+  combined = combined.drop('timestamp', axis=1)
+  combined.columns = ["c_eff", "c", "rank"]
+  combined = combined[["rank", "c", "c_eff"]]
+  combined.c_eff = combined.c_eff.round()
+  combined.columns = ["HOC rank", "N", "N_(effective)"]
+  combined.index.name = "Username"
+  print(combined.to_markdown())
+
+#+end_src
+
+We can see who the oldest still-active counters are
+#+begin_src jupyter-python
+  df = df.loc[df.username != "[deleted]"]
+  active_counters = df.loc[pd.to_datetime(df['timestamp'], unit='s') > pd.to_datetime('2020-11-26 14:37:57')].groupby('username').groups.keys()
+  pd.to_datetime(df.loc[df.username.isin(active_counters)].groupby('username')['timestamp'].min().sort_values(), unit='s').head(30)
+#+end_src
+
+Or get the replying-to and replied-by stats for a single user
+#+begin_src jupyter-python
+  df['replying_to'] = df.username.shift(1)
+  df['replied_by'] = df.username.shift(-1)
+
+  phils_counts = df.loc[df.username == 'thephilsblogbar2']
+  print(phils_counts.replying_to.nunique())
+  print(phils_counts.replied_by.nunique())
+  print(phils_counts.groupby('replying_to')['timestamp'].count().sort_values(ascending=False).head(10).to_markdown())
+  print(phils_counts.groupby('replied_by')['timestamp'].count().sort_values(ascending=False).head(10).to_markdown())
+#+end_src
