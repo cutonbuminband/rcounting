@@ -37,18 +37,32 @@ def is_mod(username):
 
 
 def response_graphf(df, n=250):
-    undeleted_users = df['username'] != '[deleted]'
-    user_counts = df.loc[undeleted_users].groupby('username')['timestamp'].count()
-    top = user_counts.sort_values().tail(n).index
-    edges = df.username.isin(top) & df.username.shift(1).isin(top)
+    user_counts = df.groupby('username')['timestamp'].count()
+    top = user_counts.sort_values().tail(n)
+    edges = df.username.isin(top.index) & df.username.shift(1).isin(top.index)
     df['replying_to'] = df.username.shift(1)
     graph = df.loc[edges].groupby(['username', 'replying_to'], as_index=False)['timestamp'].count()
+    graph.columns = ["Source", "Target", "Weight"]
     return graph
+
+
+def effective_number_of_counters(counters):
+    normalised_counters = counters / counters.sum()
+    return 1 / (normalised_counters ** 2).sum()
 
 
 def capture_the_flag_score(thread):
     thread['score'] = thread['timestamp'].diff().shift(-1)
     return thread.groupby('username')['score'].sum()
+
+
+def k_core(graph):
+    old_score = 0
+    new_score = min([node.degree() for node in graph])
+    while new_score > old_score:
+        graph = graph.delete_least_connected_nodes()
+        new_score = min([node.degree() for node in graph])
+    return graph
 
 
 def vonmises_distribution(x, mu=0, kappa=1):
