@@ -79,12 +79,19 @@ def extract_gets_and_assists(comment, n_threads=1000):
     return gets, assists
 
 
-def walk_thread(leaf_comment):
-    "Return a list of comments in a reddit thread from leaf to root"
+def walk_up_thread(leaf, root=None, limit=100):
+    "Return a list of reddit comments betwen root and leaf"
     comments = []
     refresh_counter = 0
-    comment = leaf_comment
-    while not comment.is_root:
+
+    def is_first_comment(comment):
+        if root is None:
+            return comment.is_root
+        else:
+            return comment.id == root.id
+
+    comment = leaf
+    while not is_first_comment(comment):
         # By refreshing, we request the previous 9 comments in a single go. So
         # the next calls to .parent() don't result in a network request. If the
         # refresh fails, we just go one by one
@@ -103,17 +110,10 @@ def walk_thread(leaf_comment):
     return [x.to_dict() for x in comments[::-1]]
 
 
-def psaw_walk_thread(comment):
-    """Use pushshift to log a reddit thread.
-
-    If the thread is on pushshift, this is significantly faster than using the
-    reddit api.
-
-    """
-    thread_id = comment.submission.id
-    comment_ids = api._get_submission_comment_ids(thread_id)
-
-    limit = 100
+def psaw_get_comments(thread, root=None, limit=100):
+    comment_ids = api._get_submission_comment_ids(thread.id)
+    if root is not None:
+        comment_ids = [x for x in comment_ids if int(x, 36) >= int(root.id, 36)]
     psaw_comment_list = []
     chunks = chunked(comment_ids, limit)
     for chunk in chunks:
@@ -122,11 +122,4 @@ def psaw_walk_thread(comment):
         psaw_comment_list += comments
 
     thread_tree = CommentTree(psaw_comment_list)
-    missing_comments = thread_tree.missing_comments()
-    if len(missing_comments) < 10:
-        for missing_comment in missing_comments:
-            comment_from_praw = OfflineComment(missing_comment._reddit(comment))
-            thread_tree.add_comment(comment_from_praw)
-    print(comment.id)
-    comment = find_get_from_comment(thread_tree.comment(comment.id))
-    return walk_thread(comment)
+    return thread_tree

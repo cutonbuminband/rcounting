@@ -39,7 +39,7 @@ def table_to_thread_name(x):
 
 
 if __name__ == "__main__":
-    from thread_navigation import psaw_walk_thread, walk_thread
+    from thread_navigation import psaw_get_comments, walk_up_thread
     r = praw.Reddit("stats_bot")
 
     df = pd.read_csv(Path('~/Downloads/ALL_clean.csv'), usecols=[1, 2, 3, 4, 5])
@@ -60,9 +60,10 @@ if __name__ == "__main__":
         print(f"Writing thread {thread} to db")
         comment = r.comment(thread_df.iloc[-1]['comment_id'])
         try:
-            comments = psaw_walk_thread(comment)
+            tree = psaw_get_comments(comment.submission)
+            comments = walk_up_thread(tree.comment(comment.id))
         except KeyError:
-            comments = walk_thread(comment)
+            comments = walk_up_thread(comment)
 
         new_df = pd.DataFrame(comments)
         merged_df = pd.merge(thread_df.drop(['timestamp', 'thread_id'], axis=1),

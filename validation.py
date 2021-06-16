@@ -1,11 +1,11 @@
-from thread_navigation import walk_thread
+from thread_navigation import walk_up_thread
 import pandas as pd
 
 
 def validate_thread(leaf_comment=None, thread=None, rule='default'):
     """ Walk the thread ending in `comment` and determine if it fulfills `rule`"""
     if thread is None:
-        thread = walk_thread(leaf_comment)
+        thread = walk_up_thread(leaf_comment)
     rule_dict = {'default': default,
                  'wait 2': wait_2,
                  'wait 3': wait_3,

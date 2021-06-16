@@ -104,8 +104,14 @@ class CommentTree():
     def find_children(self, comment):
         return [self.comment(x) for x in self.out_tree[comment.id]]
 
-    def missing_comments(self):
-        return set(self.in_tree.values()) - set(self.in_tree.keys())
+    def missing_comments(self, root=None):
+        parents = set(self.in_tree.values())
+        children = set(self.in_tree.keys())
+        if root is not None:
+            return [x for x in parents - children if int(x, 36) >= int(root.id, 36)]
+        else:
+            return parents - children
+
 
 def edges_to_tree(edges):
     tree = defaultdict(list)

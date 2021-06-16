@@ -2,27 +2,29 @@
 import os
 from pathlib import Path
 from parsing import post_to_count
-from thread_navigation import psaw_walk_thread, walk_thread, find_previous_get
+from thread_navigation import psaw_get_comments, walk_up_thread, find_previous_get
 import pandas as pd
 from aliases import apply_alias
 
 
-def log_one_thread(leaf_comment, engine='praw'):
+def log_one_thread(leaf_comment, use_psaw=False):
     basecount = post_to_count(leaf_comment) - 1000
     hog_path = Path(f'results/LOG_{basecount}to{basecount+1000}.csv')
     hoc_path = Path(f'results/TABLE_{basecount}to{basecount+1000}.csv')
     if os.path.isfile(hoc_path):
         return
 
-    if engine == 'praw':
-        walk = walk_thread
-    elif engine == 'psaw':
-        walk = psaw_walk_thread
+    if use_psaw:
+        try:
+            tree = psaw_get_comments(leaf_comment.submission)
+            comments = walk_up_thread(tree.comment(leaf_comment.id))
+        except IndexError:
+            comments = walk_up_thread(leaf_comment)
     else:
-        raise ValueError(f'Engine must be one of `praw` or `psaw` not {engine}')
+        comments = walk_up_thread(leaf_comment)
 
     title = leaf_comment.submission.title
-    df = pd.DataFrame(walk(get_comment))
+    df = pd.DataFrame(comments)
     hog_columns = ['username', 'timestamp', 'comment_id', 'thread_id']
     df.set_index(df.index + basecount)[hog_columns].iloc[1:].to_csv(hog_path, header=None)
     with open(hoc_path, 'w') as f:
@@ -61,9 +63,8 @@ if __name__ == '__main__':
     parser.add_argument('-n', type=int,
                         default=1,
                         help='The number of threads to log. Default 1')
-    parser.add_argument('-e', '--engine', default='praw',
-                        choices=['praw', 'psaw'],
-                        help='The backend to use for extracting')
+    parser.add_argument('--use_psaw', action='store_true',
+                        help='Use pushshift to get reddit comments in bulk')
     args = parser.parse_args()
 
     get_id = args.get_id
