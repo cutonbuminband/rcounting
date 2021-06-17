@@ -118,3 +118,14 @@ def edges_to_tree(edges):
     for source, dest in edges:
         tree[source].append(dest)
     return tree
+
+
+def comment_to_dict(comment):
+    try:
+        result = comment.to_dict()
+    except AttributeError:
+        result = {'comment_id': comment.id,
+                  'username': str(comment.author),
+                  'timestamp': comment.created_utc}
+    keys = ['comment_id', 'username', 'timestamp']
+    return {k: v for k, v in result if k in keys}

@@ -79,7 +79,7 @@ def extract_gets_and_assists(comment, n_threads=1000):
     return gets, assists
 
 
-def walk_up_thread(leaf, root=None, limit=100):
+def walk_up_thread(leaf, root=None):
     "Return a list of reddit comments betwen root and leaf"
     comments = []
     refresh_counter = 0
