@@ -67,18 +67,15 @@ if __name__ == '__main__':
                         help='Use pushshift to get reddit comments in bulk')
     args = parser.parse_args()
 
-    get_id = args.get_id
-    n = args.n
-    engine = args.engine
-    print(f'Logging {n} reddit thread{"s" if n > 1 else ""} starting at {get_id}'
-          ' and moving backwards')
+    print(f'Logging {args.n} reddit thread{"s" if args.n > 1 else ""} '
+          'starting at {args.get_id} and moving backwards')
 
     t_start = datetime.now()
     r = praw.Reddit('stats_bot')
-    get_comment = r.comment(get_id)
-    for i in range(n):
-        print(f'Logging thread {i + 1} out of {n}')
-        log_one_thread(get_comment, engine)
+    get_comment = r.comment(args.get_id)
+    for i in range(args.n):
+        print(f'Logging thread {i + 1} out of {args.n}')
+        log_one_thread(get_comment, args.use_psaw)
         get_comment = find_previous_get(get_comment)
     elapsed_time = datetime.now() - t_start
     print(f'Running the script took {elapsed_time}')
