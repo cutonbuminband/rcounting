@@ -32,7 +32,7 @@ def find_get_in_thread(thread, reddit):
     for comment_id in comment_ids[:-1]:
         comment = reddit.comment(comment_id)
         try:
-            count = post_to_count(comment)
+            count = post_to_count(comment, api)
             if count % 1000 == 0:
                 return comment.id
         except ValueError:
@@ -44,7 +44,7 @@ def search_up_from_gz(comment, max_retries=5):
     "Find a count up to max_retries above the linked_comment"
     for i in range(max_retries):
         try:
-            count = post_to_count(comment)
+            count = post_to_count(comment, api)
             return count, comment
         except ValueError:
             if i == max_retries:
@@ -61,7 +61,7 @@ def find_get_from_comment(comment):
         comment = comment.replies[0]
         if isinstance(comment, MoreComments):
             comment = comment.comments()[0]
-        count = post_to_count(comment)
+        count = post_to_count(comment, api)
     return comment
 
 

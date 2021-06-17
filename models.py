@@ -1,11 +1,9 @@
 from collections import defaultdict
-from psaw import PushshiftAPI
-
-api = PushshiftAPI()
+deleted_phrases = ['[deleted]', '[removed]']
 
 
 class RedditPost():
-    def __init__(self, post, cached=False):
+    def __init__(self, post, cached=False, api=None):
         self.id = post.id
         self.created_utc = post.created_utc
         self.author = str(post.author)
@@ -15,17 +13,18 @@ class RedditPost():
             self.post_type = post.post_type
         else:
             self.post_type = 'comment' if hasattr(post, 'body') else 'submission'
-        self.search = api.search_comments if self.post_type == 'comment' else api.search_submissions
-        if not self.cached:
-            if (self.body == '[deleted]'
-                or (self.body == '[removed]')
-                or self.author == '[deleted]'):
-                self.body, self.author = self.find_missing()
+        if not self.cached and api is not None:
+            if (self.body in deleted_phrases or self.author in deleted_phrases):
+                if self.post_type == 'comment':
+                    search = api.search_comments
+                elif self.post_type == 'submission':
+                    search = api.search_submissions
+                self.body, self.author = self.find_missing(search)
         self.cached = True
 
-    def find_missing(self):
+    def find_missing(self, search):
         try:
-            post = next(self.search(ids=[self.id], metadata='true', limit=0))
+            post = next(search(ids=[self.id], metadata='true', limit=0))
         except StopIteration:
             return self.body, self.author
         author = post.author
@@ -59,9 +58,9 @@ class Submission(RedditPost):
 
 
 class Comment(RedditPost):
-    def __init__(self, comment, tree=None):
+    def __init__(self, comment, tree=None, psaw=None):
         cached = (tree is not None)
-        super().__init__(comment, cached)
+        super().__init__(comment, cached, psaw)
         self.thread_id = comment.thread_id if hasattr(comment, 'thread_id') else comment.link_id
         self.parent_id = comment.parent_id
         self.is_root = (self.parent_id == self.thread_id)
@@ -78,10 +77,11 @@ class Comment(RedditPost):
 
 
 class CommentTree():
-    def __init__(self, comments):
+    def __init__(self, comments, reddit=None):
         self.comments = {x.id: x for x in comments}
         self.in_tree = {x.id: x.parent_id[3:] for x in comments if x.parent_id[1] == "1"}
         self.out_tree = edges_to_tree([(parent, child) for child, parent in self.in_tree.items()])
+        self.reddit = reddit
 
     def __len__(self):
         return len(self.in_tree.keys())
