@@ -24,8 +24,6 @@ In order to update a row in a single table table, we need to [[Parsing][parse]] 
   subreddit = r.subreddit('counting')
 #+end_src
 
-#+RESULTS:
-
 ** Parsing
 We can get the markdown of the file using the `content_md` attribute of the wiki page. Sometimes the lines are windows terminated, so we replace those with regular newlines
 #+begin_src jupyter-python
@@ -34,8 +32,6 @@ We can get the markdown of the file using the `content_md` attribute of the wiki
   directory_page = open("directory.md", "r").read()
   
 #+end_src
-
-#+RESULTS:
 
 The file consists of a header and a footer. In the middle, there are headers and tables separated by blank lines. We split the file into paragraphs, and then process each paragraph one at a time. That way, we can (In theory) just glue everything together with double newlines when we're done
 
@@ -54,9 +50,6 @@ We process paragraph by paragraph, and the criterion for finding a table is a wh
   print(len(tagged_results))
   
         #+end_src
-
-        #+RESULTS:
-        : 29
 The result of all this is a tagged list, with the text portion saved as it originally was under the 'text' tag, and the tables stored as nested lists and tagged as 'table'.
 ** Getting threads
 We get all threads from the last six months:
@@ -102,8 +95,6 @@ We get all threads from the last six months:
   
 #+end_src
 
-#+RESULTS:
-
 #+begin_src jupyter-python
   child_tree  = {v: k for k, v in tree.items()}
   def find_leaf_thread(submission_id):
@@ -115,7 +106,6 @@ We get all threads from the last six months:
       return submission_id
   
 #+end_src
-#+RESULTS:
 We check that everything works by looking up the leaf thread for all of our tables. Threads which are leaves, but have been archived are separated out.
 
 #+begin_src jupyter-python
@@ -171,11 +161,7 @@ This works, but takes forever. Can we do something smarter?
   root = r.comment('h1f7wtb')
   tree = psaw_get_tree(root.submission, root)
   print(len(tree))
-
-#+RESULTS:
-: h1f7wtb
-: h1g8qnv
-: 138
+#+end_src
 
 ** Printing the output
 
