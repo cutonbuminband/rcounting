@@ -1,5 +1,4 @@
 from psaw import PushshiftAPI
-from praw.models import MoreComments
 from praw.exceptions import ClientException
 from prawcore.exceptions import ServerError
 from parsing import post_to_urls, post_to_count
@@ -56,11 +55,10 @@ def search_up_from_gz(comment, max_retries=5):
 def find_get_from_comment(comment):
     count, comment = search_up_from_gz(comment)
     comment.refresh()
-
+    replies = comment.replies
+    replies.replace_more(limit=0)
     while count % 1000 != 0:
         comment = comment.replies[0]
-        if isinstance(comment, MoreComments):
-            comment = comment.comments()[0]
         count = post_to_count(comment, api)
     return comment
 
