@@ -30,7 +30,9 @@ password = PASSWORD
 
 If you only intend to scrape public posts, and don't want to comment or access private posts, the `username` and `password` lines are unnecessary.
 
-To check that everything is working properly, you can type `python3 log_thread.py e1slbz0`. `e1slbz0` is the reddit id of count `2 172 000`, the last count in [this thread](https://www.reddit.com/r/counting/comments/8w151j/2171k_counting_thread/e1slbz0/). To log a different thread, you should supply a different `get_id` on the command line. The `get_id` is the last part of the url, which is usually of the form `http://reddit.com/r/counting/comments/thread_id/thread_title/get_id`
+The two main command line interfaces are `log_thread.py` and `validate.py` which (respectively) save a csv file of a thread and check if a thread conforms to a specific rule. Both scripts accept a `-h` or `--help` parameter explaining the usage.
+
+For example, you can type `python3 log_thread.py e1slbz0` to log [this thread](https://www.reddit.com/r/counting/comments/8w151j/2171k_counting_thread/e1slbz0/), which ends with the count `2 172 000`. To log a different thread, you should supply a different `get_id` on the command line. The `get_id` is the last part of the url of a comment, which is of the form `http://reddit.com/r/counting/comments/thread_id/thread_title/get_id`
 
 You should see the following text being printed
 ```
@@ -41,7 +43,7 @@ e1sl8sh
 ...
 ```
 
-Reddit limits us to 60 api requests per minute, and we can get at most nine comments for each api request, so it takes a bit of time. If you have the [Pushshift API Wrapper](https://psaw.readthedocs.io/en/latest/#) you can ask the logging tool to use that instead by passing an `--engine` parameter on the command line. This is faster, but doesn't work for the very oldest threads, or the very newest ones, and some comments are just missing. For full usage information, try typing `python3 log_thread.py -h`.
+Reddit limits us to 60 api requests per minute, and we can get at most nine comments for each api request, so it takes a bit of time. If you have the [Pushshift API Wrapper](https://psaw.readthedocs.io/en/latest/#) you can ask the logging tool to use that instead by passing the `--use-psaw` flag on the command line. This is faster, but doesn't work for the very oldest threads, or the very newest ones, and some comments are just missing. For full usage information, try typing `python3 log_thread.py -h`.
 
 The output of the logging script is two csv files called `results/table_{something}.csv` and `results/log_{something}.csv`. Taking a peek at the past one, it looks as follows:
 
@@ -88,11 +90,23 @@ Rank|Username|Counts
 13|/u/TehVulpez|1
 14|/u/AWiseTurtle|1
 
+The `validate` script works in the same way, except that it takes an additional `--rule` parameter specifying which rule should be checked. The following options are available:
+
+- default: No counter can reply to themselves
+- wait2: Counters can only count once two others have counted
+- wait3: Counters can only count once three others have counted
+- once\_per\_thread: Counters can only count once on a given reddit submission
+- slow: One minute must elapse between counts
+- slower: Counters must wait one hour between each of their counts
+- slowestest: One hour must elapse between each count, and counters must wait 24h between each of their counts
+
+If no rule is supplied, the script will only check that nobody double counted.
+
 ## Contributing and Future Ideas
 This is a loosely organised list of things which could be done in the future. If you have any suggestions, don't hesitate to write, or to send a pull request.
 
-* Adding a command line interface for the get and assist finding functionality: Currently only the thread logging script has any form of command line interface
-* ~~Recovering gracefully if a linked comment is inaccessible because it's been deleted or removed~~ This has been done more or less, in that the code tries to see if the reddit object is accessible on pushshift.
+* Adding a command line interface for the get and assist finding functionality
+* ~~Recovering gracefully if a linked comment is inaccessible because it's been deleted or removed~~ This has been done more or less, in that the code tries to see if the reddit object is accessible on pushshift. If it isn't, it still crashes, but there's no simple way of recovering gently if e.g. the body of a submission is missing so that the previous get can't be found.
 * Making the comment and url extraction less brittle
 * Adding more analyis tools: currently most of the code is focussed on data gathering, rather than analysis
 * Adding code to local storage to save and extract data, and to keep track of what has already been extracted. Long-term, it might make sense to try and get a complete listing of all threads and completely bypass the reddit interface. That would also resolve the problem of deleted counts and usernames.
