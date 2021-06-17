@@ -5,6 +5,7 @@ from prawcore.exceptions import ServerError
 from parsing import post_to_urls, post_to_count
 from utils import chunked
 from models import Comment as OfflineComment, CommentTree
+from validation import validate_thread, get_history, update_history
 
 api = PushshiftAPI()
 
@@ -110,7 +111,34 @@ def walk_up_thread(leaf, root=None):
     return [x.to_dict() for x in comments[::-1]]
 
 
-def psaw_get_comments(thread, root=None, limit=100):
+def walk_down_thread(comment, thread=None, thread_type='default'):
+    if comment is None:
+        comment = thread.comments[0]
+    thread = get_history(comment, thread_type)
+
+    # get all leaf comments of a type
+    comment.refresh()
+    replies = comment.replies
+    replies.replace_more(limit=None)
+    print(comment.body)
+    while(len(replies) > 0):
+        for reply in replies:
+            new_thread = update_history(thread, reply)
+            if validate_thread(thread=new_thread, rule=thread_type)[0]:
+                comment = reply
+                if not hasattr(comment, 'replies'):
+                    comment.refresh()
+                thread = new_thread
+                break
+        else:  # We looped over all replies without finding a valid one
+            print("No valid replies found to {comment.id}")
+            break
+        replies = comment.replies
+    # We've arrived at a leaf. Somewhere
+    return comment
+
+
+def psaw_get_tree(thread, root=None, limit=100):
     comment_ids = api._get_submission_comment_ids(thread.id)
     if root is not None:
         comment_ids = [x for x in comment_ids if int(x, 36) >= int(root.id, 36)]

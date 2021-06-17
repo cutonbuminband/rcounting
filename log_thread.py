@@ -2,7 +2,7 @@
 import os
 from pathlib import Path
 from parsing import post_to_count
-from thread_navigation import psaw_get_comments, walk_up_thread, find_previous_get
+from thread_navigation import psaw_get_tree, walk_up_thread, find_previous_get
 import pandas as pd
 from aliases import apply_alias
 
@@ -16,7 +16,7 @@ def log_one_thread(leaf_comment, use_psaw=False):
 
     if use_psaw:
         try:
-            tree = psaw_get_comments(leaf_comment.submission)
+            tree = psaw_get_tree(leaf_comment.submission)
             comments = walk_up_thread(tree.comment(leaf_comment.id))
         except IndexError:
             comments = walk_up_thread(leaf_comment)
