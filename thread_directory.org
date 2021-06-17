@@ -143,10 +143,8 @@ We check that everything works by looking up the leaf thread for all of our tabl
     
 #+end_src
 
-#+RESULTS:
 
-
-** COMMENT Finding the latest comment
+** Finding the latest comment
 Finding the latest comment is incredibly tricky to do robustly, because people aren't robots and mistakes are made. Ideally, we need to account for
 
 - Late counts
@@ -157,50 +155,6 @@ Finding the latest comment is incredibly tricky to do robustly, because people a
 Solving this generally is not possible. Instead, I'll use a heuristic approach.
 
 Let the "root node" be either the latest logged comment in the thread if no new submissions have been posted of this type since the directory was last updated, and let it be the first valid comment in the thread otherwise. Then we walk down the thread from the root comment, taking the first valid comment every time. We keep going until a comment has no children; that might be the comment we want.  
-#+begin_src jupyter-python
-  from validation import validate_thread
-  def walk_down_thread(comment_id, thread_type, thread_id=None):
-      if comment_id is None:
-          comment = r.submission(thread_id).comments[0]
-          history = pd.DataFrame()
-      else:
-          comment = r.comment(comment_id)
-  
-          thread = get_history(comment, thread_type)
-  
-      # get all leaf comments of a type
-      comment.refresh()
-      replies = comment.replies
-      replies.replace_more(limit=None)
-      print(comment.body)
-      while(len(replies) > 0):
-          for reply in replies:
-              new_thread = update_history(thread, reply)
-              if validate_thread(thread=new_thread, rule=thread_type)[0]:
-                  comment = reply
-                  thread = new_thread
-                  break
-          else:  # No break: we looped over all replies without finding a valid one
-              print("No valid replies found to {comment.id}")
-              break
-          replies = comment.replies
-      # We've arrived at a leaf. Somewhere
-      return comment
-  
-  
-  def comment_to_dict(comment):
-      return {'comment_id': comment.id, 'username': str(comment.author), 'timestamp': comment.created_utc}
-  def update_history(history, comment):
-      return history.append(comment_to_dict(comment), ignore_index=True)
-  
-  def get_history(comment, thread_type):
-      weird_threads = {}
-      if thread_type not in weird_threads:
-          return pd.DataFrame([comment_to_dict(comment)])
-  
-#+end_src  
-
-#+RESULTS:
 
 To check if it is we should do something along the lines of:
 
@@ -210,15 +164,13 @@ To check if it is we should do something along the lines of:
 - If they say yes, we are done.
 - If they say no we go up one comment and try again. If that fails, we print the url and ask the user to fix things themselves; this thread won't be updated automatically.
 
-Check if it works:
 This works, but takes forever. Can we do something smarter?
 
 #+begin_src jupyter-python
-  from thread_navigation import psaw_get_comments
+  from thread_navigation import psaw_get_tree, walk_down_thread
   root = r.comment('h1f7wtb')
-  tree = psaw_get_comments(root.submission, root)
+  tree = psaw_get_tree(root.submission, root)
   print(len(tree))
-#+end_src
 
 #+RESULTS:
 : h1f7wtb
