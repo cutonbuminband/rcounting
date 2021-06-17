@@ -4,7 +4,7 @@ from prawcore.exceptions import ServerError
 from parsing import post_to_urls, post_to_count
 from utils import chunked
 from models import Comment as OfflineComment, CommentTree
-from validation import validate_thread, get_history, update_history
+from validate import validate_thread, get_history, update_history
 
 api = PushshiftAPI()
 
