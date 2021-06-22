@@ -137,16 +137,42 @@ def walk_down_thread(comment, thread=None, thread_type='default'):
     return comment
 
 
-def psaw_get_tree(thread, root=None, limit=100):
+def fetch_comment_tree(thread, root=None, chunksize=100, fetch_missing=3):
+    r = thread._reddit
     comment_ids = api._get_submission_comment_ids(thread.id)
     if root is not None:
         comment_ids = [x for x in comment_ids if int(x, 36) >= int(root.id, 36)]
     psaw_comment_list = []
-    chunks = chunked(comment_ids, limit)
+    chunks = chunked(comment_ids, chunksize)
     for chunk in chunks:
         print(chunk[0])
         comments = [x for x in api.search_comments(ids=chunk, metadata='true', limit=0)]
         psaw_comment_list += comments
 
     thread_tree = CommentTree(psaw_comment_list)
+    missing_comments = thread_tree.missing_comments()
+    # If the thread is only broken in a few places, try to fetch the missing
+    # comments using the reddit api
+    if len(missing_comments) <= fetch_missing:
+        for missing_comment in missing_comments:
+            comment = r.comment(missing_comment)
+            thread_tree.add_comment(comment)
+            try:
+                comment.refresh()
+                for i in range(8):
+                    comment = comment.parent()
+                    thread_tree.add_comment(comment)
+            except (ClientException, ServerError):
+                # There's a broken chain. We'll handle that elsewhere
+                pass
     return thread_tree
+
+
+def fetch_thread(comment):
+    try:
+        tree = fetch_comment_tree(comment.submission)
+        comments = walk_up_thread(tree.comment(comment.id), verbose=False)
+    except KeyError:
+        print('Failed to log thread using pushshift. Falling back on the reddit api')
+        comments = walk_up_thread(comment, verbose=True)
+    return comments

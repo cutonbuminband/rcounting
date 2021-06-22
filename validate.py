@@ -93,30 +93,19 @@ rule_dict = {'default': default,
 
 if __name__ == "__main__":
     import praw
-    from thread_navigation import walk_up_thread
+    from thread_navigation import fetch_thread
     import argparse
     parser = argparse.ArgumentParser(description='Validate the reddit thread which'
                                      ' contains the comment with id `get_id` according to rule')
     parser.add_argument('comment_id',
                         help='The id of the comment to start logging from')
-    parser.add_argument('--use-psaw', action='store_true',
-                        help='Use pushshift to get reddit comments in bulk')
     parser.add_argument('--rule', choices=rule_dict.keys(),
                         default='default',
                         help='Which rule to apply. Default is no double counting')
     args = parser.parse_args()
 
     r = praw.Reddit('stats_bot')
-    comment = r.comment(args.comment_id)
-    if args.use_psaw:
-        from thread_navigation import psaw_get_tree
-        try:
-            tree = psaw_get_tree(comment.submission)
-            comments = walk_up_thread(tree.comment(comment.id))
-        except IndexError:
-            comments = walk_up_thread(comment)
-    else:
-        comments = walk_up_thread(comment)
+    comments = fetch_thread(r.comment(args.comment_id))
     thread = pd.DataFrame(comments)
     result = validate_thread(thread, args.rule)
     if result[0]:

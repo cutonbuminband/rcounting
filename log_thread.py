@@ -2,26 +2,19 @@
 import os
 from pathlib import Path
 from parsing import post_to_count
-from thread_navigation import psaw_get_tree, walk_up_thread, find_previous_get
+from thread_navigation import fetch_thread, find_previous_get
 import pandas as pd
 from aliases import apply_alias
 
 
-def log_one_thread(leaf_comment, use_psaw=False):
+def log_one_thread(leaf_comment):
     basecount = post_to_count(leaf_comment) - 1000
     hog_path = Path(f'results/LOG_{basecount}to{basecount+1000}.csv')
     hoc_path = Path(f'results/TABLE_{basecount}to{basecount+1000}.csv')
     if os.path.isfile(hoc_path):
         return
 
-    if use_psaw:
-        try:
-            tree = psaw_get_tree(leaf_comment.submission)
-            comments = walk_up_thread(tree.comment(leaf_comment.id))
-        except IndexError:
-            comments = walk_up_thread(leaf_comment)
-    else:
-        comments = walk_up_thread(leaf_comment)
+    comments = fetch_thread(leaf_comment)
 
     title = leaf_comment.submission.title
     df = pd.DataFrame(comments)
@@ -63,8 +56,6 @@ if __name__ == '__main__':
     parser.add_argument('-n', type=int,
                         default=1,
                         help='The number of threads to log. Default 1')
-    parser.add_argument('--use_psaw', action='store_true',
-                        help='Use pushshift to get reddit comments in bulk')
     args = parser.parse_args()
 
     print(f'Logging {args.n} reddit thread{"s" if args.n > 1 else ""} '
@@ -72,10 +63,10 @@ if __name__ == '__main__':
 
     t_start = datetime.now()
     r = praw.Reddit('stats_bot')
-    get_comment = r.comment(args.get_id)
+    leaf_comment = r.comment(args.get_id)
     for i in range(args.n):
         print(f'Logging thread {i + 1} out of {args.n}')
-        log_one_thread(get_comment, args.use_psaw)
-        get_comment = find_previous_get(get_comment)
+        log_one_thread(leaf_comment, args.use_psaw)
+        leaf_comment = find_previous_get(leaf_comment)
     elapsed_time = datetime.now() - t_start
     print(f'Running the script took {elapsed_time}')
