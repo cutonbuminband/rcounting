@@ -1,5 +1,5 @@
 from collections import defaultdict
-deleted_phrases = ['[deleted]', '[removed]']
+deleted_phrases = ['[deleted]', '[removed]', '[banned]']
 
 
 class RedditPost():
