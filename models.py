@@ -77,11 +77,12 @@ class Comment(RedditPost):
 
 
 class CommentTree():
-    def __init__(self, comments, reddit=None):
+    def __init__(self, comments, root=None, reddit=None):
         self.comments = {x.id: x for x in comments}
         self.in_tree = {x.id: x.parent_id[3:] for x in comments if x.parent_id[1] == "1"}
         self.out_tree = edges_to_tree([(parent, child) for child, parent in self.in_tree.items()])
         self.reddit = reddit
+        self.root = root
 
     def __len__(self):
         return len(self.in_tree.keys())
@@ -105,11 +106,11 @@ class CommentTree():
     def find_children(self, comment):
         return [self.comment(x) for x in self.out_tree[comment.id]]
 
-    def missing_comments(self, root=None):
+    def missing_comments(self):
+        children = set(self.comments.keys())
         parents = set(self.in_tree.values())
-        children = set(self.in_tree.keys())
-        if root is not None:
-            return [x for x in parents - children if int(x, 36) >= int(root.id, 36)]
+        if self.root is not None:
+            return [x for x in parents - children if int(x, 36) >= int(self.root.id, 36)]
         else:
             return parents - children
 
