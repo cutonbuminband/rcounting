@@ -87,12 +87,13 @@ class CommentTree():
         return len(self.in_tree.keys())
 
     def add_comment(self, comment):
-        child = comment.id
-        parent = comment.parent_id
-        self.comments.update({child: comment})
-        if parent[1] == "1":
-            self.in_tree[child] = parent[3:]
-            self.out_tree[parent[3:]].append(child)
+        if comment.id not in self.comments:
+            child = comment.id
+            parent = comment.parent_id
+            self.comments.update({child: comment})
+            if parent[1] == "1":
+                self.in_tree[child] = parent[3:]
+                self.out_tree[parent[3:]].append(child)
 
     def comment(self, comment_id):
         return Comment(self.comments[comment_id], self)
