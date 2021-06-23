@@ -159,12 +159,14 @@ def fetch_comment_tree(thread, root=None, chunksize=100, fetch_missing=3):
             thread_tree.add_comment(comment)
             try:
                 comment.refresh()
-                for i in range(8):
-                    comment = comment.parent()
-                    thread_tree.add_comment(comment)
             except (ClientException, ServerError):
                 # There's a broken chain. We'll handle that elsewhere
-                pass
+                break
+            for i in range(8):
+                comment = comment.parent()
+                offline_comment = thread_tree.add_comment(comment)
+                if offline_comment.is_root:
+                    break
     return thread_tree
 
 

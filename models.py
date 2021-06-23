@@ -95,6 +95,7 @@ class CommentTree():
             if parent[1] == "1":
                 self.in_tree[child] = parent[3:]
                 self.out_tree[parent[3:]].append(child)
+        return self.comment(comment.id)
 
     def comment(self, comment_id):
         return Comment(self.comments[comment_id], self)
