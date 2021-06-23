@@ -8,21 +8,21 @@ class RedditPost():
         self.created_utc = post.created_utc
         self.author = str(post.author)
         self.body = post.body if hasattr(post, 'body') else post.selftext
-        self.cached = cached or hasattr(post, 'cached')
+        cached = cached or hasattr(post, 'cached')
         if hasattr(post, 'post_type'):
             self.post_type = post.post_type
         else:
             self.post_type = 'comment' if hasattr(post, 'body') else 'submission'
-        if not self.cached and api is not None:
-            if (self.body in deleted_phrases or self.author in deleted_phrases):
+        if not cached and api is not None:
+            if self.body in deleted_phrases or self.author in deleted_phrases:
                 if self.post_type == 'comment':
                     search = api.search_comments
                 elif self.post_type == 'submission':
                     search = api.search_submissions
-                self.body, self.author = self.find_missing(search)
+                self.body, self.author = self.find_missing_content(search)
         self.cached = True
 
-    def find_missing(self, search):
+    def find_missing_content(self, search):
         try:
             post = next(search(ids=[self.id], metadata='true', limit=0))
         except StopIteration:
@@ -58,9 +58,8 @@ class Submission(RedditPost):
 
 
 class Comment(RedditPost):
-    def __init__(self, comment, tree=None, psaw=None):
-        cached = (tree is not None)
-        super().__init__(comment, cached, psaw)
+    def __init__(self, comment, tree=None):
+        super().__init__(comment)
         self.thread_id = comment.thread_id if hasattr(comment, 'thread_id') else comment.link_id
         self.parent_id = comment.parent_id
         self.tree = tree
