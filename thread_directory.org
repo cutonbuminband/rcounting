@@ -130,16 +130,13 @@ We check that everything works by looking up the leaf thread for all of our tabl
                       latest_threads == [leaf_thread, None]
               else:
                   archived_threads.append([thread_id, comment_id])
-    
 #+end_src
-
 
 ** Finding the latest comment
 Finding the latest comment is incredibly tricky to do robustly, because people aren't robots and mistakes are made. Ideally, we need to account for
 
 - Late counts
 - Early counts
-- Invalid counts
 - Random conversation happening in the middle of a thread
 
 Solving this generally is not possible. Instead, I'll use a heuristic approach.
@@ -154,14 +151,44 @@ To check if it is we should do something along the lines of:
 - If they say yes, we are done.
 - If they say no we go up one comment and try again. If that fails, we print the url and ask the user to fix things themselves; this thread won't be updated automatically.
 
-This works, but takes forever. Can we do something smarter?
+This works, but takes forever. Can we do something smarter? A first attempt could be to use psaw to fetch the entire thread. That lets us get 100 comments for every api call we make, instead of just 9. The tradeoff is that
 
+1) It's more likely to fail, so we need to be ready to fall back on the reddit api anyway
+2) We have to do all the bookkeeping of the thread structure ourselves, as pushshift just gives us dictionaries for each comment.
+
+Luckily we've already had to do that for logging main, so it's not too bad.
 #+begin_src jupyter-python
-  from thread_navigation import psaw_get_tree, walk_down_thread
+  from thread_navigation import fetch_comment_tree, walk_down_thread
   root = r.comment('h1f7wtb')
-  tree = psaw_get_tree(root.submission, root)
+  tree = fetch_comment_tree(root.submission, root)
   print(len(tree))
 #+end_src
+
+*** A slight detour: a SideThread class?
+
+As it is right now, there are a bunch of things which could sensibly be associated with a side thread object. They are:
+
+- An "is valid count rule", which validates whether a certain count fulfils the rules of the thread (e.g slow or wait 2)
+- A "get_history(comment)" function which returns enough history that it's possible to determine whether `comment` is valid
+- A "looks like a count" rule, which helps decide whether we've hit random conversation
+- A "thread length" parameter, which determines how long each thread (normally) is in this side thread
+- Others?
+
+These bits of information can be stored in various different places, with the two alternatives being
+
+1. Data dispatch in each of the functions, which is then responsible for looking up the correct rule
+2. An object containing the property
+
+A table of currently known side threads is found in [[file:side_threads.ini][side_threads.ini]]
+#+begin_src jupyter-python
+  import configparser
+  config = configparser.ConfigParser()
+  config.read('side_threads.ini')
+  side_threads = config['threads']
+  side_threads['5c2d55']
+
+#+end_src
+
 
 ** Printing the output
 
