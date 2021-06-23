@@ -108,10 +108,10 @@ def walk_down_thread(comment, thread=None, thread_type='default'):
         comment = thread.comments[0]
     thread = get_history(comment, thread_type)
 
-    # get all leaf comments of a type
     comment.refresh()
     replies = comment.replies
-    replies.replace_more(limit=None)
+    if hasattr(replies, 'replace_more'):
+        replies.replace_more(limit=None)
     print(comment.body)
     while(len(replies) > 0):
         for reply in replies:
