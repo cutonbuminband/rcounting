@@ -78,19 +78,12 @@ def extract_gets_and_assists(comment, n_threads=1000):
     return gets, assists
 
 
-def walk_up_thread(leaf, root=None, verbose=True):
+def walk_up_thread(comment, verbose=True):
     "Return a list of reddit comments betwen root and leaf"
     comments = []
     refresh_counter = 0
 
-    def is_first_comment(comment):
-        if root is None:
-            return comment.is_root
-        else:
-            return comment.id == root.id
-
-    comment = leaf
-    while not is_first_comment(comment):
+    while not comment.is_root:
         # By refreshing, we request the previous 9 comments in a single go. So
         # the next calls to .parent() don't result in a network request. If the
         # refresh fails, we just go one by one
@@ -149,7 +142,7 @@ def fetch_comment_tree(thread, root=None, chunksize=100, fetch_missing=3):
         comments = [x for x in api.search_comments(ids=chunk, metadata='true', limit=0)]
         psaw_comment_list += comments
 
-    thread_tree = CommentTree(psaw_comment_list)
+    thread_tree = CommentTree(psaw_comment_list, root_comment=root)
     missing_comments = thread_tree.missing_comments()
     # If the thread is only broken in a few places, try to fetch the missing
     # comments using the reddit api
