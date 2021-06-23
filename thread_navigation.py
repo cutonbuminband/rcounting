@@ -4,7 +4,6 @@ from prawcore.exceptions import ServerError
 from parsing import post_to_urls, post_to_count
 from utils import chunked
 from models import Comment as OfflineComment, CommentTree
-from validate import validate_thread, get_history, update_history
 
 api = PushshiftAPI()
 
@@ -78,7 +77,7 @@ def extract_gets_and_assists(comment, n_threads=1000):
     return gets, assists
 
 
-def walk_up_thread(comment, verbose=True):
+def walk_up_thread(comment, verbose=True, max_comments=None):
     "Return a list of reddit comments betwen root and leaf"
     comments = []
     refresh_counter = 0
@@ -98,15 +97,18 @@ def walk_up_thread(comment, verbose=True):
         comments.append(OfflineComment(comment))
         comment = comment.parent()
         refresh_counter += 1
-    # We need to include the root comment as well
-    comments.append(OfflineComment(comment))
+        if max_comments is not None and refresh_counter >= max_comments:
+            break
+    else:  # No break. We need to include the root comment as well
+        comments.append(OfflineComment(comment))
     return [x.to_dict() for x in comments[::-1]]
 
 
-def walk_down_thread(comment, thread=None, thread_type='default'):
+def walk_down_thread(side_thread, comment, thread=None):
     if comment is None:
         comment = thread.comments[0]
-    thread = get_history(comment, thread_type)
+
+    side_thread.get_history(comment)
 
     comment.refresh()
     replies = comment.replies
@@ -115,12 +117,9 @@ def walk_down_thread(comment, thread=None, thread_type='default'):
     print(comment.body)
     while(len(replies) > 0):
         for reply in replies:
-            new_thread = update_history(thread, reply)
-            if validate_thread(thread=new_thread, rule=thread_type)[0]:
+            if side_thread.is_valid(reply)[0]:
+                side_thread.update_history(reply)
                 comment = reply
-                if not hasattr(comment, 'replies'):
-                    comment.refresh()
-                thread = new_thread
                 break
         else:  # We looped over all replies without finding a valid one
             print("No valid replies found to {comment.id}")
