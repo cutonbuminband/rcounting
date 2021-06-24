@@ -40,7 +40,11 @@ class CountingRule():
                 & self._valid_user_time(history))
 
     def get_history(self, comment):
-        comments = walk_up_thread(comment, max_comments=self.n)
+        comments = walk_up_thread(comment, max_comments=self.n, verbose=False)
+        max_time = max(self.thread_time, self.user_time)
+        while not (comments[0].is_root
+                   or (comment.created_utc - comments[0].created_utc) >= max_time):
+            comments = walk_up_thread(comments[0], max_comments=9, verbose=False) + comments[1:]
         return pd.DataFrame([comment_to_dict(x) for x in comments])
 
 
