@@ -25,6 +25,7 @@ In order to update a row in a single table table, we need to [[Parsing][parse]] 
   from parsing import find_urls_in_text, parse_markdown_links
   from thread_navigation import fetch_comment_tree, walk_down_thread, fetch_thread
   from utils import flatten
+  from itertools import chain
   
   r = praw.Reddit('stats_bot')
   subreddit = r.subreddit('counting')
@@ -78,18 +79,14 @@ We get all threads from the last six months:
           continue
       body = post.selftext
       try:
-          urls = find_urls_in_text(body)
-          if not urls:
-              urls = [find_urls_in_text(comment.body) for comment in post.comments]
-              # flatten
-              urls = [url for comment_urls in urls for url in comment_urls]
-          url = urls[0]
-          if url[0] == post.id:
-              url = urls[1]
+          body_urls = find_urls_in_text(body)
+          post_urls = flatten([find_urls_in_text(comment.body) for comment in post.comments])
+          urls = chain(body_urls, post_urls)
+          urls = filter(lambda x: int(x[0], 36) < int(post.id, 36), urls)
+          url = next(urls)
           tree[post.id] = url[0]
-      except IndexError:
-          if post.removed_by_category is None:
-              new_threads.append(post.id)
+      except StopIteration:
+          new_threads.append(post.id)
       post_time  = datetime.datetime.utcfromtimestamp(post.created_utc)
       if now - post_time > six_months:
           break
