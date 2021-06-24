@@ -1,6 +1,7 @@
+import pandas as pd
 from parsing import find_count_in_text
 from thread_navigation import walk_up_thread
-import pandas as pd
+from models import comment_to_dict
 
 minute = 60
 hour = 60 * 60
@@ -42,7 +43,7 @@ class CountingRule():
 
     def get_history(self, comment):
         comments = walk_up_thread(comment, max_comments=self.n)
-        return pd.DataFrame(comments)
+        return pd.DataFrame([comment_to_dict(x) for x in comments])
 
 
 class OnlyDoubleCounting():
@@ -53,7 +54,7 @@ class OnlyDoubleCounting():
 
     def get_history(self, comment):
         comments = walk_up_thread(comment, max_comments=2)
-        return pd.DataFrame(comments)
+        return pd.DataFrame([comment_to_dict(x) for x in comments])
 
 
 def base_n(n=10):
@@ -100,10 +101,13 @@ class SideThread():
         return self.counting_rule.is_valid(history)
 
     def get_history(self, comment):
-        return self.counting_rule.get_history(comment)
+        self.history = self.counting_rule.get_history(comment)
 
     def looks_like_count(self, comment):
         return self.counting_form(comment.body)
+
+    def update_history(self, comment):
+        self.history = self.history.append(comment_to_dict(comment), ignore_index=True)
 
 
 known_threads = {

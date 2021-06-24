@@ -2,8 +2,7 @@ from psaw import PushshiftAPI
 from praw.exceptions import ClientException
 from prawcore.exceptions import ServerError
 from parsing import post_to_urls, post_to_count
-from utils import chunked
-from models import Comment as OfflineComment, CommentTree
+from models import CommentTree, comment_to_dict
 
 api = PushshiftAPI()
 
@@ -69,7 +68,7 @@ def extract_gets_and_assists(comment, n_threads=1000):
     for n in range(n_threads):
         rows = []
         for i in range(3):
-            rows.append(OfflineComment(comment))
+            rows.append(comment_to_dict(comment))
             comment = comment.parent()
         gets.append({**rows[0], 'timedelta': rows[0]['timestamp'] - rows[1]['timestamp']})
         assists.append({**rows[1], 'timedelta': rows[1]['timestamp'] - rows[2]['timestamp']})
@@ -94,14 +93,14 @@ def walk_up_thread(comment, verbose=True, max_comments=None):
             except (ClientException, ServerError):
                 print(f"Broken chain detected at {comment.id}")
                 print("Fetching the next 9 comments one by one")
-        comments.append(OfflineComment(comment))
+        comments.append(comment)
         comment = comment.parent()
         refresh_counter += 1
         if max_comments is not None and refresh_counter >= max_comments:
             break
     else:  # No break. We need to include the root comment as well
-        comments.append(OfflineComment(comment))
-    return [x.to_dict() for x in comments[::-1]]
+        comments.append(comment)
+    return comments[::-1]
 
 
 def walk_down_thread(side_thread, comment, thread=None):
@@ -169,4 +168,4 @@ def fetch_thread(comment):
     except KeyError:
         print('Failed to log thread using pushshift. Falling back on the reddit api')
         comments = walk_up_thread(comment, verbose=True)
-    return comments
+    return [x.to_dict() for x in comments]
