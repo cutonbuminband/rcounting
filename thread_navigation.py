@@ -113,15 +113,13 @@ def walk_down_thread(side_thread, comment, thread=None):
     replies = comment.replies
     if hasattr(replies, 'replace_more'):
         replies.replace_more(limit=None)
-    print(comment.body)
     while(len(replies) > 0):
         for reply in replies:
-            if side_thread.is_valid(reply)[0]:
+            if side_thread.is_valid(reply)[0] and side_thread.looks_like_count(reply):
                 side_thread.update_history(reply)
                 comment = reply
                 break
         else:  # We looped over all replies without finding a valid one
-            print("No valid replies found to {comment.id}")
             break
         replies = comment.replies
     # We've arrived at a leaf. Somewhere
