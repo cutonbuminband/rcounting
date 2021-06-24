@@ -14,32 +14,30 @@ class CountingRule():
         self.thread_time = thread_time
         self.user_time = user_time
 
-    def valid_skip(self, history):
-        skip_counts = history.groupby('username')['running_index'].diff()
-        if self.n is not None:
-            valid_skip = skip_counts.isna() | (skip_counts > self.n)
-        else:
-            valid_skip = skip_counts.isna()
-        return valid_skip.all()
+    def _valid_skip(self, history):
+        n = self.n if self.n is not None else len(history)
+        history = history.reset_index()
+        skips = history.groupby('username')['index'].diff()
+        return skips.isna() | (skips >= n)
 
-    def valid_thread_time(self, history):
+    def _valid_thread_time(self, history):
         if not self.thread_time:
             return True
         elapsed_time = history['timestamp'].diff()
         valid_time = elapsed_time.isna() | (elapsed_time >= self.thread_time)
-        return valid_time.all()
+        return valid_time
 
-    def valid_user_time(self, history):
+    def _valid_user_time(self, history):
         if not self.user_time:
             return True
         elapsed_user_time = history.groupby('username')['timestamp'].diff()
         valid_user_time = elapsed_user_time.isna() | (elapsed_user_time >= self.user_time)
-        return valid_user_time.all()
+        return valid_user_time
 
     def is_valid(self, history):
-        return (self.is_valid_skip(history)
-                & self.is_valid_thread_time(history)
-                & self.is_valid_user_time(history))
+        return (self._valid_skip(history)
+                & self._valid_thread_time(history)
+                & self._valid_user_time(history))
 
     def get_history(self, comment):
         comments = walk_up_thread(comment, max_comments=self.n)
@@ -97,8 +95,16 @@ class SideThread():
         self.counting_rule = rule
         self.thread_length = length
 
-    def is_valid(self, history):
-        return self.counting_rule.is_valid(history)
+    def is_valid(self, reply=None):
+        if reply is not None:
+            history = self.history.append(comment_to_dict(reply), ignore_index=True)
+        else:
+            history = self.history.copy()
+        mask = self.counting_rule.is_valid(history)
+        if mask.all():
+            return (True, '')
+        else:
+            return (False, history.loc[~mask, 'comment_id'].iloc[0])
 
     def get_history(self, comment):
         self.history = self.counting_rule.get_history(comment)
