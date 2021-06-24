@@ -19,6 +19,12 @@ In order to update a row in a single table table, we need to [[Parsing][parse]] 
   import pandas as pd
   import numpy as np
   import datetime
+  from pprint import pprint
+  import configparser
+  from side_threads import get_side_thread
+  from parsing import find_urls_in_text, parse_markdown_links
+  from thread_navigation import fetch_comment_tree, walk_down_thread, fetch_thread
+  from utils import flatten
   
   r = praw.Reddit('stats_bot')
   subreddit = r.subreddit('counting')
@@ -29,7 +35,6 @@ We can get the markdown of the file using the `content_md` attribute of the wiki
 #+begin_src jupyter-python
   directory_page = subreddit.wiki['directory'].content_md
   directory_page = directory_page.replace("\r\n", "\n")
-  directory_page = open("directory.md", "r").read()
   
 #+end_src
 
@@ -55,8 +60,6 @@ The result of all this is a tagged list, with the text portion saved as it origi
 We get all threads from the last six months:
 
 #+begin_src jupyter-python
-  from parsing import find_urls_in_text
-  
   six_months = datetime.timedelta(weeks=26.5)
   now = datetime.datetime.utcnow()
   posts = r.subreddit('counting').new(limit=1000)
@@ -166,10 +169,6 @@ A table of currently known side threads is found in [[file:side_threads.ini][sid
 #+end_src
 
 #+begin_src jupyter-python
-  from side_threads import get_side_thread
-  from thread_navigation import fetch_comment_tree
-  from thread_navigation import walk_down_thread
-
   side_thread = get_side_thread(side_threads['5c2d55'])
   comment_id = 'h1ehq8f'
   comment = r.comment(comment_id)
