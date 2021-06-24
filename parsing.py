@@ -20,9 +20,15 @@ def find_urls_in_text(body):
     # so everything before that is optional. We only capture the bit after
     # r/counting/comments, since that's what has the information we are
     # interested in.
-    url_regex = (r"comments/([\w]+)/.+?/([\w]*)")
+    url_regex = r"comments/([\w]+)/[^/]*/?([\w]*)"
     urls = re.findall(url_regex, body)
     return urls
+
+
+def parse_markdown_links(body):
+    regex = r'\[(.+?)\]\((.+?(?<!\\))\)'
+    links = re.findall(regex, body)
+    return links
 
 
 def post_to_count(reddit_post, api=None):
