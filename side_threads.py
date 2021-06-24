@@ -46,12 +46,20 @@ class CountingRule():
 
 class OnlyDoubleCounting():
     def is_valid(self, history):
-        down_shift = history.username.iloc[::2] == history.username.shift().iloc[::2]
-        up_shift = history.username.iloc[::2] == history.username.shift(-1).iloc[::2]
-        return (up_shift.isna() | up_shift).all() or (down_shift.isna() | down_shift).all()
+        history = history.set_index('comment_id')
+        history['mask'] = True
+        unshifted = history.username.iloc[::2]
+        up_shift = history.username.shift(-1).iloc[::2]
+        up_mask = up_shift.isna() | (up_shift == unshifted)
+        down_shift = history.username.shift().iloc[::2]
+        down_mask = down_shift.isna() | (down_shift == unshifted)
+        mask = up_mask if(up_mask.sum() > down_mask.sum()) else down_mask
+        history.loc[mask.index, 'mask'] = mask
+        history.reset_index(inplace=True)
+        return history['mask']
 
     def get_history(self, comment):
-        comments = walk_up_thread(comment, max_comments=2)
+        comments = walk_up_thread(comment, max_comments=2, verbose=False)
         return pd.DataFrame([comment_to_dict(x) for x in comments])
 
 
