@@ -56,6 +56,7 @@ We process paragraph by paragraph, and the criterion for finding a table is a wh
   print(len(tagged_results))
   
         #+end_src
+
 The result of all this is a tagged list, with the text portion saved as it originally was under the 'text' tag, and the tables stored as nested lists and tagged as 'table'.
 ** Getting threads
 We get all threads from the last six months:
@@ -106,6 +107,7 @@ We get all threads from the last six months:
       return submission_id
   
 #+end_src
+
 We check that everything works by looking up the leaf thread for all of our tables. Threads which are leaves, but have been archived are separated out.
 
 #+begin_src jupyter-python
@@ -120,6 +122,7 @@ We check that everything works by looking up the leaf thread for all of our tabl
           for line in table:
               counter += 1
               thread_id, comment_id = find_urls_in_text(line[1])[0]
+              comment_id = None if not comment_id else comment_id
               if thread_id in new_threads:
                   new_threads.remove(thread_id)
               leaf_thread = find_leaf_thread(thread_id)
@@ -157,26 +160,77 @@ These bits of information are now stored in a rules object for each side thread,
 
 A table of currently known side threads is found in [[file:side_threads.ini][side_threads.ini]], while [[file:side_threads.py][side_threads.py]] has a lookup function for each known side thread, returning a side thread object. We can try validating every entry in the directory table and see that everything works:
 #+begin_src jupyter-python
-  import configparser
-  config = configparser.ConfigParser()
-  config.read('side_threads.ini')
-  side_threads = config['threads']
-  side_threads['5c2d55']
-
+    config = configparser.ConfigParser()
+    config.read('side_threads.ini')
+    known_side_threads = config['threads']
 #+end_src
 
+** Putting it all together
+We can try on our table object
 #+begin_src jupyter-python
-  side_thread = get_side_thread(side_threads['5c2d55'])
-  comment_id = 'h1ehq8f'
-  comment = r.comment(comment_id)
-  tree = fetch_comment_tree(thread=comment.submission, root=comment)
-  comment = tree.comment(comment_id)
-
-  walk_down_thread(side_thread, comment)
-
+  result = []
+  counter = 0
+  latest_threads = {}
+  archived_threads = []
+  start = datetime.datetime.now()
+  for idx, entry in enumerate(tagged_results):
+      if entry[0] == "text":
+          result += entry
+      elif entry[0] == "table":
+          table = entry[1][2:]
+          for line in table:
+              thread_name, first_thread = parse_markdown_links(line[0])[0]
+              first_thread = first_thread[1:]
+              counter += 1
+              thread_id, comment_id = find_urls_in_text(line[1])[0]
+              comment_id = None if not comment_id else comment_id
+              if thread_id in new_threads:
+                  new_threads.remove(thread_id)
+              leaf_thread = find_leaf_thread(thread_id)
+              if leaf_thread is not None:
+                  if leaf_thread != thread_id:
+                      comment_id = None
+                  praw_thread = r.submission(leaf_thread)
+                  thread = fetch_comment_tree(praw_thread, root_id=comment_id)
+                  if comment_id is None:
+                      comment_id = praw_thread.comments[0].id
+                  thread_name = known_side_threads.get(first_thread, fallback='default')
+                  print(thread_name)
+                  side_thread = get_side_thread(thread_name)
+                  new_comment = walk_down_thread(side_thread, thread.comment(comment_id))
+              else:
+                  archived_threads.append([thread_id, comment_id])
+  print(datetime.datetime.now() - start)
 #+end_src
+
+# https://beta.pushshift.io/search/reddit/db/comments?size=1000&sort=desc&sort_type=created_utc&link_id=nqpi2l
+
+** Validation
+We can check that the side threads work as expected by validating the existing table:
 #+begin_src jupyter-python
-comment.to_dict()
+  for idx, entry in enumerate(tagged_results):
+      if entry[0] == "text":
+          continue
+      elif entry[0] == "table":
+          table = entry[1][2:]
+          for line in table:
+              thread_name, first_thread = parse_markdown_links(line[0])[0]
+              first_thread = first_thread[1:]
+              url = find_urls_in_text(line[1])[0]
+              latest_thread, latest_comment = url
+              if latest_comment:
+                  print(f"Validating {thread_name}")
+                  comments = fetch_thread(r.comment(latest_comment), verbose=False)
+                  thread = pd.DataFrame(comments)
+                  side_thread_name = known_side_threads.get(first_thread, fallback='default')
+                  side_thread = get_side_thread(side_thread_name)
+                  side_thread.history = thread
+                  result = side_thread.is_valid()
+                  if result[0]:
+                      print('All counts were valid')
+                  else:
+                      print(f'Invalid count found at {result[1]}!')
+
 #+end_src
 
 ** Printing the output
