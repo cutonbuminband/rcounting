@@ -16,14 +16,12 @@ In order to update a row in a single table table, we need to [[Parsing][parse]] 
 #+begin_src jupyter-python
 import praw
 import re
-import pandas as pd
 import numpy as np
 import datetime
-from pprint import pprint
 import configparser
 from side_threads import get_side_thread
 from parsing import find_urls_in_text, parse_markdown_links
-from thread_navigation import fetch_comment_tree, walk_down_thread, fetch_thread
+from thread_navigation import fetch_comment_tree, walk_down_thread
 from utils import flatten
 from itertools import chain
   
