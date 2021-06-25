@@ -1,10 +1,2 @@
-from itertools import islice
-
-
-def chunked(iterable, n):
-    it = iter(iterable)
-    while True:
-        chunk = tuple(islice(it, n))
-        if not chunk:
-            return
-        yield chunk
+def flatten(mylist):
+    return [element for sublist in mylist for element in sublist]

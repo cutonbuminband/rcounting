@@ -2,9 +2,7 @@ from psaw import PushshiftAPI
 from praw.exceptions import ClientException
 from prawcore.exceptions import ServerError
 from parsing import post_to_urls, post_to_count
-from utils import chunked
-from models import Comment as OfflineComment, CommentTree
-from validate import validate_thread, get_history, update_history
+from models import CommentTree, comment_to_dict
 
 api = PushshiftAPI()
 
@@ -70,7 +68,7 @@ def extract_gets_and_assists(comment, n_threads=1000):
     for n in range(n_threads):
         rows = []
         for i in range(3):
-            rows.append(OfflineComment(comment))
+            rows.append(comment_to_dict(comment))
             comment = comment.parent()
         gets.append({**rows[0], 'timedelta': rows[0]['timestamp'] - rows[1]['timestamp']})
         assists.append({**rows[1], 'timedelta': rows[1]['timestamp'] - rows[2]['timestamp']})
@@ -78,7 +76,7 @@ def extract_gets_and_assists(comment, n_threads=1000):
     return gets, assists
 
 
-def walk_up_thread(comment, verbose=True):
+def walk_up_thread(comment, verbose=True, max_comments=None):
     "Return a list of reddit comments betwen root and leaf"
     comments = []
     refresh_counter = 0
@@ -95,79 +93,50 @@ def walk_up_thread(comment, verbose=True):
             except (ClientException, ServerError):
                 print(f"Broken chain detected at {comment.id}")
                 print("Fetching the next 9 comments one by one")
-        comments.append(OfflineComment(comment))
+        comments.append(comment)
         comment = comment.parent()
         refresh_counter += 1
-    # We need to include the root comment as well
-    comments.append(OfflineComment(comment))
-    return [x.to_dict() for x in comments[::-1]]
+        if max_comments is not None and refresh_counter >= max_comments:
+            break
+    else:  # No break. We need to include the root comment as well
+        comments.append(comment)
+    return comments[::-1]
 
 
-def walk_down_thread(comment, thread=None, thread_type='default'):
+def walk_down_thread(side_thread, comment, thread=None):
     if comment is None:
         comment = thread.comments[0]
-    thread = get_history(comment, thread_type)
+
+    side_thread.get_history(comment)
 
     comment.refresh()
     replies = comment.replies
     if hasattr(replies, 'replace_more'):
         replies.replace_more(limit=None)
-    print(comment.body)
     while(len(replies) > 0):
         for reply in replies:
-            new_thread = update_history(thread, reply)
-            if validate_thread(thread=new_thread, rule=thread_type)[0]:
+            if side_thread.is_valid(reply)[0] and side_thread.looks_like_count(reply):
+                side_thread.update_history(reply)
                 comment = reply
-                if not hasattr(comment, 'replies'):
-                    comment.refresh()
-                thread = new_thread
                 break
         else:  # We looped over all replies without finding a valid one
-            print("No valid replies found to {comment.id}")
             break
         replies = comment.replies
     # We've arrived at a leaf. Somewhere
     return comment
 
 
-def fetch_comment_tree(thread, root=None, chunksize=100, fetch_missing=3):
+def fetch_comment_tree(thread, root_id=None):
     r = thread._reddit
     comment_ids = api._get_submission_comment_ids(thread.id)
-    if root is not None:
-        comment_ids = [x for x in comment_ids if int(x, 36) >= int(root.id, 36)]
-    psaw_comment_list = []
-    chunks = chunked(comment_ids, chunksize)
-    for chunk in chunks:
-        print(chunk[0])
-        comments = [x for x in api.search_comments(ids=chunk, metadata='true', limit=0)]
-        psaw_comment_list += comments
-
-    thread_tree = CommentTree(psaw_comment_list, root_comment=root)
-    missing_comments = thread_tree.missing_comments()
-    # If the thread is only broken in a few places, try to fetch the missing
-    # comments using the reddit api
-    if len(missing_comments) <= fetch_missing:
-        for missing_comment in missing_comments:
-            comment = r.comment(missing_comment)
-            thread_tree.add_comment(comment)
-            try:
-                comment.refresh()
-            except (ClientException, ServerError):
-                # There's a broken chain. We'll handle that elsewhere
-                break
-            for i in range(8):
-                comment = comment.parent()
-                offline_comment = thread_tree.add_comment(comment)
-                if offline_comment.is_root:
-                    break
+    if root_id is not None:
+        comment_ids = [x for x in comment_ids if int(x, 36) > int(root_id, 36)]
+    comments = [comment for comment in r.info(['t1_' + x for x in comment_ids])]
+    thread_tree = CommentTree(comments, reddit=r)
     return thread_tree
 
 
-def fetch_thread(comment):
-    try:
-        tree = fetch_comment_tree(comment.submission)
-        comments = walk_up_thread(tree.comment(comment.id), verbose=False)
-    except KeyError:
-        print('Failed to log thread using pushshift. Falling back on the reddit api')
-        comments = walk_up_thread(comment, verbose=True)
-    return comments
+def fetch_thread(comment, verbose=True):
+    tree = fetch_comment_tree(comment.submission)
+    comments = walk_up_thread(tree.comment(comment.id), verbose=False)
+    return [x.to_dict() for x in comments]
