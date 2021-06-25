@@ -62,7 +62,7 @@ We get all threads from the last six months:
 six_months = datetime.timedelta(weeks=26.5)
 now = datetime.datetime.utcnow()
 posts = r.subreddit('counting').new(limit=1000)
-tidbits_regex = "(T|t)idbits"
+tidbits_regex = "tidbits"
 ftf_regex = "free talk friday"
 tree = {}
 posts_dict = {}
@@ -72,8 +72,8 @@ for post in posts:
     if post.id in weird_threads:
         continue
     posts_dict[post.id] = post
-    title = post.title
-    if re.match(tidbits_regex, title) or re.match(ftf_regex, title.lower()):
+    title = post.title.lower()
+    if re.match(tidbits_regex, title) or re.match(ftf_regex, title):
         continue
     body = post.selftext
     try:
