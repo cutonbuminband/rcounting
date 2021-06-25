@@ -36,7 +36,6 @@ We can get the markdown of the file using the `content_md` attribute of the wiki
 #+begin_src jupyter-python
 directory_page = subreddit.wiki['directory'].content_md
 directory_page = directory_page.replace("\r\n", "\n")
-  
 #+end_src
 
 The file consists of a header and a footer. In the middle, there are headers and tables separated by blank lines. We split the file into paragraphs, and then process each paragraph one at a time. That way, we can (In theory) just glue everything together with double newlines when we're done
@@ -97,20 +96,25 @@ else:  # no break
   
 #+end_src
 
+Reversing the parent->child relation gives us a way of walking down the chain of threads to the leaf thread
 #+begin_src jupyter-python
 child_tree  = {v: k for k, v in tree.items()}
-def find_leaf_thread(submission_id):
+def walk_down_thread_chain(submission_id):
+    result = [submission_id]
     if submission_id not in posts_dict and submission_id not in child_tree:
         # Post has been archived with no children
         return None
     while submission_id in child_tree:
         submission_id = child_tree[submission_id]
-    return submission_id
+        result.append(submission_id)
+    return result
 
 #+end_src
 
+For each comment in the (potential) new threads, we walk down the chain to the leaf. Later, we'll compare this value with the leaves of already known threads, and see if there's a match.
 
 #+begin_src jupyter-python
+new_threads = [walk_down_thread_chain(x)[-1] for x in new_threads]
 #+end_src
 
 ** Finding the latest comment
@@ -144,40 +148,65 @@ known_side_threads = config['threads']
 #+end_src
 
 ** Putting it all together
+to update a single row, we should do the following:
+- Leave the first field unchanged
+- Find the latest thread and latest comment, and link to that in the second field
+- Update the total number of counts
+- If the thread has been archived, flag that.
+
+#+begin_src jupyter-python
+def update_row(row, verbose=True):
+    first, current, count = row
+    thread_name, first_thread = parse_markdown_links(first)[0]
+    first_thread = first_thread[1:]
+    previous_thread, previous_comment = find_urls_in_text(current)[0]
+    thread_chain = walk_down_thread_chain(previous_thread)
+    is_archived = False
+    if thread_chain is None:
+        is_archived = True
+        thread_chain = [previous_thread]
+    latest_thread = thread_chain[-1]
+    praw_thread = r.submission(latest_thread)
+    if latest_thread != previous_thread or not previous_comment:
+            previous_comment = praw_thread.comments[0].id
+    comment_tree = fetch_comment_tree(praw_thread, root_id=previous_comment)
+    thread_name = known_side_threads.get(first_thread, fallback='decimal')
+    side_thread = get_side_thread(thread_name)
+    new_comment = walk_down_thread(side_thread, comment_tree.comment(previous_comment))
+    new_title = praw_thread.title.split("|")[-1]
+    new_link = f'[{new_title}](reddit.com/r/comments/{latest_thread}/_/{new_comment.id})'
+    try:
+        old_count = int(count.translate(str.maketrans('-', '0', ', ')))
+        new_count = side_thread.update_count(old_count, thread_chain)
+        new_count = f"{new_count:,}"
+    except (ValueError, TypeError):
+        new_count = f"{count}*"
+    new_row = [first, new_link, new_count]
+    if verbose:
+        print(thread_name)
+    return is_archived, new_row, latest_thread
+#+end_src
+
 We can try on our table object
 #+begin_src jupyter-python
 result = []
-counter = 0
-latest_threads = {}
 archived_threads = []
 start = datetime.datetime.now()
 for idx, entry in enumerate(tagged_results):
     if entry[0] == "text":
-        result += entry
+        result.append(entry)
     elif entry[0] == "table":
         table = entry[1][2:]
-        for line in table:
-            thread_name, first_thread = parse_markdown_links(line[0])[0]
-            first_thread = first_thread[1:]
-            counter += 1
-            thread_id, comment_id = find_urls_in_text(line[1])[0]
-            comment_id = None if not comment_id else comment_id
-            if thread_id in new_threads:
-                new_threads.remove(thread_id)
-            leaf_thread = find_leaf_thread(thread_id)
-            if leaf_thread is not None:
-                if leaf_thread != thread_id:
-                    comment_id = None
-                praw_thread = r.submission(leaf_thread)
-                thread = fetch_comment_tree(praw_thread, root_id=comment_id)
-                if comment_id is None:
-                    comment_id = praw_thread.comments[0].id
-                thread_name = known_side_threads.get(first_thread, fallback='default')
-                print(thread_name)
-                side_thread = get_side_thread(thread_name)
-                new_comment = walk_down_thread(side_thread, thread.comment(comment_id))
-            else:
-                archived_threads.append([thread_id, comment_id])
+        new_table = []
+        for row in table:
+            is_archived, new_row, latest_thread = update_row(row)
+            if latest_thread in new_threads:
+                new_threads.remove(latest_thread)
+            if is_archived:
+                archived_threads.append(new_row)
+                continue
+            new_table.append(new_row)
+        result.append(['table', new_table])
 print(datetime.datetime.now() - start)
 #+end_src
 

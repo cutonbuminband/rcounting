@@ -107,6 +107,12 @@ class SideThread():
         self.counting_rule = rule
         self.thread_length = length
 
+    def update_count(self, count, threads):
+        if self.thread_length is not None:
+            return count + self.thread_length * (len(threads) - 1)
+        else:
+            return None
+
     def is_valid(self, reply=None):
         if reply is not None:
             history = self.history.append(comment_to_dict(reply), ignore_index=True)
