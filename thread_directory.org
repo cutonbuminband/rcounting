@@ -14,28 +14,28 @@ In order to update a row in a single table table, we need to [[Parsing][parse]] 
 
 ** Imports and initialisation
 #+begin_src jupyter-python
-  import praw
-  import re
-  import pandas as pd
-  import numpy as np
-  import datetime
-  from pprint import pprint
-  import configparser
-  from side_threads import get_side_thread
-  from parsing import find_urls_in_text, parse_markdown_links
-  from thread_navigation import fetch_comment_tree, walk_down_thread, fetch_thread
-  from utils import flatten
-  from itertools import chain
+import praw
+import re
+import pandas as pd
+import numpy as np
+import datetime
+from pprint import pprint
+import configparser
+from side_threads import get_side_thread
+from parsing import find_urls_in_text, parse_markdown_links
+from thread_navigation import fetch_comment_tree, walk_down_thread, fetch_thread
+from utils import flatten
+from itertools import chain
   
-  r = praw.Reddit('stats_bot')
-  subreddit = r.subreddit('counting')
+r = praw.Reddit('stats_bot')
+subreddit = r.subreddit('counting')
 #+end_src
 
 ** Parsing
 We can get the markdown of the file using the `content_md` attribute of the wiki page. Sometimes the lines are windows terminated, so we replace those with regular newlines
 #+begin_src jupyter-python
-  directory_page = subreddit.wiki['directory'].content_md
-  directory_page = directory_page.replace("\r\n", "\n")
+directory_page = subreddit.wiki['directory'].content_md
+directory_page = directory_page.replace("\r\n", "\n")
   
 #+end_src
 
@@ -43,17 +43,17 @@ The file consists of a header and a footer. In the middle, there are headers and
 
 We process paragraph by paragraph, and the criterion for finding a table is a whole paragraph that matches the regex.
 #+begin_src jupyter-python
-  paragraphs = directory_page.split("\n\n")
-  regex = r"^.*\|.*\|.*$"
-  tagged_results = []
-  for paragraph in paragraphs:
-      lines = paragraph.split("\n")
-      mask = np.all([bool(re.match(regex, line)) for line in lines])
-      if not mask:
-          tagged_results.append(['text', paragraph])
-      else:
-          tagged_results.append(['table', [x.split('|') for x in lines]])
-  print(len(tagged_results))
+paragraphs = directory_page.split("\n\n")
+regex = r"^.*\|.*\|.*$"
+tagged_results = []
+for paragraph in paragraphs:
+    lines = paragraph.split("\n")
+    mask = np.all([bool(re.match(regex, line)) for line in lines])
+    if not mask:
+        tagged_results.append(['text', paragraph])
+    else:
+        tagged_results.append(['table', [x.split('|') for x in lines]])
+print(len(tagged_results))
   
         #+end_src
 
@@ -62,77 +62,78 @@ The result of all this is a tagged list, with the text portion saved as it origi
 We get all threads from the last six months:
 
 #+begin_src jupyter-python
-  six_months = datetime.timedelta(weeks=26.5)
-  now = datetime.datetime.utcnow()
-  posts = r.subreddit('counting').new(limit=1000)
-  tidbits_regex = "(T|t)idbits"
-  ftf_regex = "free talk friday"
-  tree = {}
-  posts_dict = {}
-  new_threads = []
-  weird_threads = ['nehhvf']
-  for post in posts:
-      if post.id in weird_threads:
-          continue
-      posts_dict[post.id] = post
-      title = post.title
-      if re.match(tidbits_regex, title) or re.match(ftf_regex, title.lower()):
-          continue
-      body = post.selftext
-      try:
-          body_urls = find_urls_in_text(body)
-          post_urls = flatten([find_urls_in_text(comment.body) for comment in post.comments])
-          urls = chain(body_urls, post_urls)
-          urls = filter(lambda x: int(x[0], 36) < int(post.id, 36), urls)
-          url = next(urls)
-          tree[post.id] = url[0]
-      except StopIteration:
-          new_threads.append(post.id)
-      post_time  = datetime.datetime.utcfromtimestamp(post.created_utc)
-      if now - post_time > six_months:
-          break
-  else:  # no break
-      print('Threads between {now - six_months} and {post_time} have not been collected')
+six_months = datetime.timedelta(weeks=26.5)
+now = datetime.datetime.utcnow()
+posts = r.subreddit('counting').new(limit=1000)
+tidbits_regex = "(T|t)idbits"
+ftf_regex = "free talk friday"
+tree = {}
+posts_dict = {}
+new_threads = []
+weird_threads = ['nehhvf']
+for post in posts:
+    if post.id in weird_threads:
+        continue
+    posts_dict[post.id] = post
+    title = post.title
+    if re.match(tidbits_regex, title) or re.match(ftf_regex, title.lower()):
+        continue
+    body = post.selftext
+    try:
+        body_urls = find_urls_in_text(body)
+        post_urls = flatten([find_urls_in_text(comment.body) for comment in post.comments])
+        urls = chain(body_urls, post_urls)
+        urls = filter(lambda x: int(x[0], 36) < int(post.id, 36), urls)
+        url = next(urls)
+        tree[post.id] = url[0]
+    except StopIteration:
+        new_threads.append(post.id)
+    post_time  = datetime.datetime.utcfromtimestamp(post.created_utc)
+    if now - post_time > six_months:
+        break
+else:  # no break
+    print('Threads between {now - six_months} and {post_time} have not been collected')
+
   
 #+end_src
 
 #+begin_src jupyter-python
-  child_tree  = {v: k for k, v in tree.items()}
-  def find_leaf_thread(submission_id):
-      if submission_id not in posts_dict and submission_id not in child_tree:
-          # Post has been archived with no children
-          return None
-      while submission_id in child_tree:
-          submission_id = child_tree[submission_id]
-      return submission_id
-  
+child_tree  = {v: k for k, v in tree.items()}
+def find_leaf_thread(submission_id):
+    if submission_id not in posts_dict and submission_id not in child_tree:
+        # Post has been archived with no children
+        return None
+    while submission_id in child_tree:
+        submission_id = child_tree[submission_id]
+    return submission_id
+
 #+end_src
 
 We check that everything works by looking up the leaf thread for all of our tables. Threads which are leaves, but have been archived are separated out.
 
 #+begin_src jupyter-python
-  counter = 1
-  latest_threads = {}
-  archived_threads = []
-  for idx, entry in enumerate(tagged_results):
-      if entry[0] == "text":
-          continue
-      elif entry[0] == "table":
-          table = entry[1][2:]
-          for line in table:
-              counter += 1
-              thread_id, comment_id = find_urls_in_text(line[1])[0]
-              comment_id = None if not comment_id else comment_id
-              if thread_id in new_threads:
-                  new_threads.remove(thread_id)
-              leaf_thread = find_leaf_thread(thread_id)
-              if leaf_thread is not None:
-                  if leaf_thread == thread_id:
-                      latest_threads[thread_id] = [leaf_thread, comment_id]
-                  else:
-                      latest_threads == [leaf_thread, None]
-              else:
-                  archived_threads.append([thread_id, comment_id])
+counter = 1
+latest_threads = {}
+archived_threads = []
+for idx, entry in enumerate(tagged_results):
+    if entry[0] == "text":
+        continue
+    elif entry[0] == "table":
+        table = entry[1][2:]
+        for line in table:
+            counter += 1
+            thread_id, comment_id = find_urls_in_text(line[1])[0]
+            comment_id = None if not comment_id else comment_id
+            if thread_id in new_threads:
+                new_threads.remove(thread_id)
+            leaf_thread = find_leaf_thread(thread_id)
+            if leaf_thread is not None:
+                if leaf_thread == thread_id:
+                    latest_threads[thread_id] = [leaf_thread, comment_id]
+                else:
+                    latest_threads == [leaf_thread, None]
+            else:
+                archived_threads.append([thread_id, comment_id])
 #+end_src
 
 ** Finding the latest comment
@@ -160,47 +161,47 @@ These bits of information are now stored in a rules object for each side thread,
 
 A table of currently known side threads is found in [[file:side_threads.ini][side_threads.ini]], while [[file:side_threads.py][side_threads.py]] has a lookup function for each known side thread, returning a side thread object. We can try validating every entry in the directory table and see that everything works:
 #+begin_src jupyter-python
-    config = configparser.ConfigParser()
-    config.read('side_threads.ini')
-    known_side_threads = config['threads']
+config = configparser.ConfigParser()
+config.read('side_threads.ini')
+known_side_threads = config['threads']
 #+end_src
 
 ** Putting it all together
 We can try on our table object
 #+begin_src jupyter-python
-  result = []
-  counter = 0
-  latest_threads = {}
-  archived_threads = []
-  start = datetime.datetime.now()
-  for idx, entry in enumerate(tagged_results):
-      if entry[0] == "text":
-          result += entry
-      elif entry[0] == "table":
-          table = entry[1][2:]
-          for line in table:
-              thread_name, first_thread = parse_markdown_links(line[0])[0]
-              first_thread = first_thread[1:]
-              counter += 1
-              thread_id, comment_id = find_urls_in_text(line[1])[0]
-              comment_id = None if not comment_id else comment_id
-              if thread_id in new_threads:
-                  new_threads.remove(thread_id)
-              leaf_thread = find_leaf_thread(thread_id)
-              if leaf_thread is not None:
-                  if leaf_thread != thread_id:
-                      comment_id = None
-                  praw_thread = r.submission(leaf_thread)
-                  thread = fetch_comment_tree(praw_thread, root_id=comment_id)
-                  if comment_id is None:
-                      comment_id = praw_thread.comments[0].id
-                  thread_name = known_side_threads.get(first_thread, fallback='default')
-                  print(thread_name)
-                  side_thread = get_side_thread(thread_name)
-                  new_comment = walk_down_thread(side_thread, thread.comment(comment_id))
-              else:
-                  archived_threads.append([thread_id, comment_id])
-  print(datetime.datetime.now() - start)
+result = []
+counter = 0
+latest_threads = {}
+archived_threads = []
+start = datetime.datetime.now()
+for idx, entry in enumerate(tagged_results):
+    if entry[0] == "text":
+        result += entry
+    elif entry[0] == "table":
+        table = entry[1][2:]
+        for line in table:
+            thread_name, first_thread = parse_markdown_links(line[0])[0]
+            first_thread = first_thread[1:]
+            counter += 1
+            thread_id, comment_id = find_urls_in_text(line[1])[0]
+            comment_id = None if not comment_id else comment_id
+            if thread_id in new_threads:
+                new_threads.remove(thread_id)
+            leaf_thread = find_leaf_thread(thread_id)
+            if leaf_thread is not None:
+                if leaf_thread != thread_id:
+                    comment_id = None
+                praw_thread = r.submission(leaf_thread)
+                thread = fetch_comment_tree(praw_thread, root_id=comment_id)
+                if comment_id is None:
+                    comment_id = praw_thread.comments[0].id
+                thread_name = known_side_threads.get(first_thread, fallback='default')
+                print(thread_name)
+                side_thread = get_side_thread(thread_name)
+                new_comment = walk_down_thread(side_thread, thread.comment(comment_id))
+            else:
+                archived_threads.append([thread_id, comment_id])
+print(datetime.datetime.now() - start)
 #+end_src
 
 # https://beta.pushshift.io/search/reddit/db/comments?size=1000&sort=desc&sort_type=created_utc&link_id=nqpi2l
@@ -208,28 +209,28 @@ We can try on our table object
 ** Validation
 We can check that the side threads work as expected by validating the existing table:
 #+begin_src jupyter-python
-  for idx, entry in enumerate(tagged_results):
-      if entry[0] == "text":
-          continue
-      elif entry[0] == "table":
-          table = entry[1][2:]
-          for line in table:
-              thread_name, first_thread = parse_markdown_links(line[0])[0]
-              first_thread = first_thread[1:]
-              url = find_urls_in_text(line[1])[0]
-              latest_thread, latest_comment = url
-              if latest_comment:
-                  print(f"Validating {thread_name}")
-                  comments = fetch_thread(r.comment(latest_comment), verbose=False)
-                  thread = pd.DataFrame(comments)
-                  side_thread_name = known_side_threads.get(first_thread, fallback='default')
-                  side_thread = get_side_thread(side_thread_name)
-                  side_thread.history = thread
-                  result = side_thread.is_valid()
-                  if result[0]:
-                      print('All counts were valid')
-                  else:
-                      print(f'Invalid count found at {result[1]}!')
+for idx, entry in enumerate(tagged_results):
+    if entry[0] == "text":
+        continue
+    elif entry[0] == "table":
+        table = entry[1][2:]
+        for line in table:
+            thread_name, first_thread = parse_markdown_links(line[0])[0]
+            first_thread = first_thread[1:]
+            url = find_urls_in_text(line[1])[0]
+            latest_thread, latest_comment = url
+            if latest_comment:
+                print(f"Validating {thread_name}")
+                comments = fetch_thread(r.comment(latest_comment), verbose=False)
+                thread = pd.DataFrame(comments)
+                side_thread_name = known_side_threads.get(first_thread, fallback='default')
+                side_thread = get_side_thread(side_thread_name)
+                side_thread.history = thread
+                result = side_thread.is_valid()
+                if result[0]:
+                    print('All counts were valid')
+                else:
+                    print(f'Invalid count found at {result[1]}!')
 
 #+end_src
 
