@@ -1,5 +1,6 @@
 #+PROPERTY: header-args:jupyter-python  :session py
 #+PROPERTY: header-args    :pandoc t
+#+PROPERTY: header-args :tangle update_thread_directory.py
 
 * Updating the thread directory
 We want to be able to automatically update the thread directory in r/c.
@@ -40,18 +41,20 @@ The file consists of a header and a footer. In the middle, there are headers and
 
 We process paragraph by paragraph, and the criterion for finding a table is a whole paragraph that matches the regex.
 #+begin_src jupyter-python
-paragraphs = directory_page.split("\n\n")
-regex = r"^.*\|.*\|.*$"
-tagged_results = []
-for paragraph in paragraphs:
-    lines = paragraph.split("\n")
-    mask = np.all([bool(re.match(regex, line)) for line in lines])
-    if not mask:
-        tagged_results.append(['text', paragraph])
-    else:
-        tagged_results.append(['table', [x.split('|') for x in lines]])
-print(len(tagged_results))
-  
+def parse_directory_page(directory_page):
+    paragraphs = directory_page.split("\n\n")
+    regex = r"^.*\|.*\|.*$"
+    tagged_results = []
+    for paragraph in paragraphs:
+        lines = paragraph.split("\n")
+        mask = np.all([bool(re.match(regex, line)) for line in lines])
+        if not mask:
+            tagged_results.append(['text', paragraph])
+        else:
+            tagged_results.append(['table', [x.split('|') for x in lines[2:]]])
+    return tagged_results
+
+tagged_results = parse_directory_page(directory_page)
         #+end_src
 
 The result of all this is a tagged list, with the text portion saved as it originally was under the 'text' tag, and the tables stored as nested lists and tagged as 'table'.
@@ -96,7 +99,7 @@ else:  # no break
 
 Reversing the parent->child relation gives us a way of walking down the chain of threads to the leaf thread
 #+begin_src jupyter-python
-child_tree  = {v: k for k, v in tree.items()}
+child_tree = {v: k for k, v in tree.items()}
 def walk_down_thread_chain(submission_id):
     result = [submission_id]
     if submission_id not in posts_dict and submission_id not in child_tree:
@@ -138,7 +141,7 @@ The rules for a side thread are things like:
 
 These bits of information are now stored in a rules object for each side thread, which contains the necessary properties.
 
-A table of currently known side threads is found in [[file:side_threads.ini][side_threads.ini]], while [[file:side_threads.py][side_threads.py]] has a lookup function for each known side thread, returning a side thread object. We can try validating every entry in the directory table and see that everything works:
+A table of currently known side threads is found in [[file:side_threads.ini][side_threads.ini]], while [[file:side_threads.py][side_threads.py]] has a lookup function for each known side thread, returning a side thread object.
 #+begin_src jupyter-python
 config = configparser.ConfigParser()
 config.read('side_threads.ini')
@@ -146,7 +149,7 @@ known_side_threads = config['threads']
 #+end_src
 
 ** Putting it all together
-to update a single row, we should do the following:
+To update a single row, we should do the following:
 - Leave the first field unchanged
 - Find the latest thread and latest comment, and link to that in the second field
 - Update the total number of counts
@@ -177,6 +180,8 @@ def update_row(row, verbose=True):
         old_count = int(count.translate(str.maketrans('-', '0', ', ')))
         new_count = side_thread.update_count(old_count, thread_chain)
         new_count = f"{new_count:,}"
+        if new_count == "0":
+            new_count = "-"
     except (ValueError, TypeError):
         new_count = f"{count}*"
     new_row = [first, new_link, new_count]
@@ -185,27 +190,28 @@ def update_row(row, verbose=True):
     return is_archived, new_row, latest_thread
 #+end_src
 
-We can try on our table object
 #+begin_src jupyter-python
-result = []
-archived_threads = []
-start = datetime.datetime.now()
-for idx, entry in enumerate(tagged_results):
-    if entry[0] == "text":
-        result.append(entry)
-    elif entry[0] == "table":
-        table = entry[1][2:]
-        new_table = []
-        for row in table:
-            is_archived, new_row, latest_thread = update_row(row)
-            if latest_thread in new_threads:
-                new_threads.remove(latest_thread)
-            if is_archived:
-                archived_threads.append(new_row)
-                continue
-            new_table.append(new_row)
-        result.append(['table', new_table])
-print(datetime.datetime.now() - start)
+def update_directory(tagged_results, new_threads):
+    result = []
+    archived_threads = []
+    for idx, entry in enumerate(tagged_results):
+        if entry[0] == "text":
+            result.append(entry)
+        elif entry[0] == "table":
+            table = entry[1]
+            new_table = []
+            for row in table:
+                is_archived, new_row, latest_thread = update_row(row)
+                if latest_thread in new_threads:
+                    new_threads.remove(latest_thread)
+                if is_archived:
+                    archived_threads.append(new_row)
+                    continue
+                new_table.append(new_row)
+            result.append(['table', new_table])
+    return result, archived_threads, new_threads
+
+new_directory, archived_threads, new_threads = update_directory(tagged_results, new_threads)
 #+end_src
 
 ** Printing the output
@@ -217,20 +223,24 @@ For the text paragraphs, nothing changes.
 For the tables, we should separate each field by "|", and each line by "\n", and then add back the header
 
 #+begin_src jupyter-python
-table_header = [['Name &amp; Initial Thread', 'Current Thread', '# of Counts'],
-                [':--:', ':--:', '--:']]
 def stringify(paragraph):
+    table_header = [['Name &amp; Initial Thread', 'Current Thread', '# of Counts'],
+                    [':--:', ':--:', '--:']]
     if paragraph[0] == "text":
         return paragraph[1]
     elif paragraph[0] == "table":
         return '\n'.join('|'.join(x) for x in table_header + paragraph[1])
 
+def tagged_list_to_md(tagged_list):
+    return '\n\n'.join([stringify(entry) for entry in tagged_list)
+
 with open("new_directory_file.md", "w") as f:
-    print(*[stringify(entry) for entry in result], file=f, sep="\n\n")
+    print(tagged_list_to_md(updated_directory), file=f)
 
 
 with open("archived_threads.md", "w") as f:
-    print(stringify(["table", archived_threads]), file=f)
+    print(tagged_list_to_md(["table", archived_threads]), file=f)
 
-print(*[f"New thread '{r.submission(x).title}' at reddit.com/comments/{x}" for x in new_threads], sep="\n")
+print(*[f"New thread '{r.submission(x).title}' "
+        f"at reddit.com/comments/{x}" for x in new_threads], sep="\n")
 #+end_src
