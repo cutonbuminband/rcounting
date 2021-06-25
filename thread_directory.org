@@ -109,31 +109,8 @@ def find_leaf_thread(submission_id):
 
 #+end_src
 
-We check that everything works by looking up the leaf thread for all of our tables. Threads which are leaves, but have been archived are separated out.
 
 #+begin_src jupyter-python
-counter = 1
-latest_threads = {}
-archived_threads = []
-for idx, entry in enumerate(tagged_results):
-    if entry[0] == "text":
-        continue
-    elif entry[0] == "table":
-        table = entry[1][2:]
-        for line in table:
-            counter += 1
-            thread_id, comment_id = find_urls_in_text(line[1])[0]
-            comment_id = None if not comment_id else comment_id
-            if thread_id in new_threads:
-                new_threads.remove(thread_id)
-            leaf_thread = find_leaf_thread(thread_id)
-            if leaf_thread is not None:
-                if leaf_thread == thread_id:
-                    latest_threads[thread_id] = [leaf_thread, comment_id]
-                else:
-                    latest_threads == [leaf_thread, None]
-            else:
-                archived_threads.append([thread_id, comment_id])
 #+end_src
 
 ** Finding the latest comment
