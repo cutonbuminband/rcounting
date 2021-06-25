@@ -210,36 +210,29 @@ for idx, entry in enumerate(tagged_results):
 print(datetime.datetime.now() - start)
 #+end_src
 
-# https://beta.pushshift.io/search/reddit/db/comments?size=1000&sort=desc&sort_type=created_utc&link_id=nqpi2l
-
-** Validation
-We can check that the side threads work as expected by validating the existing table:
-#+begin_src jupyter-python
-for idx, entry in enumerate(tagged_results):
-    if entry[0] == "text":
-        continue
-    elif entry[0] == "table":
-        table = entry[1][2:]
-        for line in table:
-            thread_name, first_thread = parse_markdown_links(line[0])[0]
-            first_thread = first_thread[1:]
-            url = find_urls_in_text(line[1])[0]
-            latest_thread, latest_comment = url
-            if latest_comment:
-                print(f"Validating {thread_name}")
-                comments = fetch_thread(r.comment(latest_comment), verbose=False)
-                thread = pd.DataFrame(comments)
-                side_thread_name = known_side_threads.get(first_thread, fallback='default')
-                side_thread = get_side_thread(side_thread_name)
-                side_thread.history = thread
-                result = side_thread.is_valid()
-                if result[0]:
-                    print('All counts were valid')
-                else:
-                    print(f'Invalid count found at {result[1]}!')
-
-#+end_src
-
 ** Printing the output
+Now we just need to reverse the transformation we applied at the start:
+
+Given a list of tagged entries, we need to regenerate a markdown file.
+
+For the text paragraphs, nothing changes.
+For the tables, we should separate each field by "|", and each line by "\n", and then add back the header
+
+#+begin_src jupyter-python
+table_header = [['Name &amp; Initial Thread', 'Current Thread', '# of Counts'],
+                [':--:', ':--:', '--:']]
+def stringify(paragraph):
+    if paragraph[0] == "text":
+        return paragraph[1]
+    elif paragraph[0] == "table":
+        return '\n'.join('|'.join(x) for x in table_header + paragraph[1])
+
+with open("new_directory_file.md", "w") as f:
+    print(*[stringify(entry) for entry in result], file=f, sep="\n\n")
 
 
+with open("archived_threads.md", "w") as f:
+    print(stringify(["table", archived_threads]), file=f)
+
+print(*[f"New thread '{r.submission(x).title}' at reddit.com/comments/{x}" for x in new_threads], sep="\n")
+#+end_src
