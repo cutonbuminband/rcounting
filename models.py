@@ -82,6 +82,37 @@ class Comment(RedditPost):
         return self.tree.find_parent(self)
 
 
+class Node():
+    def __init__(self, properties, tree):
+        self.id = properties.id
+        self.properties = properties
+        self.tree = tree
+
+    def traverse(self):
+        return self.tree.traverse(self.id)
+
+
+class Tree():
+    def __init__(self, nodes, tree):
+        self.tree = tree
+        self.nodes = nodes
+
+    def traverse(self, node_id):
+        if node_id not in self.tree and node_id not in self.nodes:
+            return None
+        result = [node_id]
+        while node_id in self.tree:
+            node_id = self.tree[node_id]
+            result.append(node_id)
+        return [self.node(node_id) for node in result]
+
+    def node(self, node_id):
+        return Node(self.nodes[node_id], self)
+
+    def __len__(self):
+        return len(self.tree.keys())
+
+
 class CommentTree():
     def __init__(self, comments, reddit=None):
         self.comments = {x.id: x for x in comments}

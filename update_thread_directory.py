@@ -6,169 +6,180 @@ import configparser
 from side_threads import get_side_thread
 from parsing import find_urls_in_text, parse_markdown_links
 from thread_navigation import fetch_comment_tree, walk_down_thread
+from models import Tree
 from utils import flatten
 
-
-start = datetime.datetime.now()
-
 r = praw.Reddit('stats_bot')
-subreddit = r.subreddit('counting')
-
-directory_page = subreddit.wiki['directory'].content_md
-directory_page = directory_page.replace("\r\n", "\n")
+config = configparser.ConfigParser()
+config.read('side_threads.ini')
+known_threads = config['threads']
 
 
 def parse_directory_page(directory_page):
     paragraphs = directory_page.split("\n\n")
     regex = r"^.*\|.*\|.*$"
-    tagged_results = []
+    parsed_results = []
     for paragraph in paragraphs:
-        lines = paragraph.split("\n")
+        lines = [line for line in paragraph.split("\n") if line]
         mask = np.all([bool(re.match(regex, line)) for line in lines])
         if not mask:
-            tagged_results.append(['text', paragraph])
+            parsed_results.append(paragraph)
         else:
-            tagged_results.append(['table', [x.split('|') for x in lines[2:]]])
-    return tagged_results
+            rows = []
+            for row in lines[2:]:
+                fields = row.split('|')
+                row = Row(*fields)
+                rows.append(row)
+            parsed_results.append(Table(rows))
+    return parsed_results
 
 
-tagged_results = parse_directory_page(directory_page)
+class Table():
+    def __init__(self, rows):
+        self.rows = rows
+        for row in self.rows:
+            row.is_archived = False
+        self.kind = "table"
 
-six_months = datetime.timedelta(weeks=26.5)
-now = datetime.datetime.utcnow()
-posts = r.subreddit('counting').new(limit=1000)
-tidbits_regex = "tidbits"
-ftf_regex = "free talk friday"
-tree = {}
-posts_dict = {}
-new_threads = []
-weird_threads = ['nehhvf']
-for post in posts:
-    if post.id in weird_threads:
-        continue
-    posts_dict[post.id] = post
-    title = post.title.lower()
-    if re.match(tidbits_regex, title) or re.match(ftf_regex, title):
-        continue
-    body = post.selftext
-    try:
+    def __str__(self):
+        table_header = ['Name &amp; Initial Thread|Current Thread|# of Counts',
+                        ':--:|:--:|--:']
+        return "\n".join(table_header + [str(x) for x in self.rows if not x.is_archived])
+
+    def update(self, verbose=True):
+        for row in self.rows:
+            if verbose:
+                print(row.thread_type)
+            row.update()
+
+    def add_tree(self, tree):
+        for row in self.rows:
+            row.add_tree(tree)
+
+    def archived_threads(self):
+        rows = [row.copy() for row in self.rows if row.is_archived]
+        return Table(rows)
+
+    @property
+    def submissions(self):
+        return [row.submission for row in self.rows]
+
+
+class Row():
+    def __init__(self, first_thread, current_thread, current_count):
+        thread_name, first_thread_id = parse_markdown_links(first_thread)[0]
+        self.thread_name = thread_name.strip()
+        self.first_thread = first_thread_id.strip()[1:]
+        submission_id, comment_id = find_urls_in_text(current_thread)[0]
+        self.submission_id = submission_id
+        self.comment_id = comment_id
+        self.count = current_count.strip()
+        self.thread_type = known_threads.get(self.first_thread, fallback='decimal')
+        self.side_thread = get_side_thread(self.thread_type)
+
+    def __str__(self):
+        return (f"[{self.thread_name}](/{self.first_thread}) | "
+                f"[{self.title}]({self.link}) | {self.count}")
+
+    @property
+    def link(self):
+        return f"/comments/{self.submission.id}/_/{self.comment_id}"
+
+    @property
+    def title(self):
+        return self.submission.properties.title.split("|")[-1].strip()
+
+    def add_tree(self, tree):
+        self.submission = tree.node(self.submission_id)
+
+    def update(self):
+        chain = self.submission.traverse()
+        if chain is None:
+            self.is_archived = True
+            chain = [self.submission]
+        leaf_submission = chain[-1]
+        praw_thread = r.submission(leaf_submission.id)
+        if leaf_submission.id != self.submission.id or not self.comment_id:
+            self.comment_id = praw_thread.comments[0].id
+        self.submission = leaf_submission
+        comment_tree = fetch_comment_tree(praw_thread, root_id=self.comment_id)
+        self.comment = walk_down_thread(self.side_thread, comment_tree.comment(self.comment_id)).id
         try:
-            urls = filter(lambda x: int(x[0], 36) < int(post.id, 36), find_urls_in_text(body))
-            url = next(urls)
-            tree[post.id] = url[0]
+            count = int(self.count.translate(str.maketrans('-', '0', ', ')))
+            new_count = self.side_thread.update_count(count, chain)
+            self.count = f"{new_count:,}"
+            if self.count == "0":
+                self.count = "-"
+        except (ValueError, TypeError):
+            self.count = f"{self.count}*"
+
+
+def get_counting_history(subreddit, time_limit):
+    now = datetime.datetime.utcnow()
+    submissions = subreddit.new(limit=1000)
+    tree = {}
+    submissions_dict = {}
+    new_threads = []
+    for submission in submissions:
+        submissions_dict[submission.id] = submission
+        title = submission.title.lower()
+        if "tidbits" in title or "free talk friday" in title:
+            continue
+        body = submission.selftext
+        try:
+            try:
+                urls = filter(lambda x: int(x[0], 36) < int(submission.id, 36),
+                              find_urls_in_text(body))
+                url = next(urls)
+                tree[submission.id] = url[0]
+            except StopIteration:
+                urls = flatten([find_urls_in_text(comment.body) for comment in submission.comments])
+                urls = filter(lambda x: int(x[0], 36) < int(submission.id, 36), urls)
+                url = next(urls)
+                tree[submission.id] = url[0]
         except StopIteration:
-            post_urls = flatten([find_urls_in_text(comment.body) for comment in post.comments])
-            urls = filter(lambda x: int(x[0], 36) < int(post.id, 36), post_urls)
-            url = next(urls)
-            tree[post.id] = url[0]
-    except StopIteration:
-        new_threads.append(post.id)
-    post_time = datetime.datetime.utcfromtimestamp(post.created_utc)
-    if now - post_time > six_months:
-        break
-else:  # no break
-    print('Threads between {now - six_months} and {post_time} have not been collected')
+            new_threads.append(submission.id)
+        post_time = datetime.datetime.utcfromtimestamp(submission.created_utc)
+        if now - post_time > time_limit:
+            break
+    else:  # no break
+        print('Threads between {now - six_months} and {post_time} have not been collected')
 
-child_tree = {v: k for k, v in tree.items()}
+    tree = {v: k for k, v in tree.items()}
+    return submissions_dict, tree, new_threads
 
 
-def walk_down_thread_chain(submission_id):
-    result = [submission_id]
-    if submission_id not in posts_dict and submission_id not in child_tree:
-        # Post has been archived with no children
-        return None
-    while submission_id in child_tree:
-        submission_id = child_tree[submission_id]
-        result.append(submission_id)
-    return result
+if __name__ == "__main__":
+    start = datetime.datetime.now()
+    subreddit = r.subreddit('counting')
 
+    directory_page = subreddit.wiki['directory'].content_md
+    directory_page = directory_page.replace("\r\n", "\n")
+    document = parse_directory_page(directory_page)
 
-new_threads = [walk_down_thread_chain(x)[-1] for x in new_threads]
+    time_limit = datetime.timedelta(weeks=26.5)
+    print("Getting history")
+    submissions_dict, tree, new_threads = get_counting_history(subreddit, time_limit)
+    tree = Tree(submissions_dict, tree)
 
-config = configparser.ConfigParser()
-config.read('side_threads.ini')
-known_side_threads = config['threads']
+    print("Updating tables")
+    for paragraph in document:
+        if hasattr(paragraph, 'update'):
+            paragraph.add_tree(tree)
+            paragraph.update()
 
+    with open("directory_file.md", "w") as f:
+        print(*document, file=f, sep='\n\n')
 
-def update_row(row, verbose=True):
-    first, current, count = row
-    thread_name, first_thread = parse_markdown_links(first)[0]
-    first_thread = first_thread[1:]
-    previous_thread, previous_comment = find_urls_in_text(current)[0]
-    thread_chain = walk_down_thread_chain(previous_thread)
-    is_archived = False
-    if thread_chain is None:
-        is_archived = True
-        thread_chain = [previous_thread]
-    latest_thread = thread_chain[-1]
-    praw_thread = r.submission(latest_thread)
-    if latest_thread != previous_thread or not previous_comment:
-        previous_comment = praw_thread.comments[0].id
-    comment_tree = fetch_comment_tree(praw_thread, root_id=previous_comment)
-    thread_name = known_side_threads.get(first_thread, fallback='decimal')
-    side_thread = get_side_thread(thread_name)
-    new_comment = walk_down_thread(side_thread, comment_tree.comment(previous_comment))
-    new_title = praw_thread.title.split("|")[-1]
-    new_link = f'[{new_title}](reddit.com/r/comments/{latest_thread}/_/{new_comment.id})'
-    try:
-        old_count = int(count.translate(str.maketrans('-', '0', ', ')))
-        new_count = side_thread.update_count(old_count, thread_chain)
-        new_count = f"{new_count:,}"
-        if new_count == "0":
-            new_count = "-"
-    except (ValueError, TypeError):
-        new_count = f"{count}*"
-    new_row = [first, new_link, new_count]
-    if verbose:
-        print(thread_name)
-    return is_archived, new_row, latest_thread
+    table = Table(flatten([x.rows for x in document if x.kind == "table"]))
+    archived_threads = table.archived_threads()
+    with open("archived_threads.md", "w") as f:
+        print(archived_threads, file=f)
 
+    new_threads = set([tree.traverse(x)[-1].id for x in new_threads])
+    leaf_submissions = set([x.id for x in table.submissions])
+    print(*[f"New thread '{r.submission(x).title}' "
+            f"at reddit.com/comments/{x}" for x in new_threads - leaf_submissions], sep="\n")
 
-def update_directory(tagged_results, new_threads):
-    result = []
-    archived_threads = []
-    for idx, entry in enumerate(tagged_results):
-        if entry[0] == "text":
-            result.append(entry)
-        elif entry[0] == "table":
-            table = entry[1]
-            new_table = []
-            for row in table:
-                is_archived, new_row, latest_thread = update_row(row)
-                if latest_thread in new_threads:
-                    new_threads.remove(latest_thread)
-                if is_archived:
-                    archived_threads.append(new_row)
-                    continue
-                new_table.append(new_row)
-            result.append(['table', new_table])
-    return result, archived_threads, new_threads
-
-
-new_directory, archived_threads, new_threads = update_directory(tagged_results, new_threads)
-
-
-def stringify(paragraph):
-    table_header = [['Name &amp; Initial Thread', 'Current Thread', '# of Counts'],
-                    [':--:', ':--:', '--:']]
-    if paragraph[0] == "text":
-        return paragraph[1]
-    elif paragraph[0] == "table":
-        return '\n'.join('|'.join(x) for x in table_header + paragraph[1])
-
-
-def tagged_list_to_md(tagged_list):
-    return '\n\n'.join([stringify(entry) for entry in tagged_list])
-
-
-with open("new_directory_file.md", "w") as f:
-    print(tagged_list_to_md(new_directory), file=f)
-
-with open("archived_threads.md", "w") as f:
-    print(stringify(["table", archived_threads]), file=f)
-
-print(*[f"New thread '{r.submission(x).title}' "
-        f"at reddit.com/comments/{x}" for x in new_threads], sep="\n")
-
-end = datetime.datetime.now()
-print(end - start)
+    end = datetime.datetime.now()
+    print(end - start)
