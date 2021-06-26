@@ -100,13 +100,20 @@ def walk_down_thread(side_thread, comment, thread=None):
     return comment
 
 
-def fetch_comment_tree(thread, root_id=None):
+def fetch_comment_tree(thread, root_id=None, verbose=True, history=1):
     r = thread._reddit
-    comment_ids = api._get_submission_comment_ids(thread.id)
+    comment_ids = [x for x in api._get_submission_comment_ids(thread.id)]
+    if not comment_ids:
+        return CommentTree([], reddit=r, verbose=verbose)
+
+    comment_ids.sort(key=lambda x: int(x, 36))
     if root_id is not None:
-        comment_ids = [x for x in comment_ids if int(x, 36) > int(root_id, 36)]
+        for idx, comment_id in enumerate(comment_ids):
+            if int(comment_id, 36) >= int(root_id, 36):
+                break
+        comment_ids = comment_ids[max(0, idx - history):]
     comments = [comment for comment in r.info(['t1_' + x for x in comment_ids])]
-    thread_tree = CommentTree(comments, reddit=r)
+    thread_tree = CommentTree(comments, reddit=r, verbose=verbose)
     return thread_tree
 
 
