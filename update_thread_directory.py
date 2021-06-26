@@ -45,11 +45,11 @@ class Table():
                         ':--:|:--:|--:']
         return "\n".join(table_header + [str(x) for x in self.rows if not x.is_archived])
 
-    def update(self, verbose=True):
+    def update(self, verbosity=1, accuracy=0):
         for row in self.rows:
-            if verbose:
-                print(row.thread_type)
-            row.update()
+            if verbosity > 0:
+                print(f"Updating side thread: {row.thread_type}")
+            row.update(verbosity=verbosity, accuracy=accuracy)
 
     def add_tree(self, tree):
         for row in self.rows:
@@ -92,7 +92,7 @@ class Row():
         self.tree = tree
         self.submission = tree.node(self.submission_id)
 
-    def update(self):
+    def update(self, verbosity=1, accuracy=0):
         chain = self.tree.traverse(self.submission)
         if chain is None:
             self.is_archived = True
@@ -100,9 +100,16 @@ class Row():
         if chain[-1].id != self.submission.id or not self.comment_id:
             self.comment_id = chain[-1].comments[0].id
         self.submission = chain[-1]
-        comment_tree = fetch_comment_tree(self.submission, root_id=self.comment_id)
+        comments = fetch_comment_tree(self.submission, root_id=self.comment_id,
+                                      verbose=False)
+        comments.set_accuracy(accuracy)
+        comments.verbose = (verbosity > 1)
         self.comment = walk_down_thread(self.side_thread,
-                                        comment_tree.comment(self.comment_id)).id
+                                        comments.comment(self.comment_id)).id
+        if len(chain) > 1:
+            self.update_count(chain)
+
+    def update_count(self, chain):
         try:
             count = int(self.count.translate(str.maketrans('-', '0', ', ')))
             new_count = self.side_thread.update_count(count, chain)
@@ -113,13 +120,15 @@ class Row():
             self.count = f"{self.count}*"
 
 
-def get_counting_history(subreddit, time_limit):
+def get_counting_history(subreddit, time_limit, verbosity=1):
     now = datetime.datetime.utcnow()
     submissions = subreddit.new(limit=1000)
     tree = {}
     submissions_dict = {}
     new_threads = []
-    for submission in submissions:
+    for count, submission in enumerate(submissions):
+        if verbosity > 1 and count % 10 == 0:
+            print(f"Processing reddit submission {submission.id}")
         submissions_dict[submission.id] = submission
         title = submission.title.lower()
         if "tidbits" in title or "free talk friday" in title:
@@ -149,6 +158,23 @@ def get_counting_history(subreddit, time_limit):
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description='Update the thread directory located at'
+                                     ' reddit.com/r/counting/wiki/directory')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--verbose', '-v', action='store_true',
+                       help='Print more output during directory updates')
+
+    group.add_argument('--quiet', '-q', action='store_true',
+                       help='Print less output during directory updates')
+
+    parser.add_argument('--accurate', '-a', action='store_true',
+                        help=('Use reddit api to fetch newest comments instead of using '
+                              'an online archve. Warning: very slow!'))
+
+    args = parser.parse_args()
+
+    verbosity = 1 - args.quiet + args.verbose
     start = datetime.datetime.now()
     subreddit = r.subreddit('counting')
 
@@ -157,15 +183,17 @@ if __name__ == "__main__":
     document = parse_directory_page(directory_page)
 
     time_limit = datetime.timedelta(weeks=26.5)
-    print("Getting history")
-    submissions_dict, tree, new_threads = get_counting_history(subreddit, time_limit)
+    if verbosity > 0:
+        print("Getting history")
+    submissions_dict, tree, new_threads = get_counting_history(subreddit, time_limit, verbosity)
     tree = Tree(submissions_dict, tree)
 
-    print("Updating tables")
+    if verbosity > 0:
+        print("Updating tables")
     for paragraph in document:
         if hasattr(paragraph, 'update'):
             paragraph.add_tree(tree)
-            paragraph.update()
+            paragraph.update(verbosity, accuracy=int(args.accurate))
 
     with open("directory_file.md", "w") as f:
         print(*document, file=f, sep='\n\n')
