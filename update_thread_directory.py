@@ -39,7 +39,6 @@ class Table():
         self.rows = rows
         for row in self.rows:
             row.is_archived = False
-        self.kind = "table"
 
     def __str__(self):
         table_header = ['Name &amp; Initial Thread|Current Thread|# of Counts',
@@ -87,23 +86,23 @@ class Row():
 
     @property
     def title(self):
-        return self.submission.properties.title.split("|")[-1].strip()
+        return self.submission.title.split("|")[-1].strip()
 
     def add_tree(self, tree):
+        self.tree = tree
         self.submission = tree.node(self.submission_id)
 
     def update(self):
-        chain = self.submission.traverse()
+        chain = self.tree.traverse(self.submission)
         if chain is None:
             self.is_archived = True
             chain = [self.submission]
-        leaf_submission = chain[-1]
-        praw_thread = r.submission(leaf_submission.id)
-        if leaf_submission.id != self.submission.id or not self.comment_id:
-            self.comment_id = praw_thread.comments[0].id
-        self.submission = leaf_submission
-        comment_tree = fetch_comment_tree(praw_thread, root_id=self.comment_id)
-        self.comment = walk_down_thread(self.side_thread, comment_tree.comment(self.comment_id)).id
+        if chain[-1].id != self.submission.id or not self.comment_id:
+            self.comment_id = chain[-1].comments[0].id
+        self.submission = chain[-1]
+        comment_tree = fetch_comment_tree(self.submission, root_id=self.comment_id)
+        self.comment = walk_down_thread(self.side_thread,
+                                        comment_tree.comment(self.comment_id)).id
         try:
             count = int(self.count.translate(str.maketrans('-', '0', ', ')))
             new_count = self.side_thread.update_count(count, chain)
@@ -138,7 +137,7 @@ def get_counting_history(subreddit, time_limit):
                 url = next(urls)
                 tree[submission.id] = url[0]
         except StopIteration:
-            new_threads.append(submission.id)
+            new_threads.append(submission)
         post_time = datetime.datetime.utcfromtimestamp(submission.created_utc)
         if now - post_time > time_limit:
             break
@@ -171,7 +170,7 @@ if __name__ == "__main__":
     with open("directory_file.md", "w") as f:
         print(*document, file=f, sep='\n\n')
 
-    table = Table(flatten([x.rows for x in document if x.kind == "table"]))
+    table = Table(flatten([x.rows for x in document if hasattr(x, 'rows')]))
     archived_threads = table.archived_threads()
     with open("archived_threads.md", "w") as f:
         print(archived_threads, file=f)

@@ -59,37 +59,28 @@ class Submission(RedditPost):
 
 class Comment(RedditPost):
     def __init__(self, comment, tree=None):
-        super().__init__(comment)
+        RedditPost.__init__(self, comment)
         self.thread_id = comment.thread_id if hasattr(comment, 'thread_id') else comment.link_id
         self.parent_id = comment.parent_id
+        self.is_root = (self.parent_id == self.thread_id)
         self.tree = tree
 
     def __repr__(self):
         return f'offline_comment(id={self.id})'
 
-    @property
-    def is_root(self):
-        return (self.parent_id == self.thread_id)
-
-    @property
-    def replies(self):
-        return self.tree.find_children(self)
-
     def refresh(self):
         pass
 
+    def traverse(self, limit=None):
+        return self.tree.traverse(self, limit)
+
     def parent(self):
-        return self.tree.find_parent(self)
+        return self.tree.parent(self)
 
-
-class Node():
-    def __init__(self, properties, tree):
-        self.id = properties.id
-        self.properties = properties
-        self.tree = tree
-
-    def traverse(self):
-        return self.tree.traverse(self.id)
+    @property
+    def replies(self):
+        replies = self.tree.find_children(self)
+        return replies
 
 
 class Tree():
@@ -97,41 +88,80 @@ class Tree():
         self.tree = tree
         self.nodes = nodes
 
-    def traverse(self, node_id):
-        if node_id not in self.tree and node_id not in self.nodes:
+    @property
+    def reversed_tree(self):
+        return edges_to_tree([(parent, child) for child, parent in self.tree.items()])
+
+    def parent(self, node):
+        parent_id = self.tree[node.id]
+        return self.node(parent_id)
+
+    def find_children(self, node):
+        return [self.node(x) for x in self.reversed_tree[node.id]]
+
+    def traverse(self, node, limit=None):
+        if node.id not in self.tree and node.id not in self.nodes:
             return None
-        result = [node_id]
-        while node_id in self.tree:
-            node_id = self.tree[node_id]
-            result.append(node_id)
-        return [self.node(node_id) for node in result]
+        nodes = [node]
+        counter = 1
+        while node.id in self.tree and not getattr(node, 'is_root', False):
+            node = self.parent(node)
+            nodes.append(node)
+            counter += 1
+            if limit is not None and counter >= limit:
+                break
+        return nodes
 
     def node(self, node_id):
-        return Node(self.nodes[node_id], self)
+        return self.nodes[node_id]
 
     def __len__(self):
         return len(self.tree.keys())
 
+    def add_nodes(self, new_nodes, new_tree):
+        self.tree.update(new_tree)
+        self.nodes.update(new_nodes)
 
-class CommentTree():
-    def __init__(self, comments, reddit=None):
-        self.comments = {x.id: x for x in comments}
-        self.in_tree = {x.id: x.parent_id[3:] for x in comments if not self.is_root(x)}
-        self.out_tree = edges_to_tree([(parent, child) for child, parent in self.in_tree.items()])
+
+class CommentTree(Tree):
+    def __init__(self, comments, reddit=None, get_missing_replies=False, verbose=True):
+        tree = {x.id: x.parent_id[3:] for x in comments if not is_root(x)}
+        comments = {x.id: x for x in comments}
+        super().__init__(comments, tree)
         self.reddit = reddit
+        self.get_missing_replies = get_missing_replies
+        self.verbose = verbose
+        self.comment = self.node
 
-    def __len__(self):
-        return len(self.in_tree.keys())
+    def set_accuracy(self, accuracy):
+        self.get_missing_replies = bool(accuracy)
 
-    def is_root(self, comment):
-        thread_id = comment.thread_id if hasattr(comment, 'thread_id') else comment.link_id
-        return comment.parent_id == thread_id
+    def node(self, comment_id):
+        try:
+            return Comment(super().node(comment_id), self)
+        except KeyError:
+            if self.reddit is not None:
+                self.add_missing_parents(comment_id)
+                return Comment(super().node(comment_id), self)
+            else:
+                raise
 
-    def add_missing_comments(self, comment_id):
+    def add_nodes(self, comments):
+        new_comments = {x.id: x for x in comments}
+        new_tree = {x.id: x.parent_id[3:] for x in comments if not is_root(x)}
+        super().add_nodes(new_comments, new_tree)
+
+    def parent(self, node):
+        parent_id = self.tree[node.id]
+        return self.node(parent_id)
+
+    def add_missing_parents(self, comment_id):
         comments = []
         praw_comment = self.reddit.comment(comment_id)
         try:
             praw_comment.refresh()
+            if self.verbose:
+                print(f"Fetching ancestors of comment {praw_comment.id}")
         except Exception as e:
             print(e)
             pass
@@ -140,33 +170,23 @@ class CommentTree():
             if praw_comment.is_root:
                 break
             praw_comment = praw_comment.parent()
-        for comment in comments:
-            if comment.id not in self.comments:
-                child_id = comment.id
-                parent_id = comment.parent_id
-                self.comments.update({child_id: comment})
-                if not comment.is_root:
-                    self.in_tree[child_id] = parent_id[3:]
-                    self.out_tree[parent_id[3:]].append(child_id)
-
-    def comment(self, comment_id):
-        try:
-            return Comment(self.comments[comment_id], self)
-        except KeyError:
-            if self.reddit is not None:
-                self.add_missing_comments(comment_id)
-                return Comment(self.comments[comment_id], self)
-            else:
-                raise
-
-    def find_parent(self, comment):
-        if comment.is_root:
-            raise StopIteration
-        parent_id = self.in_tree[comment.id]
-        return self.comment(parent_id)
+        self.add_nodes(comments)
 
     def find_children(self, comment):
-        return [self.comment(x) for x in self.out_tree[comment.id]]
+        children = [self.comment(x) for x in self.reversed_tree[comment.id]]
+        if not children and self.get_missing_replies:
+            if self.verbose:
+                print(f"Fetching replies to comment {comment.id}")
+            children = self.tree.add_missing_replies(self)
+        return children
+
+    def add_missing_replies(self, comment):
+        praw_comment = self.reddit.comment(comment.id)
+        praw_comment.refresh()
+        replies = praw_comment.replies
+        replies.replace_more(0)
+        self.add_comments(replies.list())
+        return self.find_children(comment)
 
 
 def edges_to_tree(edges):
@@ -181,3 +201,11 @@ def comment_to_dict(comment):
         return comment.to_dict()
     except AttributeError:
         return Comment(comment).to_dict()
+
+
+def is_root(comment):
+    try:
+        return comment.is_root
+    except AttributeError:
+        thread_id = comment.thread_id if hasattr(comment, 'thread_id') else comment.link_id
+        return comment.parent_id == thread_id

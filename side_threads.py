@@ -1,6 +1,5 @@
 import pandas as pd
 from parsing import find_count_in_text
-from thread_navigation import walk_up_thread
 from models import comment_to_dict
 
 minute = 60
@@ -40,12 +39,12 @@ class CountingRule():
                 & self._valid_user_time(history))
 
     def get_history(self, comment):
-        comments = walk_up_thread(comment, max_comments=self.n, verbose=False)
+        comments = comment.traverse(limit=self.n)
         max_time = max(self.thread_time, self.user_time)
-        while not (comments[0].is_root
-                   or (comment.created_utc - comments[0].created_utc) >= max_time):
-            comments = walk_up_thread(comments[0], max_comments=9, verbose=False) + comments[1:]
-        return pd.DataFrame([comment_to_dict(x) for x in comments])
+        while not (comments[-1].is_root
+                   or (comment.created_utc - comments[-1].created_utc) >= max_time):
+            comments = comments[:-1] + comments[-1].traverse(limit=9)
+        return pd.DataFrame([comment_to_dict(x) for x in comments[::-1]])
 
 
 class OnlyDoubleCounting():
@@ -63,7 +62,7 @@ class OnlyDoubleCounting():
         return history['mask']
 
     def get_history(self, comment):
-        comments = walk_up_thread(comment, max_comments=2, verbose=False)
+        comments = comment.traverse(limit=2)[::-1]
         return pd.DataFrame([comment_to_dict(x) for x in comments])
 
 

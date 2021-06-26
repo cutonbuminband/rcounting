@@ -76,36 +76,10 @@ def extract_gets_and_assists(comment, n_threads=1000):
     return gets, assists
 
 
-def walk_up_thread(comment, verbose=True, max_comments=None):
-    "Return a list of reddit comments betwen root and leaf"
-    comments = []
-    refresh_counter = 0
-
-    while not comment.is_root:
-        # By refreshing, we request the previous 9 comments in a single go. So
-        # the next calls to .parent() don't result in a network request. If the
-        # refresh fails, we just go one by one
-        if refresh_counter % 9 == 0:
-            try:
-                comment.refresh()
-                if verbose:
-                    print(comment.id)
-            except (ClientException, ServerError):
-                print(f"Broken chain detected at {comment.id}")
-                print("Fetching the next 9 comments one by one")
-        comments.append(comment)
-        comment = comment.parent()
-        refresh_counter += 1
-        if max_comments is not None and refresh_counter >= max_comments:
-            break
-    else:  # No break. We need to include the root comment as well
-        comments.append(comment)
-    return comments[::-1]
-
-
 def walk_down_thread(side_thread, comment, thread=None):
     if comment is None:
         comment = thread.comments[0]
+        comment = CommentTree(comment).comment(comment.id)
 
     side_thread.get_history(comment)
 
@@ -138,5 +112,5 @@ def fetch_comment_tree(thread, root_id=None):
 
 def fetch_thread(comment, verbose=True):
     tree = fetch_comment_tree(comment.submission)
-    comments = walk_up_thread(tree.comment(comment.id), verbose=False)
+    comments = tree.comment(comment.id).traverse(verbose=False)
     return [x.to_dict() for x in comments]
