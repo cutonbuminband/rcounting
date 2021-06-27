@@ -1,7 +1,6 @@
 from pathlib import Path
 import pandas as pd
 import sqlite3
-import praw
 from models import Submission as OfflineSubmission
 from cleanup import find_missing_ids
 
@@ -17,7 +16,7 @@ def get_thread_list(df, db):
     submissions = []
     counter = 0
     for thread_id in thread_ids:
-        submission = r.submission(thread_id)
+        submission = reddit.submission(thread_id)
         submissions.append(submission)
         if counter % 10 == 0:
             print(submission.title)
@@ -40,7 +39,7 @@ def table_to_thread_name(x):
 
 if __name__ == "__main__":
     from thread_navigation import fetch_thread
-    r = praw.Reddit("stats_bot")
+    from reddit_interface import reddit
 
     df = pd.read_csv(Path('~/Downloads/ALL_clean.csv'), usecols=[1, 2, 3, 4, 5])
     if df['comment_id'].isna().any():
@@ -58,7 +57,7 @@ if __name__ == "__main__":
         if (tables['name'] == thread_to_table_name(thread)).any():
             continue
         print(f"Writing thread {thread} to db")
-        comment = r.comment(thread_df.iloc[-1]['comment_id'])
+        comment = reddit.comment(thread_df.iloc[-1]['comment_id'])
         comments = fetch_thread(comment)
 
         new_df = pd.DataFrame(comments)

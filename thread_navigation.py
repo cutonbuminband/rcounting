@@ -1,6 +1,4 @@
 from psaw import PushshiftAPI
-from praw.exceptions import ClientException
-from prawcore.exceptions import ServerError
 from parsing import post_to_urls, post_to_count
 from models import CommentTree, comment_to_dict
 

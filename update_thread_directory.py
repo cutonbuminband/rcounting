@@ -1,4 +1,3 @@
-import praw
 import re
 import numpy as np
 import datetime
@@ -9,7 +8,6 @@ from thread_navigation import fetch_comment_tree, walk_down_thread
 from models import Tree
 from utils import flatten
 
-r = praw.Reddit('stats_bot')
 config = configparser.ConfigParser()
 config.read('side_threads.ini')
 known_threads = config['threads']
@@ -159,6 +157,7 @@ def get_counting_history(subreddit, time_limit, verbosity=1):
 
 if __name__ == "__main__":
     import argparse
+    from reddit_interface import reddit
     parser = argparse.ArgumentParser(description='Update the thread directory located at'
                                      ' reddit.com/r/counting/wiki/directory')
     group = parser.add_mutually_exclusive_group()
@@ -176,7 +175,7 @@ if __name__ == "__main__":
 
     verbosity = 1 - args.quiet + args.verbose
     start = datetime.datetime.now()
-    subreddit = r.subreddit('counting')
+    subreddit = reddit.subreddit('counting')
 
     directory_page = subreddit.wiki['directory'].content_md
     directory_page = directory_page.replace("\r\n", "\n")

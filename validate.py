@@ -1,6 +1,9 @@
 if __name__ == "__main__":
     import pandas as pd
     from side_threads import get_side_thread
+    from reddit_interface import reddit
+    from thread_navigation import fetch_thread
+    import argparse
 
     rule_dict = {'default': 'default',
                  'wait2': 'wait 2',
@@ -11,9 +14,6 @@ if __name__ == "__main__":
                  'slower': 'slower',
                  'slowestest': 'slowestest'}
 
-    import praw
-    from thread_navigation import fetch_thread
-    import argparse
     parser = argparse.ArgumentParser(description='Validate the reddit thread which'
                                      ' contains the comment with id `comment_id` according to rule')
     parser.add_argument('comment_id',
@@ -23,8 +23,7 @@ if __name__ == "__main__":
                         help='Which rule to apply. Default is no double counting')
     args = parser.parse_args()
 
-    r = praw.Reddit('stats_bot')
-    comments = fetch_thread(r.comment(args.comment_id))
+    comments = fetch_thread(reddit.comment(args.comment_id))
     thread = pd.DataFrame(comments)
     side_thread = get_side_thread(rule_dict[args.rule])
     side_thread.history = thread

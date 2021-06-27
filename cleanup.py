@@ -1,10 +1,8 @@
 from pathlib import Path
 import pandas as pd
-import praw
 from psaw import PushshiftAPI
 
 api = PushshiftAPI()
-r = praw.Reddit("stats_bot")
 
 
 def find_missing_ids(df):
@@ -12,16 +10,16 @@ def find_missing_ids(df):
     """
     # Find the children of the relevant comments,
     children = df.loc[df[df['comment_id'].isna()].index + 1, ['comment_id', 'thread_id']]
-    # Look for their parents using praw
-    parents = {x.id: x.parent_id[3:] for x in api.search_comments(ids=children['comment_id'],
-                                                                  metadata='true', limit=0)
+    # Look for their parents using psaw
+    psaw_comments = api.search_comments(ids=children['comment_id'], metadata='true', limit=0)
+    parents = {x.id: x.parent_id[3:] for x in psaw_comments
                if x.parent_id[1] == '1'}
     # Check if there are any comments that psaw missed, and look for those using praw
     missing_children = set(children['comment_id']) - set(parents.keys())
     for missing_child in missing_children:
-        comment = r.comment(missing_child)
-        parent = comment.parent()
-        if isinstance(parent, praw.models.Comment):
+        comment = reddit.comment(missing_child)
+        if not comment.is_root:
+            parent = comment.parent()
             parents[missing_child] = parent.id
     parents = pd.Series(parents, name='parent_id')
 
@@ -38,6 +36,7 @@ def find_missing_ids(df):
 
 if __name__ == "__main__":
     import argparse
+    from reddit_interface import reddit
 
     parser = argparse.ArgumentParser(description="Add missing reddit ids to csv file")
     parser.add_argument("input", help="The input csv file")

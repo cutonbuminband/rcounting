@@ -47,7 +47,7 @@ def hoc_string(df, thread_title):
 
 if __name__ == '__main__':
     from datetime import datetime
-    import praw
+    from reddit_interface import reddit
     import argparse
     parser = argparse.ArgumentParser(description='Log the reddit thread which'
                                      ' contains the comment with id `get_id`')
@@ -62,8 +62,7 @@ if __name__ == '__main__':
           'starting at {args.get_id} and moving backwards')
 
     t_start = datetime.now()
-    r = praw.Reddit('stats_bot')
-    leaf_comment = r.comment(args.get_id)
+    leaf_comment = reddit.comment(args.get_id)
     for i in range(args.n):
         print(f'Logging thread {i + 1} out of {args.n}')
         log_one_thread(leaf_comment, args.use_psaw)
