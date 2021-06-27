@@ -74,11 +74,7 @@ def extract_gets_and_assists(comment, n_threads=1000):
     return gets, assists
 
 
-def walk_down_thread(side_thread, comment, thread=None):
-    if comment is None:
-        comment = thread.comments[0]
-        comment = CommentTree(comment).comment(comment.id)
-
+def walk_down_thread(side_thread, comment):
     side_thread.get_history(comment)
 
     comment.refresh()
