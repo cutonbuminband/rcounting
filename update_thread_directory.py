@@ -179,7 +179,7 @@ if __name__ == "__main__":
             paragraph.update(verbosity, accuracy=args.accurate)
             updated_document.append(paragraph)
 
-    with open("directory_file.md", "w") as f:
+    with open("directory.md", "w") as f:
         print(*updated_document, file=f, sep='\n\n')
 
     table = Table(flatten([x.rows for x in updated_document if hasattr(x, 'rows')]))
@@ -189,8 +189,10 @@ if __name__ == "__main__":
 
     new_threads = set([tree.traverse(x)[-1].id for x in new_threads])
     leaf_submissions = set([x.id for x in table.submissions])
-    print(*[f"New thread '{r.submission(x).title}' "
-            f"at reddit.com/comments/{x}" for x in new_threads - leaf_submissions], sep="\n")
+    with open("new_threads.txt", "w") as f:
+        print(*[f"New thread '{reddit.submission(x).title}' "
+                f"at reddit.com/comments/{x}" for x in new_threads - leaf_submissions],
+              sep="\n", file=f)
 
     end = datetime.datetime.now()
     print(end - start)
