@@ -132,7 +132,7 @@ Once it's done all that, it outputs three files:
 
 The rows corresponding to archived threads are not included in `directory.md`.
 
-If you run the script with no parameters it takes around 15 minutes to run. It relies on pushshift to get the comments for each reddit thread, and the pushshift archive is sometimes quite a ways behind in getting data from reddit. Currently, there's a delay of around 3 days. If you want a more up to date listing, you can call the script as `python3 update_thread_directory.py --accurate` to get the latest comments from reddit. WARNING: THIS IS EXTREMELY SLOW, AND CURRENTLY TAKES UPWARDS OF TWO HOURS.
+If you run the script with no parameters it takes around 15 minutes to run. It relies on pushshift to get the comments for each reddit thread, and the pushshift archive is sometimes quite a ways behind in getting data from reddit. Currently, there's a delay of around 3 days. If you want a more up to date listing, you can call the script as `python3 update_thread_directory.py --accurate` to get the latest comments from reddit. This causes the script to run 2-3 times more slowly.
 ## Contributing and Future Ideas
 This is a loosely organised list of things which could be done in the future. If you have any suggestions, don't hesitate to write, or to send a pull request.
 
