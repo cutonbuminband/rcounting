@@ -177,16 +177,20 @@ class CommentTree(Tree):
         if not children and self.get_missing_replies:
             if self.verbose:
                 print(f"Fetching replies to comment {comment.id}")
-            children = self.tree.add_missing_replies(self)
+            children = self.add_missing_replies(comment)
         return children
 
     def add_missing_replies(self, comment):
         praw_comment = self.reddit.comment(comment.id)
         praw_comment.refresh()
         replies = praw_comment.replies
-        replies.replace_more(0)
-        self.add_comments(replies.list())
-        return self.find_children(comment)
+        replies.replace_more(limit=1)
+        replies = replies.list()
+        if replies:
+            self.add_nodes(replies)
+            return self.find_children(comment)
+        else:
+            return []
 
 
 def edges_to_tree(edges):

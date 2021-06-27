@@ -106,7 +106,7 @@ def get_counting_history(subreddit, time_limit, verbosity=1):
     submissions_dict = {}
     new_threads = []
     for count, submission in enumerate(submissions):
-        if verbosity > 1 and count % 10 == 0:
+        if verbosity > 1 and count % 20 == 0:
             print(f"Processing reddit submission {submission.id}")
         submissions_dict[submission.id] = submission
         title = submission.title.lower()
