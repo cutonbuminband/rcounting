@@ -155,6 +155,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     verbosity = 1 - args.quiet + args.verbose
+    if args.accurate:
+        verbosity = 2
     start = datetime.datetime.now()
     subreddit = reddit.subreddit('counting')
 
