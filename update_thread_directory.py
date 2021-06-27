@@ -83,8 +83,8 @@ class Row():
                                       verbose=False)
         comments.set_accuracy(accuracy)
         comments.verbose = (verbosity > 1)
-        self.comment = walk_down_thread(self.side_thread,
-                                        comments.comment(self.comment_id)).id
+        self.comment_id = walk_down_thread(self.side_thread,
+                                           comments.comment(self.comment_id)).id
         if len(chain) > 1:
             self.update_count(chain)
 
