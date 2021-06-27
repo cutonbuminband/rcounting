@@ -150,10 +150,9 @@ if __name__ == "__main__":
 
     parser.add_argument('--accurate', '-a', action='store_true',
                         help=('Use reddit api to fetch newest comments instead of using '
-                              'an online archve. Warning: very slow!'))
+                              'an online archve. Warning: slow!'))
 
     args = parser.parse_args()
-
     verbosity = 1 - args.quiet + args.verbose
     if args.accurate:
         verbosity = 2
