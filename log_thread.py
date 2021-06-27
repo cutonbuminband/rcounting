@@ -59,13 +59,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     print(f'Logging {args.n} reddit thread{"s" if args.n > 1 else ""} '
-          'starting at {args.get_id} and moving backwards')
+          f'starting at {args.get_id} and moving backwards')
 
     t_start = datetime.now()
     leaf_comment = reddit.comment(args.get_id)
     for i in range(args.n):
         print(f'Logging thread {i + 1} out of {args.n}')
-        log_one_thread(leaf_comment, args.use_psaw)
+        log_one_thread(leaf_comment)
         leaf_comment = find_previous_get(leaf_comment)
     elapsed_time = datetime.now() - t_start
     print(f'Running the script took {elapsed_time}')

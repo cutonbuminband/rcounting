@@ -12,7 +12,7 @@ def find_previous_get(comment):
     if not urls:
         urls = [post_to_urls(comment) for comment in thread.comments]
         urls = [url for comment_urls in urls for url in comment_urls]
-    new_thread_id, title_url, new_get_id = urls[0]
+    new_thread_id, new_get_id = urls[0]
     if not new_get_id:
         new_get_id = find_get_in_thread(new_thread_id, reddit)
     comment = reddit.comment(new_get_id)
@@ -52,7 +52,7 @@ def find_get_from_comment(comment):
     count, comment = search_up_from_gz(comment)
     comment.refresh()
     replies = comment.replies
-    replies.replace_more(limit=0)
+    replies.replace_more(limit=None)
     while count % 1000 != 0:
         comment = comment.replies[0]
         count = post_to_count(comment, api)
@@ -116,6 +116,6 @@ def fetch_comment_tree(thread, root_id=None, verbose=True, history=1):
 
 
 def fetch_thread(comment, verbose=True):
-    tree = fetch_comment_tree(comment.submission)
-    comments = tree.comment(comment.id).traverse(verbose=False)
+    tree = fetch_comment_tree(comment.submission, verbose=verbose)
+    comments = tree.comment(comment.id).traverse()
     return [x.to_dict() for x in comments]
