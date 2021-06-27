@@ -25,15 +25,33 @@ def find_urls_in_text(body):
     return urls
 
 
-def parse_markdown_links(body):
-    regex = r'\[(.+?)\]\((.+?(?<!\\))\)'
-    links = re.findall(regex, body)
-    return links
-
-
 def post_to_count(reddit_post, api=None):
     return find_count_in_text(RedditPost(reddit_post, api=api).body)
 
 
 def post_to_urls(reddit_post, api=None):
     return find_urls_in_text(RedditPost(reddit_post, api=api).body)
+
+
+def parse_markdown_links(body):
+    regex = r'\[(.+?)\]\((.+?(?<!\\))\)'
+    links = re.findall(regex, body)
+    return links
+
+
+def parse_directory_page(directory_page):
+    paragraphs = directory_page.split("\n\n")
+    regex = r"^.*\|.*\|.*$"
+    tagged_results = []
+    for paragraph in paragraphs:
+        lines = [line for line in paragraph.split("\n") if line]
+        mask = all([bool(re.match(regex, line)) for line in lines])
+        if not mask:
+            tagged_results.append(['text', paragraph])
+        else:
+            rows = []
+            for row in lines[2:]:
+                fields = row.split('|')
+                rows.append(fields)
+            tagged_results.append(['table', rows])
+    return tagged_results

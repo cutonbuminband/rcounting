@@ -1,11 +1,9 @@
-import re
-import numpy as np
 import datetime
 import configparser
-from side_threads import get_side_thread
-from parsing import find_urls_in_text, parse_markdown_links
-from thread_navigation import fetch_comment_tree, walk_down_thread
 from models import Tree
+from side_threads import get_side_thread
+from parsing import find_urls_in_text, parse_markdown_links, parse_directory_page
+from thread_navigation import fetch_comment_tree, walk_down_thread
 from utils import flatten
 
 config = configparser.ConfigParser()
@@ -13,30 +11,13 @@ config.read('side_threads.ini')
 known_threads = config['threads']
 
 
-def parse_directory_page(directory_page):
-    paragraphs = directory_page.split("\n\n")
-    regex = r"^.*\|.*\|.*$"
-    parsed_results = []
-    for paragraph in paragraphs:
-        lines = [line for line in paragraph.split("\n") if line]
-        mask = np.all([bool(re.match(regex, line)) for line in lines])
-        if not mask:
-            parsed_results.append(paragraph)
-        else:
-            rows = []
-            for row in lines[2:]:
-                fields = row.split('|')
-                row = Row(*fields)
-                rows.append(row)
-            parsed_results.append(Table(rows))
-    return parsed_results
-
-
 class Table():
-    def __init__(self, rows):
+    def __init__(self, rows, tree=None):
         self.rows = rows
         for row in self.rows:
             row.is_archived = False
+        if tree is not None:
+            self.add_tree(tree)
 
     def __str__(self):
         table_header = ['Name &amp; Initial Thread|Current Thread|# of Counts',
@@ -189,15 +170,19 @@ if __name__ == "__main__":
 
     if verbosity > 0:
         print("Updating tables")
+    updated_document = []
     for paragraph in document:
-        if hasattr(paragraph, 'update'):
-            paragraph.add_tree(tree)
-            paragraph.update(verbosity, accuracy=int(args.accurate))
+        if paragraph[0] == "text":
+            updated_document.append(paragraph[1])
+        elif paragraph[0] == "table":
+            paragraph = Table([Row(*x) for x in paragraph[1]], tree)
+            paragraph.update(verbosity, accuracy=args.accurate)
+            updated_document.append(paragraph)
 
     with open("directory_file.md", "w") as f:
-        print(*document, file=f, sep='\n\n')
+        print(*updated_document, file=f, sep='\n\n')
 
-    table = Table(flatten([x.rows for x in document if hasattr(x, 'rows')]))
+    table = Table(flatten([x.rows for x in updated_document if hasattr(x, 'rows')]))
     archived_threads = table.archived_threads()
     with open("archived_threads.md", "w") as f:
         print(archived_threads, file=f)
