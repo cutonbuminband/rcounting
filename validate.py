@@ -12,7 +12,8 @@ if __name__ == "__main__":
                  'once_per_thread': 'once per thread',
                  'slow': 'slow',
                  'slower': 'slower',
-                 'slowestest': 'slowestest'}
+                 'slowestest': 'slowestest',
+                 'only_double_counting': 'only_double_counting'}
 
     parser = argparse.ArgumentParser(description='Validate the reddit thread which'
                                      ' contains the comment with id `comment_id` according to rule')

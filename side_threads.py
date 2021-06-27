@@ -81,12 +81,12 @@ def permissive(comment):
 
 
 def balanced_ternary(comment_body):
-    translated_body = comment_body.translate(str.maketrans('tT-0+', '00012'))
+    translated_body = comment_body.translate(str.maketrans('tT-0+', '00012', '12'))
     return base_n(3)(translated_body)
 
 
 def brainfuck(comment_body):
-    dictionary = str.maketrans('><+-.,[]', '01234567')
+    dictionary = str.maketrans('><+-.,[]', '01234567', '01234567')
     return base_n(8)(comment_body.translate(dictionary))
 
 
