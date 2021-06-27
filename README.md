@@ -10,31 +10,32 @@ This repository has tools for interacting with the reddit api through the [Pytho
 Currently, the main non-trivial functions get statistics for a single reddit thread, or for the "999" and "000" counts for many threads.
 
 ## Installation and usage
-You can clone the repository by typing `git clone https://github.com/cutonbuminband/counting_stats.git` in a terminal.
+You can clone the repository by: typing `git clone https://github.com/cutonbuminband/counting_stats.git` in a terminal.
 
 To install the dependencies, type `python3 -m pip -r requirements.txt`
 
-Finally, you need to get [oauth credentials for the reddit api](https://github.com/reddit-archive/reddit/wiki/OAuth2), and store them somewhere where praw can find them.
-
-Currently, this means creating a file called `praw.ini` in the repository with the following contents
+Finally, you need to get [oauth credentials for the reddit api](https://github.com/reddit-archive/reddit/wiki/OAuth2), and store them somewhere where the program knows about it. The easiest way is to create a file in called `praw.ini` in the directory with the following contents
 
 ```
 [stats_bot]
 client_id = 14CHARACTER_ID
 client_secret = 30CHARACTER_SECRET
-user_agent= cobibh/counting_stats/v1
-ratelimit_seconds = 1
+user_agent= PICK_SOMETHING_SENSIBLE
 username = USERNAME
 password = PASSWORD
 ```
 
+Alternatively, take a look at the instructions in `reddit_interface.py`.
+
 If you only intend to scrape public posts, and don't want to comment or access private posts, the `username` and `password` lines are unnecessary.
 
-The two main command line interfaces are `log_thread.py` and `validate.py` which (respectively) save a csv file of a thread and check if a thread conforms to a specific rule. Both scripts accept a `-h` or `--help` parameter explaining the usage.
+The main command line interfaces are `log_thread.py`, `validate.py` and `update_thread_directory.py` which will be described below. All scripts accept a `-h` or  `--help` parameter to explain the usage.
 
-For example, you can type `python3 log_thread.py e1slbz0` to log [this thread](https://www.reddit.com/r/counting/comments/8w151j/2171k_counting_thread/e1slbz0/), which ends with the count `2 172 000`. To log a different thread, you should supply a different `get_id` on the command line. The `get_id` is the last part of the url of a comment, which is of the form `http://reddit.com/r/counting/comments/thread_id/thread_title/get_id`
 
-You should see the following text being printed
+### Thread Logging
+To log a thread, you need to find the reddit id of the last comment you want to log (typically the get, ending in 000). The `comment_id` is the last part of the url of of a comment, which is generally of the form `http://reddit.com/r/counting/comments/thread_id/thread_title/get_id`.
+
+For example, you can type `python3 log_thread.py e1slbz0` to log [this thread](https://www.reddit.com/r/counting/comments/8w151j/2171k_counting_thread/e1slbz0/), which ends with the count `2 172 000`. You should see the following text being printed
 ```
 Logging reddit thread starting at e1slbz0 and moving towards the root
 e1slbz0
@@ -43,7 +44,7 @@ e1sl8sh
 ...
 ```
 
-Reddit limits us to 60 api requests per minute, and we can get at most nine comments for each api request, so it takes a bit of time. If you have the [Pushshift API Wrapper](https://psaw.readthedocs.io/en/latest/#) you can ask the logging tool to use that instead by passing the `--use-psaw` flag on the command line. This is faster, but doesn't work for the very oldest threads, or the very newest ones, and some comments are just missing. For full usage information, try typing `python3 log_thread.py -h`.
+Reddit limits us to 60 api requests per minute, and we can get at most nine comments for each api request, so it takes a bit of time. We speed that up by: using the [Pushshift API Wrapper](https://psaw.readthedocs.io/en/latest/#) to query an archive of reddit comments instead of reddit itself. This is faster, but doesn't work for the very oldest threads, or the very newest ones, and some comments are just missing. For full usage information, try typing `python3 log_thread.py -h`.
 
 The output of the logging script is two csv files called `results/table_{something}.csv` and `results/log_{something}.csv`. Taking a peek at the past one, it looks as follows:
 
@@ -90,7 +91,8 @@ Rank|Username|Counts
 13|/u/TehVulpez|1
 14|/u/AWiseTurtle|1
 
-The `validate` script works in the same way, except that it takes an additional `--rule` parameter specifying which rule should be checked. The following options are available:
+### Validation
+The `validate.py` script works in the same way, except that it takes an additional `--rule` parameter specifying which rule should be checked. The following options are available:
 
 - default: No counter can reply to themselves
 - wait2: Counters can only count once two others have counted
@@ -99,9 +101,38 @@ The `validate` script works in the same way, except that it takes an additional 
 - slow: One minute must elapse between counts
 - slower: Counters must wait one hour between each of their counts
 - slowestest: One hour must elapse between each count, and counters must wait 24h between each of their counts
+- only\_double\_counting: Counters must reply to themselves exactly once before it's somebody else's turn.
 
 If no rule is supplied, the script will only check that nobody double counted.
 
+After you run it, it'll print out whether all the counts in the chain were valid, and if there was an invalid count, which one it was.
+
+### Updating the thread directory
+
+The script `update_thread_directory.py` will try and update the directory of side threads found at www.reddit.com/r/counting/wiki/directory. It roughly follows the following steps
+
+1. It gets all submissions to r/counting made within the last six months
+2. It tries to find a link to the parent submission of each submission
+   - First it looks for a reddit url in the body of each submission (trying to find the "continued from here" line
+   - If that fails, it goes through all the top level comments of the submission looking for a reddit url
+3. It Constructs a chain for each thread from parent submission to child submission
+4. For each row in each table in the directory, it extracts
+  - Which side thread it is, based on the link to the first thread
+  - What the previous submission, comment and total count were.
+5. It then uses the chain of submissions to find the latest submission of each thread type
+6. And walks down the comments on each submission to the latest one. At each level of comments it goes to the first valid reply based on
+  - A per-thread rule describing when a count is valid
+  - A per-thread rule describing what looks like a count (to skip over mid-thread conversations)
+7. If the latest submission is not the same as the previous one, it tries to update the total count field
+
+Once it's done all that, it outputs three files:
+- `directory.md`: The updated directory in markdown format
+- `archived_threads.md`: A table of all threads which were in the existing directory, but where no non-archived submissions were found in their chain
+- `new_threads.txt`: A list of all submissions made to r/counting which did not match any threads already found in the directory.
+
+The rows corresponding to archived threads are not included in `directory.md`.
+
+If you run the script with no parameters it takes around 15 minutes to run. It relies on pushshift to get the comments for each reddit thread, and the pushshift archive is sometimes quite a ways behind in getting data from reddit. Currently, there's a delay of around 3 days. If you want a more up to date listing, you can call the script as `python3 update_thread_directory.py --accurate` to get the latest comments from reddit. WARNING: THIS IS EXTREMELY SLOW, AND CURRENTLY TAKES UPWARDS OF TWO HOURS.
 ## Contributing and Future Ideas
 This is a loosely organised list of things which could be done in the future. If you have any suggestions, don't hesitate to write, or to send a pull request.
 
