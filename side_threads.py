@@ -1,6 +1,6 @@
 import pandas as pd
-from parsing import find_count_in_text
 from models import comment_to_dict
+from string import digits, ascii_uppercase
 
 minute = 60
 hour = 60 * 60
@@ -68,34 +68,30 @@ class OnlyDoubleCounting():
         return pd.DataFrame([comment_to_dict(x) for x in comments])
 
 
-def base_n(n=10):
+def validate_from_character_list(valid_characters):
     def looks_like_count(comment_body):
-        try:
-            find_count_in_text(comment_body, n)
-            return True
-        except ValueError:
-            return False
+        body = comment_body.upper()
+        return any([character in body for character in valid_characters])
     return looks_like_count
+
+
+def base_n(n=10):
+    alphanumeric = digits + ascii_uppercase
+    return validate_from_character_list(alphanumeric[:n])
 
 
 def permissive(comment):
     return True
 
 
-def balanced_ternary(comment_body):
-    translated_body = comment_body.translate(str.maketrans('tT-0+', '00012', '12'))
-    return base_n(3)(translated_body)
+balanced_ternary = validate_from_character_list('T-0+')
+brainfuck = validate_from_character_list('><+-.,[]')
+roman_numeral = validate_from_character_list('IVXLCDMↁↂↇ')
+mayan_form = validate_from_character_list('Ø1234|-')
+twitter_form = validate_from_character_list('@')
 
-
-def brainfuck(comment_body):
-    dictionary = str.maketrans('><+-.,[]', '01234567', '01234567')
-    return base_n(8)(comment_body.translate(dictionary))
-
-
-def roman_numeral(comment_body):
-    trans = str.maketrans('IVXLCDMↁↂↇ', '0123456789', '0123456789')
-    translated_body = comment_body.upper().translate(trans)
-    return base_n(10)(translated_body)
+def reddit_username_form(comment_body):
+    return 'u/' in comment_body
 
 
 base_10 = base_n(10)
@@ -158,10 +154,13 @@ known_threads = {
     'slowestest': SideThread(CountingRule(thread_time=hour, user_time=day)),
     'unicode': SideThread(form=base_n(16), length=1024),
     'lucas_numbers': SideThread(length=200),
-    'valid brainfuck': SideThread(form=brainfuck),
+    'valid brainfuck programs': SideThread(form=brainfuck),
     'hoi4 states': SideThread(length=806),
     'only double counting': SideThread(rule=OnlyDoubleCounting()),
-    'seconds minutes hours': SideThread(length=1200)
+    'seconds minutes hours': SideThread(length=1200),
+    'mayan numerals': SideThread(length=800, form=mayan_form),
+    'reddit usernames': SideThread(length=722, form=reddit_username_form),
+    'twitter handles': SideThread(length=1369, form=twitter_form)
 }
 
 base_n_lengths = [None,
@@ -174,48 +173,42 @@ base_n_lengths = [None,
                   None, None, None, None, None,
                   1296]
 
-for i in range(2, 37):
-    if base_n_lengths[i] is None:
-        continue
-    known_threads.update({f'base {i}': SideThread(form=base_n(i), length=base_n_lengths[i])})
+base_n_threads = {'base i': SideThread(form=base_n(i), length=length)
+                  for i, length in enumerate(base_n_lengths) if length is not None}
+known_threads.update(base_n_threads)
 
 
-permissive_threads = {'base 40': 1600,
-                      'base 51': 1000,
-                      'base 60': 900,
-                      'base 62': 992,
-                      'base 64': 1024,
-                      'base 93': 930,
-                      'base 100': 1000,
-                      'base 187': 1000,
-                      'youtube': 1024,
-                      'dates': None,
-                      'previous_dates': None,
-                      'writing numbers': 1000,
-                      'mississippi': 1000,
-                      'qwerty alphabet': 676,
-                      'acronyms': 676,
-                      'letters': 676,
-                      'palindromes - letters': 676,
-                      'four fours': 1000,
-                      'mayan numerals': 800,
-                      'top subreddits': 1000,
-                      'reddit usernames': 722,
-                      'twitter handles': 1369,
-                      'bijective base 69': 1000,
-                      'cards': 676,
-                      'musical notes': 1008,
-                      'octal letter stack': 1024,
-                      'planetary octal': 1024,
-                      'by 3s in base 7': 1000,
-                      'chess matches': 1000,
-                      'permutations - letters': None,
-                      'rickroll base 5': 1000,
-                      'iterate each letter': None}
+no_validation = {'base 40': 1600,
+                 'base 51': 1000,
+                 'base 60': 900,
+                 'base 62': 992,
+                 'base 64': 1024,
+                 'base 93': 930,
+                 'base 100': 1000,
+                 'base 187': 1000,
+                 'youtube': 1024,
+                 'dates': None,
+                 'previous_dates': None,
+                 'writing numbers': 1000,
+                 'mississippi': 1000,
+                 'qwerty alphabet': 676,
+                 'acronyms': 676,
+                 'letters': 676,
+                 'palindromes - letters': 676,
+                 'four fours': 1000,
+                 'top subreddits': 1000,
+                 'bijective base 69': 1000,
+                 'cards': 676,
+                 'musical notes': 1008,
+                 'octal letter stack': 1024,
+                 'planetary octal': 1024,
+                 'by 3s in base 7': 1000,
+                 'chess matches': 1000,
+                 'permutations - letters': None,
+                 'rickroll base 5': 1000,
+                 'iterate each letter': None}
 
-for thread in permissive_threads:
-    known_threads.update(thread=SideThread(form=permissive,
-                                           length=permissive_threads[thread]))
+known_threads.update({k: SideThread(form=permissive, length=v) for k, v in no_validation.items()})
 
 default_thread_unknown_length = ['wave', 'palindromes', 'only repeating digits',
                                  'permutations', 'factoradic', 'tug_of_war', 'by day of the week',
