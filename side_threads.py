@@ -39,6 +39,8 @@ class CountingRule():
                 & self._valid_user_time(history))
 
     def get_history(self, comment):
+        if getattr(comment, 'is_root', False):
+            return pd.DataFrame([])
         comments = comment.traverse(limit=self.n)
         max_time = max(self.thread_time, self.user_time)
         while not (comments[-1].is_root
