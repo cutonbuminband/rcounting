@@ -27,8 +27,7 @@ if __name__ == "__main__":
     comments = fetch_thread(reddit.comment(args.comment_id))
     thread = pd.DataFrame(comments)
     side_thread = get_side_thread(rule_dict[args.rule])
-    side_thread.history = thread
-    result = side_thread.is_valid()
+    result = side_thread.is_valid_thread(thread)
     if result[0]:
         print('All counts were valid')
     else:

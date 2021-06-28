@@ -102,8 +102,8 @@ default_rule = CountingRule()
 
 class SideThread():
     def __init__(self, rule=default_rule, form=base_10, length=1000):
-        self.counting_form = form
-        self.counting_rule = rule
+        self.form = form
+        self.rule = rule
         self.thread_length = length
 
     def update_count(self, count, threads):
@@ -112,22 +112,22 @@ class SideThread():
         else:
             return None
 
-    def is_valid(self, reply=None):
-        if reply is not None:
-            history = self.history.append(comment_to_dict(reply), ignore_index=True)
-        else:
-            history = self.history.copy()
-        mask = self.counting_rule.is_valid(history)
+    def is_valid_thread(self, history):
+        mask = self.rule.is_valid(history)
         if mask.all():
             return (True, '')
         else:
             return (False, history.loc[~mask, 'comment_id'].iloc[0])
 
+    def is_valid_count(self, comment):
+        history = self.history.append(comment_to_dict(comment), ignore_index=True)
+        return self.is_valid_thread(history)[0] and self.looks_like_count(comment)
+
     def get_history(self, comment):
-        self.history = self.counting_rule.get_history(comment)
+        self.history = self.rule.get_history(comment)
 
     def looks_like_count(self, comment):
-        return self.counting_form(comment.body)
+        return self.form(comment.body)
 
     def update_history(self, comment):
         self.history = self.history.append(comment_to_dict(comment), ignore_index=True)

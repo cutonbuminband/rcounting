@@ -1,6 +1,6 @@
 from psaw import PushshiftAPI
 from parsing import post_to_urls, post_to_count
-from models import CommentTree, comment_to_dict
+from models import CommentTree, comment_to_dict, deleted_phrases
 
 api = PushshiftAPI()
 
@@ -83,7 +83,7 @@ def walk_down_thread(side_thread, comment):
         replies.replace_more(limit=None)
     while(len(replies) > 0):
         for reply in replies:
-            if side_thread.is_valid(reply)[0] and side_thread.looks_like_count(reply):
+            if (side_thread.is_valid_count(reply) and reply.body not in deleted_phrases):
                 side_thread.update_history(reply)
                 comment = reply
                 break
