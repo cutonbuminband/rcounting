@@ -10,7 +10,7 @@ def find_count_in_text(body, base=10):
         count = re.findall(regex, body.lower())[0]
         # We remove any separators, and try to convert the remainder to an int.
         stripped_count = count.translate(str.maketrans('', '', r' ,.*/'))
-        return int(stripped_count)
+        return int(stripped_count, base)
     except ValueError:
         raise ValueError(f"Unable to extract count from comment body: {body}")
 
