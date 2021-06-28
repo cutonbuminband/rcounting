@@ -181,7 +181,7 @@ class CommentTree(Tree):
             if self.verbose:
                 print(f"Fetching replies to comment {comment.id}")
             children = self.add_missing_replies(comment)
-        return children
+        return sorted(children, key=lambda x: x.created_utc)
 
     def add_missing_replies(self, comment):
         praw_comment = self.reddit.comment(comment.id)
