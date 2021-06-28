@@ -79,8 +79,11 @@ class Comment(RedditPost):
 
     @property
     def replies(self):
-        replies = self.tree.find_children(self)
-        return replies
+        return self.tree.find_children(self)
+
+    @property
+    def get_missing_replies(self):
+        return self.tree.get_missing_replies
 
 
 class Tree():
@@ -188,9 +191,20 @@ class CommentTree(Tree):
         replies = replies.list()
         if replies:
             self.add_nodes(replies)
-            return self.find_children(comment)
+            return [self.comment(x.id) for x in replies]
         else:
             return []
+
+    def is_broken(self, comment):
+        parent = comment.parent()
+        replies = self.add_missing_replies(parent)
+        if comment.id not in [x.id for x in replies]:
+            return True
+        return False
+
+    def repair(self, comment):
+        del self.nodes[comment.id]
+        del self.tree[comment.id]
 
 
 def edges_to_tree(edges):

@@ -91,6 +91,14 @@ def walk_down_thread(side_thread, comment):
             break
         replies = comment.replies
     # We've arrived at a leaf. Somewhere
+    if comment.get_missing_replies:
+        tree = comment.tree
+        if tree.is_broken(comment):
+            if tree.verbose:
+                print('Broken chain detected! Moving up one level and trying again')
+            parent = comment.parent()
+            tree.repair(comment)
+            return walk_down_thread(side_thread, parent)
     return comment
 
 
