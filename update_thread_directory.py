@@ -38,6 +38,12 @@ class Table():
         rows = [row.copy() for row in self.rows if row.is_archived]
         return Table(rows)
 
+    def __getitem__(self, key):
+        return self.rows[key]
+
+    def __len__(self):
+        return len(self.rows)
+
     @property
     def submissions(self):
         return [row.submission for row in self.rows]
