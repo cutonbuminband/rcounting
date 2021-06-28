@@ -196,15 +196,18 @@ if __name__ == "__main__":
 
     table = Table(flatten([x.rows for x in updated_document if hasattr(x, 'rows')]))
     archived_threads = table.archived_threads()
-    with open("archived_threads.md", "w") as f:
-        print(archived_threads, file=f)
+    if archived_threads:
+        with open("archived_threads.md", "w") as f:
+            print(archived_threads, file=f)
 
     new_threads = set([tree.traverse(x)[-1].id for x in new_threads])
     leaf_submissions = set([x.id for x in table.submissions])
-    with open("new_threads.txt", "w") as f:
-        print(*[f"New thread '{reddit.submission(x).title}' "
-                f"at reddit.com/comments/{x}" for x in new_threads - leaf_submissions],
-              sep="\n", file=f)
+    new_threads = new_threads - leaf_submissions
+    if new_threads:
+        with open("new_threads.txt", "w") as f:
+            print(*[f"New thread '{reddit.submission(x).title}' "
+                    f"at reddit.com/comments/{x}" for x in new_threads],
+                  sep="\n", file=f)
 
     end = datetime.datetime.now()
     print(end - start)
