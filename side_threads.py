@@ -17,7 +17,7 @@ class CountingRule():
         n = self.n if self.n is not None else len(history)
         history = history.reset_index()
         skips = history.groupby('username')['index'].diff()
-        return skips.isna() | (skips >= n)
+        return skips.isna() | (skips > n)
 
     def _valid_thread_time(self, history):
         if not self.thread_time:
