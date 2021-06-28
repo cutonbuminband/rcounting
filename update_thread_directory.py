@@ -67,11 +67,15 @@ class Row():
 
     @property
     def link(self):
-        return f"/comments/{self.submission.id}/_/{self.comment_id}"
+        return f"/comments/{self.submission.id}/_/{self.comment_id}?context=3"
 
     @property
     def title(self):
-        return self.submission.title.split("|")[-1].strip()
+        sections = self.submission.title.split("|")
+        if len(sections) > 1:
+            sections = sections[1:]
+        title = (' '.join(sections)).strip()
+        return title if title else self.count
 
     def add_tree(self, tree):
         self.tree = tree
@@ -102,7 +106,8 @@ class Row():
             if self.count == "0":
                 self.count = "-"
         except (ValueError, TypeError):
-            self.count = f"{self.count}*"
+            if self.count[-1] != '*':
+                self.count = f"{self.count}*"
 
 
 def get_counting_history(subreddit, time_limit, verbosity=1):
