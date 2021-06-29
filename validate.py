@@ -31,4 +31,4 @@ if __name__ == "__main__":
     if result[0]:
         print('All counts were valid')
     else:
-        print(f'Invalid count found at {result[1]}!')
+        print(f'Invalid count found at reddit.com{reddit.comment(result[1]).permalink}!')
