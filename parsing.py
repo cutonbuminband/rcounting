@@ -61,3 +61,11 @@ def parse_thread_title(title, regex):
     sections = [x.strip() for x in title.split("|")]
     match = re.match(regex, sections[-1])
     return [int(x) for x in match.groups()] if match is not None else match
+
+
+def find_urls_in_submission(submission):
+    # Get everything that looks like a url in the body of the post
+    yield from find_urls_in_text(submission.selftext)
+    # And then in every top-level comment
+    for comment in submission.comments:
+        yield from find_urls_in_text(comment.body)

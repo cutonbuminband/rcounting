@@ -2,7 +2,7 @@ import datetime
 import configparser
 from models import Tree
 from side_threads import get_side_thread
-from parsing import find_urls_in_text, find_count_in_text
+from parsing import find_urls_in_text, find_urls_in_submission, find_count_in_text
 from parsing import parse_markdown_links, parse_directory_page
 from thread_navigation import fetch_comment_tree, walk_down_thread
 from utils import flatten
@@ -124,18 +124,10 @@ def get_counting_history(subreddit, time_limit, verbosity=1):
         title = submission.title.lower()
         if "tidbits" in title or "free talk friday" in title:
             continue
-        body = submission.selftext
         try:
-            try:
-                urls = filter(lambda x: int(x[0], 36) < int(submission.id, 36),
-                              find_urls_in_text(body))
-                url = next(urls)
-                tree[submission.id] = url[0]
-            except StopIteration:
-                urls = flatten([find_urls_in_text(comment.body) for comment in submission.comments])
-                urls = filter(lambda x: int(x[0], 36) < int(submission.id, 36), urls)
-                url = next(urls)
-                tree[submission.id] = url[0]
+            url = next(filter(lambda x: int(x[0], 36) < int(submission.id, 36),
+                              find_urls_in_submission(submission)))
+            tree[submission.id] = url[0]
         except StopIteration:
             new_threads.append(submission)
         post_time = datetime.datetime.utcfromtimestamp(submission.created_utc)

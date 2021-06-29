@@ -1,5 +1,5 @@
 from psaw import PushshiftAPI
-from parsing import post_to_urls, post_to_count
+from parsing import find_urls_in_submission, post_to_count
 from models import CommentTree, comment_to_dict, deleted_phrases
 
 api = PushshiftAPI()
@@ -8,11 +8,7 @@ api = PushshiftAPI()
 def find_previous_get(comment):
     reddit = comment._reddit
     thread = comment.submission
-    urls = post_to_urls(thread)
-    if not urls:
-        urls = [post_to_urls(comment) for comment in thread.comments]
-        urls = [url for comment_urls in urls for url in comment_urls]
-    new_thread_id, new_get_id = urls[0]
+    new_thread_id, new_get_id = next(find_urls_in_submission(thread))
     if not new_get_id:
         new_get_id = find_get_in_thread(new_thread_id, reddit)
     comment = reddit.comment(new_get_id)
