@@ -39,12 +39,10 @@ class CountingRule():
                 & self._valid_user_time(history))
 
     def get_history(self, comment):
-        if getattr(comment, 'is_root', False):
-            return pd.DataFrame([])
         comments = comment.traverse(limit=self.n)
         max_time = max(self.thread_time, self.user_time)
-        while not (comments[-1].is_root
-                   or (comment.created_utc - comments[-1].created_utc) >= max_time):
+        while (not comments[-1].is_root
+               and (comment.created_utc - comments[-1].created_utc) < max_time):
             comments = comments[:-1] + comments[-1].traverse(limit=9)
         return pd.DataFrame([comment_to_dict(x) for x in comments[::-1]])
 
@@ -122,6 +120,9 @@ class SideThread():
         return self.is_valid_thread(history)[0] and self.looks_like_count(comment)
 
     def get_history(self, comment):
+        """Fetch enough previous comments to be able to determine whether replies to
+        `comment` are valid according to the side thread rules.
+        """
         self.history = self.rule.get_history(comment)
 
     def looks_like_count(self, comment):

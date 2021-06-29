@@ -108,11 +108,11 @@ class Tree():
         nodes = [node]
         counter = 1
         while node.id in self.tree and not getattr(node, 'is_root', False):
+            if limit is not None and counter >= limit:
+                break
             node = self.parent(node)
             nodes.append(node)
             counter += 1
-            if limit is not None and counter >= limit:
-                break
         return nodes
 
     def __len__(self):
