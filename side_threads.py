@@ -90,6 +90,7 @@ roman_numeral = validate_from_character_list('IVXLCDMↁↂↇ')
 mayan_form = validate_from_character_list('Ø1234|-')
 twitter_form = validate_from_character_list('@')
 
+
 def reddit_username_form(comment_body):
     return 'u/' in comment_body
 
@@ -182,20 +183,16 @@ class SideThread():
 
 
 known_threads = {
-    'no repeating digits': SideThread(length=840),
-    'time': SideThread(length=900),
     'roman': SideThread(form=roman_numeral),
     'balanced ternary': SideThread(form=balanced_ternary, length=729),
     'base 16 roman': SideThread(form=roman_numeral),
     'binary encoded hexadecimal': SideThread(form=base_n(2), length=1024),
     'binary encoded decimal': SideThread(form=base_n(2)),
     'base 2i': SideThread(form=base_n(4), length=None),
-    'feet and inches': SideThread(length=600),
     'bijective base 2': SideThread(form=base_n(3), length=1024),
     'cyclical bases': SideThread(form=base_n(16)),
     'wait 2': SideThread(rule=CountingRule(wait_n=2)),
-    'wait 2 - letters': SideThread(rule=CountingRule(wait_n=2),
-                                   form=permissive),
+    'wait 2 - letters': SideThread(rule=CountingRule(wait_n=2), form=permissive),
     'wait 3': SideThread(rule=CountingRule(wait_n=3)),
     'wait 10': SideThread(rule=CountingRule(wait_n=10)),
     'once per thread': SideThread(rule=CountingRule(wait_n=None)),
@@ -203,14 +200,14 @@ known_threads = {
     'slower': SideThread(CountingRule(user_time=hour)),
     'slowestest': SideThread(CountingRule(thread_time=hour, user_time=day)),
     'unicode': SideThread(form=base_n(16), length=1024),
-    'lucas_numbers': SideThread(length=200),
     'valid brainfuck programs': SideThread(form=brainfuck),
-    'hoi4 states': SideThread(length=806),
     'only double counting': SideThread(rule=OnlyDoubleCounting()),
-    'seconds minutes hours': SideThread(length=1200),
     'mayan numerals': SideThread(length=800, form=mayan_form),
     'reddit usernames': SideThread(length=722, form=reddit_username_form),
-    'twitter handles': SideThread(length=1369, form=twitter_form)
+    'twitter handles': SideThread(length=1369, form=twitter_form),
+    'wave': SideThread(new_count_function=new_count_wave),
+    'increasing sequences': SideThread(new_count_function=new_count_increasing),
+    'double increasing sequences': SideThread(new_count_function=new_count_double_increasing)
 }
 
 base_n_lengths = [None,
@@ -227,6 +224,17 @@ base_n_threads = {'base i': SideThread(form=base_n(i), length=length)
                   for i, length in enumerate(base_n_lengths) if length is not None}
 known_threads.update(base_n_threads)
 
+# See: https://www.reddit.com/r/counting/comments/o7ko8r/free_talk_friday_304/h3c7433/?context=3
+default_threads = {'no repeating digits': 840,
+                   'time': 900,
+                   'permutations': 720,
+                   'factoradic': 720,
+                   'seconds minutes hours': 1200,
+                   'feet and inches': 600,
+                   'lucas_numbers': 200,
+                   'hoi4 states': 806,
+                   'eban': 800}
+known_threads.update({key: SideThread(length=length) for key, length in default_threads.items()})
 
 no_validation = {'base 40': 1600,
                  'base 51': 1000,
@@ -260,24 +268,45 @@ no_validation = {'base 40': 1600,
 
 known_threads.update({k: SideThread(form=permissive, length=v) for k, v in no_validation.items()})
 
-default_thread_unknown_length = ['wave', 'palindromes', 'only repeating digits',
-                                 'permutations', 'factoradic', 'tug_of_war', 'by day of the week',
-                                 'by day of the year', 'by gme increase/decrease %',
-                                 'by length of username', 'by number of post upvotes',
-                                 'by random number', 'by digits in total karma',
-                                 'by timestamp seconds', 'comment karma', 'post karma',
-                                 'total karma', 'nim', 'pick from five', 'rotational symmetry',
-                                 'base of previous digit', 'eban', 'no successive digits',
-                                 'rotational symmetry', 'collatz conjecture',
-                                 'double increasing sequences', 'increasing sequences',
-                                 'triple increasing sequences', 'powerball', '2d tug of war',
-                                 'boost 5', 'by number of digits squared', 'by list size']
+default_thread_varying_length = [
+    'tug of war',
+    'by day of the week',
+    'by day of the year',
+    'by gme increase/decrease %',
+    'by length of username',
+    'by number of post upvotes',
+    'by random number',
+    'by digits in total karma',
+    'by timestamp seconds',
+    'comment karma',
+    'post karma',
+    'total karma',
+    'nim',
+    'pick from five',
+    '2d tug of war',
+    'boost 5',
+]
+
+default_thread_unknown_length = [
+    'only repeating digits',
+    'rotational symmetry',
+    'base of previous digit',
+    'no successive digits',
+    'rotational symmetry',
+    'collatz conjecture',
+    'triple increasing sequences',
+    'powerball',
+    'by number of digits squared',
+    'by list size',
+]
 
 
 def get_side_thread(thread_name):
     """Return the properties of the side thread with first post thread_id"""
     if thread_name in default_thread_unknown_length:
         return SideThread(length=None)
+    elif thread_name in default_thread_varying_length:
+        return SideThread(new_count_function=new_count_from_traversal)
     elif thread_name not in known_threads:
         return SideThread()
     else:
