@@ -144,14 +144,9 @@ class CommentTree(Tree):
         self.get_missing_replies = bool(accuracy)
 
     def node(self, comment_id):
-        try:
-            return Comment(super().node(comment_id), self)
-        except KeyError:
-            if self.reddit is not None:
-                self.add_missing_parents(comment_id)
-                return Comment(super().node(comment_id), self)
-            else:
-                raise
+        if comment_id not in self.tree and self.reddit is not None:
+            self.add_missing_parents(comment_id)
+        return Comment(super().node(comment_id), self)
 
     def add_nodes(self, comments):
         new_comments = {x.id: x for x in comments}
