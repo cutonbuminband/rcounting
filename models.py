@@ -186,7 +186,7 @@ class CommentTree(Tree):
         praw_comment = self.reddit.comment(comment.id)
         praw_comment.refresh()
         replies = praw_comment.replies
-        replies.replace_more(limit=1)
+        replies.replace_more(limit=None)
         replies = replies.list()
         if replies:
             self.add_nodes(replies)
