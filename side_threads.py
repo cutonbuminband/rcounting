@@ -1,6 +1,8 @@
 import pandas as pd
 from models import comment_to_dict
 from string import digits, ascii_uppercase
+from parsing import parse_thread_title, find_urls_in_text
+from thread_navigation import fetch_comment_tree
 
 minute = 60
 hour = 60 * 60
@@ -95,14 +97,61 @@ def reddit_username_form(comment_body):
 base_10 = base_n(10)
 default_rule = CountingRule()
 
+wave_regex = r'(-?\d+).*\((\d+)\)'  # maybe a minus sign, a count, and a bracketed count
+double_wave_regex = r'(-?\d+).*\((\d+)\).*\((\d+)\)'
+
+
+def new_count_wave(old_count, chain):
+    try:
+        a, b = parse_thread_title(chain[-1].title, wave_regex)
+        return 2 * b ** 2 - a
+    except TypeError:
+        return None
+
+
+def new_count_increasing(old_count, chain):
+    try:
+        a, b = parse_thread_title(chain[-1].title, wave_regex)
+        return b * (b - 1) // 2 + (a - 1)
+    except TypeError:
+        return None
+
+
+def new_count_double_increasing(old_count, chain):
+    try:
+        a, b, c = parse_thread_title(chain[-1].title, double_wave_regex)
+        return (c ** 3 - c) // 6 + (b ** 2 - b) // 2 + (a - 1)
+    except TypeError:
+        return None
+
+
+def new_count_from_traversal(old_count, chain):
+    new_thread = chain[-1]
+    count = old_count
+    for thread in chain[:-1][::-1]:
+        try:
+            urls = filter(lambda x: x[0] == thread.id, find_urls_in_text(new_thread.selftext))
+            submission_id, comment_id = next(urls)
+        except StopIteration:
+            return None
+        tree = fetch_comment_tree(thread)
+        count += len(tree.comment(comment_id).traverse())
+        new_thread = thread
+    return count
+
 
 class SideThread():
-    def __init__(self, rule=default_rule, form=base_10, length=1000):
+    def __init__(self, rule=default_rule, form=base_10, length=1000,
+                 new_count_function=None):
         self.form = form
         self.rule = rule
         self.thread_length = length
+        if new_count_function is not None:
+            self.update_count = new_count_function
+        else:
+            self.update_count = self.update_count_by_length
 
-    def update_count(self, count, threads):
+    def update_count_by_length(self, count, threads):
         if self.thread_length is not None:
             return count + self.thread_length * (len(threads) - 1)
         else:

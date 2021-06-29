@@ -2,7 +2,8 @@ import datetime
 import configparser
 from models import Tree
 from side_threads import get_side_thread
-from parsing import find_urls_in_text, parse_markdown_links, parse_directory_page
+from parsing import find_urls_in_text, find_count_in_text
+from parsing import parse_markdown_links, parse_directory_page
 from thread_navigation import fetch_comment_tree, walk_down_thread
 from utils import flatten
 
@@ -100,14 +101,14 @@ class Row():
 
     def update_count(self, chain):
         try:
-            count = int(self.count.translate(str.maketrans('-', '0', ', ')))
+            is_approximate = self.count[0] == "~"
+            count = find_count_in_text(self.count.replace("-", "0"))
             new_count = self.side_thread.update_count(count, chain)
-            self.count = f"{new_count:,}"
-            if self.count == "0":
-                self.count = "-"
+            if is_approximate:
+                new_count = round(new_count, -2)
+            self.count = f"{'~' if is_approximate else ''}{new_count:,d}"
         except (ValueError, TypeError):
-            if self.count[-1] != '*':
-                self.count = f"{self.count}*"
+            self.count = f"{self.count}*"
 
 
 def get_counting_history(subreddit, time_limit, verbosity=1):

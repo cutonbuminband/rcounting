@@ -55,3 +55,9 @@ def parse_directory_page(directory_page):
                 rows.append(fields)
             tagged_results.append(['table', rows])
     return tagged_results
+
+
+def parse_thread_title(title, regex):
+    sections = [x.strip() for x in title.split("|")]
+    match = re.match(regex, sections[-1])
+    return [int(x) for x in match.groups()] if match is not None else match
