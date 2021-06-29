@@ -191,6 +191,8 @@ if __name__ == "__main__":
     table = Table(flatten([x.rows for x in updated_document if hasattr(x, 'rows')]))
     archived_threads = table.archived_threads()
     if archived_threads:
+        n = len(archived_threads)
+        print(f'writing {n} archived thread{"s" if n > 1 else ""} to archived_threads.md')
         with open("archived_threads.md", "w") as f:
             print(archived_threads, file=f)
 
