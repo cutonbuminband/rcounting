@@ -152,13 +152,14 @@ if __name__ == "__main__":
     group.add_argument('--quiet', '-q', action='store_true',
                        help='Print less output during directory updates')
 
-    parser.add_argument('--accurate', '-a', action='store_true',
-                        help=('Use reddit api to fetch newest comments instead of using '
-                              'an online archve. Warning: slow!'))
+    parser.add_argument('--fast', '-f', action='store_true',
+                        help=('Only use an online archive to fetch the comments '
+                              'and not the reddit api. Warning: up to three days out of date!'))
 
     args = parser.parse_args()
     verbosity = 1 - args.quiet + args.verbose
-    if args.accurate:
+    accurate = not args.fast
+    if accurate:
         verbosity = 2
     start = datetime.datetime.now()
     subreddit = reddit.subreddit('counting')
@@ -181,7 +182,7 @@ if __name__ == "__main__":
             updated_document.append(paragraph[1])
         elif paragraph[0] == "table":
             paragraph = Table([Row(*x) for x in paragraph[1]], tree)
-            paragraph.update(verbosity, accuracy=args.accurate)
+            paragraph.update(verbosity, accuracy=accurate)
             updated_document.append(paragraph)
 
     with open("directory.md", "w") as f:
