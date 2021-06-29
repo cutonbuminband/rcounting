@@ -115,11 +115,15 @@ class Tree():
                 break
         return nodes
 
+    def __len__(self):
+        return len(self.tree.keys())
+
     def node(self, node_id):
         return self.nodes[node_id]
 
-    def __len__(self):
-        return len(self.tree.keys())
+    def leaves(self):
+        leaf_ids = set(self.tree.keys()) - set(self.tree.values())
+        return [self.node(leaf_id) for leaf_id in leaf_ids]
 
     def add_nodes(self, new_nodes, new_tree):
         self.tree.update(new_tree)
