@@ -117,5 +117,5 @@ def fetch_comment_tree(thread, root_id=None, verbose=True, history=1):
 
 def fetch_thread(comment, verbose=True):
     tree = fetch_comment_tree(comment.submission, verbose=verbose)
-    comments = tree.comment(comment.id).traverse()
+    comments = tree.comment(comment.id).traverse()[::-1]
     return [x.to_dict() for x in comments]
