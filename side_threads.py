@@ -1,3 +1,4 @@
+import math
 import pandas as pd
 from models import comment_to_dict
 from string import digits, ascii_uppercase
@@ -110,20 +111,28 @@ def new_count_wave(old_count, chain):
         return None
 
 
-def new_count_increasing(old_count, chain):
-    try:
-        a, b = parse_thread_title(chain[-1].title, wave_regex)
-        return b * (b - 1) // 2 + (a - 1)
-    except TypeError:
-        return None
+def new_count_increasing_type(n):
+    regex = r'(-?\d+)' + r'.*\((\d+)\)' * n
+
+    def new_count(old_count, chain):
+        total = 0
+        values = parse_thread_title(chain[-1].title, regex)
+        for idx, value in values:
+            total += triangle_n_dimension(idx + 1, value)
+        return total
+
+    return new_count
 
 
-def new_count_double_increasing(old_count, chain):
-    try:
-        a, b, c = parse_thread_title(chain[-1].title, double_wave_regex)
-        return (c ** 3 - c) // 6 + (b ** 2 - b) // 2 + (a - 1)
-    except TypeError:
-        return None
+def triangle_n_dimension(n, value):
+    if value == 1:
+        return 0
+    return math.comb(value - 2 + n, n)
+
+
+new_count_increasing = new_count_increasing_type(1)
+new_count_double_increasing = new_count_increasing_type(2)
+new_count_triple_increasing = new_count_increasing_type(3)
 
 
 def new_count_from_traversal(old_count, chain):
@@ -207,7 +216,8 @@ known_threads = {
     'twitter handles': SideThread(length=1369, form=twitter_form),
     'wave': SideThread(new_count_function=new_count_wave),
     'increasing sequences': SideThread(new_count_function=new_count_increasing),
-    'double increasing sequences': SideThread(new_count_function=new_count_double_increasing)
+    'double increasing sequences': SideThread(new_count_function=new_count_double_increasing),
+    'triple increasing sequences': SideThread(new_count_function=new_count_triple_increasing)
 }
 
 base_n_lengths = [None,
@@ -294,7 +304,6 @@ default_thread_unknown_length = [
     'no successive digits',
     'rotational symmetry',
     'collatz conjecture',
-    'triple increasing sequences',
     'powerball',
     'by number of digits squared',
     'by list size',
