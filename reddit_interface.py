@@ -14,7 +14,7 @@ import praw
 
 # and then update this call so that it says
 # reddit = praw.Reddit('your_bot_name')
-reddit = praw.Reddit('stats_bot')
+reddit = praw.Reddit('counting_bot')
 
 
 # Alternatively, you can write the credentials directly into this file, and
