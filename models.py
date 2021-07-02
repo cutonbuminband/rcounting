@@ -103,6 +103,11 @@ class Tree():
         return [self.node(x) for x in self.reversed_tree[node.id]]
 
     def traverse(self, node, limit=None):
+        if isinstance(node, str):
+            try:
+                node = self.node(node)
+            except KeyError:
+                return None
         if node.id not in self.tree and node.id not in self.nodes:
             return None
         nodes = [node]
