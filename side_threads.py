@@ -229,7 +229,7 @@ known_threads = {
 }
 
 base_n_lengths = [None,
-                  None, 1024,  729, 1024, 1000,  # noqa E241
+                  1000, 1024,  729, 1024, 1000,  # noqa E241
                   1296, 1029, 1024,  729, 1000,  # noqa E241
                   1000,  864, 1014, None, None,  # noqa E241
                   1024, 1156, None, None,  800,  # noqa E241
