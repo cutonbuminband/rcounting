@@ -103,7 +103,7 @@ wave_regex = r'(-?\d+).*\((\d+)\)'  # maybe a minus sign, a count, and a bracket
 double_wave_regex = r'(-?\d+).*\((\d+)\).*\((\d+)\)'
 
 
-def new_count_wave(old_count, chain):
+def update_wave(old_count, chain):
     try:
         a, b = parse_thread_title(chain[-1].title, wave_regex)
         return 2 * b ** 2 - a
@@ -111,17 +111,17 @@ def new_count_wave(old_count, chain):
         return None
 
 
-def new_count_increasing_type(n):
+def update_increasing_type(n):
     regex = r'(-?\d+)' + r'.*\((\d+)\)' * n
 
-    def new_count(old_count, chain):
+    def update(old_count, chain):
         total = 0
         values = parse_thread_title(chain[-1].title, regex)
         for idx, value in values:
             total += triangle_n_dimension(idx + 1, value)
         return total
 
-    return new_count
+    return update
 
 
 def triangle_n_dimension(n, value):
@@ -130,12 +130,9 @@ def triangle_n_dimension(n, value):
     return math.comb(value - 2 + n, n)
 
 
-new_count_increasing = new_count_increasing_type(1)
-new_count_double_increasing = new_count_increasing_type(2)
-new_count_triple_increasing = new_count_increasing_type(3)
 
 
-def new_count_from_traversal(old_count, chain):
+def update_from_traversal(old_count, chain):
     new_thread = chain[-1]
     count = old_count
     for thread in chain[:-1][::-1]:
@@ -152,18 +149,18 @@ def new_count_from_traversal(old_count, chain):
 
 class SideThread():
     def __init__(self, rule=default_rule, form=base_10, length=1000,
-                 new_count_function=None):
+                 update_function=None):
         self.form = form
         self.rule = rule
-        self.thread_length = length
-        if new_count_function is not None:
-            self.update_count = new_count_function
+        self.length = length
+        if update_function is not None:
+            self.update_count = update_function
         else:
-            self.update_count = self.update_count_by_length
+            self.update_count = self.update_from_length
 
-    def update_count_by_length(self, count, threads):
-        if self.thread_length is not None:
-            return count + self.thread_length * (len(threads) - 1)
+    def update_from_length(self, old_count, chain):
+        if self.length is not None:
+            return old_count + self.length * (len(chain) - 1)
         else:
             return None
 
@@ -214,10 +211,10 @@ known_threads = {
     'mayan numerals': SideThread(length=800, form=mayan_form),
     'reddit usernames': SideThread(length=722, form=reddit_username_form),
     'twitter handles': SideThread(length=1369, form=twitter_form),
-    'wave': SideThread(new_count_function=new_count_wave),
-    'increasing sequences': SideThread(new_count_function=new_count_increasing),
-    'double increasing sequences': SideThread(new_count_function=new_count_double_increasing),
-    'triple increasing sequences': SideThread(new_count_function=new_count_triple_increasing)
+    'wave': SideThread(update_function=update_wave),
+    'increasing sequences': SideThread(update_function=update_increasing_type(1)),
+    'double increasing sequences': SideThread(update_function=update_increasing_type(2)),
+    'triple increasing sequences': SideThread(update_function=update_increasing_type(3)),
 }
 
 base_n_lengths = [None,
@@ -315,7 +312,7 @@ def get_side_thread(thread_name):
     if thread_name in default_thread_unknown_length:
         return SideThread(length=None)
     elif thread_name in default_thread_varying_length:
-        return SideThread(new_count_function=new_count_from_traversal)
+        return SideThread(update_function=update_from_traversal)
     elif thread_name not in known_threads:
         return SideThread()
     else:
