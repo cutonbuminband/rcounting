@@ -1,9 +1,11 @@
 import math
 import pandas as pd
-from models import comment_to_dict
+import re
 from string import digits, ascii_uppercase
-from parsing import parse_thread_title, find_urls_in_text
+from models import comment_to_dict
 from thread_navigation import fetch_comment_tree
+from parsing import parse_thread_title, find_urls_in_text
+from utils import is_leap_year
 
 minute = 60
 hour = 60 * 60
@@ -130,6 +132,14 @@ def triangle_n_dimension(n, value):
     return math.comb(value - 2 + n, n)
 
 
+def update_dates(count, chain):
+    chain = chain[:-1]
+    regex = r"([,\d]+)$"  # All digits at the end of the line, plus optional separators
+    for submission in chain:
+        year = int(re.search(regex, submission.title).group().replace(",", ""))
+        length = 1095 + any(map(is_leap_year, range(year, year + 3)))
+        count += length
+    return count
 
 
 def update_from_traversal(old_count, chain):
@@ -215,6 +225,7 @@ known_threads = {
     'increasing sequences': SideThread(update_function=update_increasing_type(1)),
     'double increasing sequences': SideThread(update_function=update_increasing_type(2)),
     'triple increasing sequences': SideThread(update_function=update_increasing_type(3)),
+    'dates': SideThread(update_function=update_dates)
 }
 
 base_n_lengths = [None,
@@ -252,7 +263,6 @@ no_validation = {'base 40': 1600,
                  'base 100': 1000,
                  'base 187': 1000,
                  'youtube': 1024,
-                 'dates': None,
                  'previous_dates': None,
                  'writing numbers': 1000,
                  'mississippi': 1000,

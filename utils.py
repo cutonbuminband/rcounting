@@ -2,6 +2,10 @@ def flatten(mylist):
     return [element for sublist in mylist for element in sublist]
 
 
+def is_leap_year(n):
+    return n % 4 == 0 and (n % 400 == 0 or n % 100 != 0)
+
+
 def format_timedelta(timedelta):
     def format_one_interval(n, unit):
         if n == 0:
