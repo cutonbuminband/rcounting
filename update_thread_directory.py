@@ -104,10 +104,11 @@ class Row():
 
 
 class SubmissionTree(Tree):
-    def __init__(self, submissions, submission_tree, reddit=None, verbosity=1, is_accurate=True):
+    def __init__(self, submissions, submission_tree, reddit=None, verbosity=1,
+                 use_pushshift=True):
         self.verbosity = verbosity
-        self.is_accurate = is_accurate
         self.reddit = reddit
+        self.use_pushshift = use_pushshift
         super().__init__(submissions, submission_tree)
 
     def find_latest_comment(self, side_thread, old_submission, comment_id=None):
@@ -118,8 +119,8 @@ class SubmissionTree(Tree):
             chain = [old_submission]
         if len(chain) > 1 or comment_id is None:
             comment_id = chain[-1].comments[0].id
-        comments = fetch_comment_tree(chain[-1], root_id=comment_id, verbose=False)
-        comments.set_accuracy(self.is_accurate)
+        comments = fetch_comment_tree(chain[-1], root_id=comment_id, verbose=False,
+                                      use_pushshift=self.use_pushshift)
         comments.verbose = (self.verbosity > 1)
         new_comment = walk_down_thread(side_thread, comments.comment(comment_id))
         return new_comment, chain, archived
@@ -174,15 +175,11 @@ if __name__ == "__main__":
     group.add_argument('--quiet', '-q', action='store_true',
                        help='Print less output during directory updates')
 
-    parser.add_argument('--fast', '-f', action='store_true',
-                        help=('Only use an online archive to fetch the comments '
-                              'and not the reddit api. Warning: up to three days out of date!'))
+    parser.add_argument('--pushshift', '-p', action='store_true',
+                        help=('Use  an online archive fetch older comments '))
 
     args = parser.parse_args()
     verbosity = 1 - args.quiet + args.verbose
-    is_accurate = not args.fast
-    if is_accurate:
-        verbosity = 2
     start = datetime.datetime.now()
     subreddit = reddit.subreddit('counting')
 
@@ -196,7 +193,8 @@ if __name__ == "__main__":
     submissions, submission_tree, new_threads = get_counting_history(subreddit,
                                                                      time_limit,
                                                                      verbosity)
-    tree = SubmissionTree(submissions, submission_tree, reddit, verbosity, is_accurate)
+    tree = SubmissionTree(submissions, submission_tree, reddit, verbosity,
+                          use_pushshift=args.pushshift)
 
     if verbosity > 0:
         print("Updating tables")

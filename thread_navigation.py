@@ -98,9 +98,12 @@ def walk_down_thread(side_thread, comment):
     return comment
 
 
-def fetch_comment_tree(thread, root_id=None, verbose=True, history=1):
+def fetch_comment_tree(thread, root_id=None, verbose=True, use_pushshift=True, history=1):
     r = thread._reddit
-    comment_ids = [x for x in api._get_submission_comment_ids(thread.id)]
+    if use_pushshift:
+        comment_ids = [x for x in api._get_submission_comment_ids(thread.id)]
+    else:
+        comment_ids = []
     if not comment_ids:
         return CommentTree([], reddit=r, verbose=verbose)
 

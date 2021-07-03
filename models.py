@@ -146,7 +146,7 @@ class Tree():
 
 
 class CommentTree(Tree):
-    def __init__(self, comments, reddit=None, get_missing_replies=False, verbose=True):
+    def __init__(self, comments, reddit=None, get_missing_replies=True, verbose=True):
         tree = {x.id: x.parent_id[3:] for x in comments if not is_root(x)}
         comments = {x.id: x for x in comments}
         super().__init__(comments, tree)
@@ -154,9 +154,6 @@ class CommentTree(Tree):
         self.get_missing_replies = get_missing_replies
         self.verbose = verbose
         self.comment = self.node
-
-    def set_accuracy(self, accuracy):
-        self.get_missing_replies = bool(accuracy)
 
     def node(self, comment_id):
         if comment_id not in self.tree and self.reddit is not None:
