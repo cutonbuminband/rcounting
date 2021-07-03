@@ -13,15 +13,17 @@ known_threads = config['threads']
 
 
 class Table():
-    def __init__(self, rows):
+    def __init__(self, rows, show_archived=False):
         self.rows = rows
-        for row in self.rows:
-            row.archived = False
+        self.show_archived = show_archived
 
     def __str__(self):
         table_header = ['Name &amp; Initial Thread|Current Thread|# of Counts',
                         ':--:|:--:|--:']
-        return "\n".join(table_header + [str(x) for x in self.rows if not x.archived])
+        if self.show_archived:
+            return "\n".join(table_header + [str(x) for x in self.rows])
+        else:
+            return "\n".join(table_header + [str(x) for x in self.rows if not x.archived])
 
     def update(self, tree):
         for row in self.rows:
@@ -29,9 +31,9 @@ class Table():
                 print(f"Updating side thread: {row.thread_type}")
             row.update(tree)
 
-    def archived_threads(self):
-        rows = [row.copy() for row in self.rows if row.archived]
-        return Table(rows)
+    def archived_rows(self):
+        rows = [row for row in self.rows if row.archived]
+        return Table(rows, show_archived=True)
 
     def __getitem__(self, key):
         return self.rows[key]
@@ -215,14 +217,14 @@ if __name__ == "__main__":
     wiki_page.edit(new_page, reason="Ran the update script")
 
     table = Table(flatten([x.rows for x in updated_document if hasattr(x, 'rows')]))
-    archived_threads = table.archived_threads()
+    archived_threads = table.archived_rows()
     if archived_threads:
         n = len(archived_threads)
         if verbosity > 0:
             print(f'writing {n} archived thread{"s" if n > 1 else ""}'
                   ' to archived_threads.md')
         with open("archived_threads.md", "a") as f:
-            print(*[archived_threads.rows], file=f, sep='\n')
+            print(archived_threads)
 
     new_threads = set(tree.traverse(thread)[-1].id for thread in new_threads)
     known_submissions = set([x.id for x in table.submissions])
