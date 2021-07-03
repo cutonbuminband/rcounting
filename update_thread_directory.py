@@ -143,10 +143,10 @@ def get_counting_history(subreddit, time_limit, verbosity=1):
     for count, submission in enumerate(submissions):
         if verbosity > 1 and count % 20 == 0:
             print(f"Processing reddit submission {submission.id}")
-        submissions_dict[submission.id] = submission
         title = submission.title.lower()
         if "tidbits" in title or "free talk friday" in title:
             continue
+        submissions_dict[submission.id] = submission
         try:
             url = next(filter(lambda x: int(x[0], 36) < int(submission.id, 36),
                               find_urls_in_submission(submission)))
