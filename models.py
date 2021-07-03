@@ -126,6 +126,11 @@ class Tree():
     def node(self, node_id):
         return self.nodes[node_id]
 
+    def delete_node(self, node):
+        del self.nodes[node.id]
+        del self.tree[node.id]
+
+    @property
     def leaves(self):
         leaf_ids = set(self.tree.keys()) - set(self.tree.values())
         return [self.node(leaf_id) for leaf_id in leaf_ids]
@@ -212,10 +217,6 @@ class CommentTree(Tree):
         if comment.id not in [x.id for x in replies]:
             return True
         return False
-
-    def repair(self, comment):
-        del self.nodes[comment.id]
-        del self.tree[comment.id]
 
 
 def edges_to_tree(edges):

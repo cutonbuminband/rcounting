@@ -93,7 +93,7 @@ def walk_down_thread(side_thread, comment):
             if tree.verbose:
                 print('Broken chain detected! Moving up one level and trying again')
             parent = comment.parent()
-            tree.repair(comment)
+            tree.delete_node(comment)
             return walk_down_thread(side_thread, parent)
     return comment
 
