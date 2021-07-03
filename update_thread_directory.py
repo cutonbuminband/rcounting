@@ -186,9 +186,9 @@ if __name__ == "__main__":
     start = datetime.datetime.now()
     subreddit = reddit.subreddit('counting')
 
-    directory_page = subreddit.wiki['directory'].content_md
-    directory_page = directory_page.replace("\r\n", "\n")
-    document = parse_directory_page(directory_page)
+    wiki_page = subreddit.wiki['directory/test']
+    document = wiki_page.content_md.replace("\r\n", "\n")
+    document = parse_directory_page(document)
 
     time_limit = datetime.timedelta(weeks=26.5)
     if verbosity > 0:
@@ -213,16 +213,16 @@ if __name__ == "__main__":
                 table.sort(reverse=True)
             updated_document.append(table)
 
-    with open("directory.md", "w") as f:
-        print(*updated_document, file=f, sep='\n\n')
+    new_page = '\n\n'.join(map(str, updated_document))
+    wiki_page.edit(new_page, reason="Ran the update script")
 
     table = Table(flatten([x.rows for x in updated_document if hasattr(x, 'rows')]))
     archived_threads = table.archived_threads()
     if archived_threads:
         n = len(archived_threads)
         print(f'writing {n} archived thread{"s" if n > 1 else ""} to archived_threads.md')
-        with open("archived_threads.md", "w") as f:
-            print(archived_threads, file=f)
+        with open("archived_threads.md", "a") as f:
+            print(*[archived_threads.rows], file=f, sep='\n')
 
     new_threads = set(x.id for x in tree.roots)
     known_submissions = set([x.id for x in table.submissions])
