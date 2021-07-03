@@ -183,7 +183,7 @@ if __name__ == "__main__":
     start = datetime.datetime.now()
     subreddit = reddit.subreddit('counting')
 
-    wiki_page = subreddit.wiki['directory/test']
+    wiki_page = subreddit.wiki['directory']
     document = wiki_page.content_md.replace("\r\n", "\n")
     document = parse_directory_page(document)
 
