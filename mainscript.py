@@ -11,7 +11,23 @@ from pathlib import Path
 
 client_id="14 char"
 client_secret="30 char"
- 
+
+
+def format_timedelta(timedelta):
+    def format_one_interval(n, unit):
+        if n == 0:
+            return ""
+        else:
+            return f"{n} {unit}{'s' if n > 1 else ''}"
+    days = timedelta.days
+    hours, rem = divmod(timedelta.seconds, 3600)
+    minutes, seconds = divmod(rem, 60)
+    amounts = [days, hours, minutes, seconds]
+    units = ["day", "hour", "minute", "second"]
+    formatted = [format_one_interval(n, unit) for n, unit in zip(amounts, units)]
+    return ", ".join([x for x in formatted if x])
+
+
 def find_count_in_text(body):
     try:
         regex = ("^[^\d]*"    # We strip non-numeric characters from the start
@@ -88,13 +104,9 @@ if __name__ == "__main__":
         counts = walk_thread(get_comment)[::-1]
         base_count = find_count_in_text(counts[0][0])
         thread_duration = datetime.timedelta(seconds=counts[-1][2] - counts[0][2])
-        days = thread_duration.days
-        hours, mins, secs = str(thread_duration).split(':')[-3:]
      
         counters = defaultdict(int)
 
-        
-        
         with open(Path(os.getcwd()) / ("results/LOG_"+str(base_count)+"to"+str(base_count+1000)+".csv"), "w") as hog_file:
             for idx, x in enumerate(counts[1:]):
                 counters['/u/' + find_alias(x[1])] += 1
@@ -116,7 +128,7 @@ if __name__ == "__main__":
                 print(rank + 1, *counter, sep="|", file=hoc_file)
      
             hoc_file.write(f"\nIt took {rank+1} counters "
-                           f"{days} days {hours} hours {mins} mins {secs} secs "
+                           f"{format_timedelta(thread_duration)} "
                            "to complete this thread. Bold is the user with the get"
                            f"\ntotal counts in this chain logged: {total_counts}")
      

@@ -5,6 +5,7 @@ from parsing import post_to_count
 from thread_navigation import fetch_thread, find_previous_get
 import pandas as pd
 from aliases import apply_alias
+from utils import format_timedelta
 
 
 def log_one_thread(leaf_comment):
@@ -33,13 +34,12 @@ def hoc_string(df, thread_title):
         return f'**/u/{username}**' if username == getter else f'/u/{username}'
 
     df['hoc_username'] = df['username'].apply(hoc_format)
-    t = pd.to_timedelta(df.iloc[-1].timestamp - df.iloc[0].timestamp, unit='s').components
+    dt = pd.to_timedelta(df.iloc[-1].timestamp - df.iloc[0].timestamp, unit='s')
     table = df.iloc[1:]['hoc_username'].value_counts().to_frame().reset_index()
     data = table.set_index(table.index + 1).to_csv(None, sep='|', header=0)
 
     header = (f'Thread Participation Chart for {thread_title}\n\nRank|Username|Counts\n---|---|---')
-    footer = (f'It took {len(table)} counters {t.days} days {t.hours} hours '
-              f'{t.minutes} mins {t.seconds} secs to complete this thread. '
+    footer = (f'It took {len(table)} counters {format_timedelta(dt)} to complete this thread. '
               f'Bold is the user with the get\n'
               f'total counts in this chain logged: {len(df) - 1}')
     return '\n'.join([header, data, footer])
