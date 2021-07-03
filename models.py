@@ -130,6 +130,11 @@ class Tree():
         leaf_ids = set(self.tree.keys()) - set(self.tree.values())
         return [self.node(leaf_id) for leaf_id in leaf_ids]
 
+    @property
+    def roots(self):
+        root_ids = set(self.tree.values()) - set(self.tree.keys())
+        return [self.node(root_id) for root_id in root_ids]
+
     def add_nodes(self, new_nodes, new_tree):
         self.tree.update(new_tree)
         self.nodes.update(new_nodes)

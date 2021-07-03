@@ -13,30 +13,24 @@ known_threads = config['threads']
 
 
 class Table():
-    def __init__(self, rows, tree=None):
+    def __init__(self, rows):
         self.rows = rows
         for row in self.rows:
-            row.is_archived = False
-        if tree is not None:
-            self.add_tree(tree)
+            row.archived = False
 
     def __str__(self):
         table_header = ['Name &amp; Initial Thread|Current Thread|# of Counts',
                         ':--:|:--:|--:']
-        return "\n".join(table_header + [str(x) for x in self.rows if not x.is_archived])
+        return "\n".join(table_header + [str(x) for x in self.rows if not x.archived])
 
-    def update(self, verbosity=1, accuracy=0):
+    def update(self, tree):
         for row in self.rows:
             if verbosity > 0:
                 print(f"Updating side thread: {row.thread_type}")
-            row.update(verbosity=verbosity, accuracy=accuracy)
-
-    def add_tree(self, tree):
-        for row in self.rows:
-            row.add_tree(tree)
+            row.update(tree)
 
     def archived_threads(self):
-        rows = [row.copy() for row in self.rows if row.is_archived]
+        rows = [row.copy() for row in self.rows if row.archived]
         return Table(rows)
 
     def __getitem__(self, key):
@@ -87,37 +81,56 @@ class Row():
         title = (' '.join(sections)).strip()
         return title if title else self.count
 
-    def add_tree(self, tree):
-        self.tree = tree
-        self.submission = tree.node(self.submission_id)
+    def format_count(self):
+        if self.count is None:
+            return self.count_string + "*"
+        if self.count == 0:
+            return "-"
+        if self.is_approximate:
+            return f"~{self.count:,d}"
+        return f"{self.count:,d}"
 
-    def update(self, verbosity=1, accuracy=0):
-        chain = self.tree.traverse(self.submission)
-        if chain is None:
-            self.is_archived = True
-            chain = [self.submission]
-        if chain[-1].id != self.submission.id or not self.comment_id:
-            self.comment_id = chain[-1].comments[0].id
+    def update(self, submission_tree):
+        submission = tree.node(self.submission_id)
+        comment, chain, archived = submission_tree.find_latest_comment(self.side_thread,
+                                                                       submission,
+                                                                       self.comment_id)
+        self.comment_id = comment.id
         self.submission = chain[-1]
-        comments = fetch_comment_tree(self.submission, root_id=self.comment_id,
-                                      verbose=False)
-        comments.set_accuracy(accuracy)
-        comments.verbose = (verbosity > 1)
-        self.comment_id = walk_down_thread(self.side_thread,
-                                           comments.comment(self.comment_id)).id
+        self.archived = archived
         if len(chain) > 1:
-            self.update_count(chain)
+            self.count = self.side_thread.update_count(self.count, chain)
+            self.count_string = self.format_count()
 
-    def update_count(self, chain):
+
+class SubmissionTree(Tree):
+    def __init__(self, submissions, submission_tree, reddit=None, verbosity=1, is_accurate=True):
+        self.verbosity = verbosity
+        self.is_accurate = is_accurate
+        self.reddit = reddit
+        super().__init__(submissions, submission_tree)
+
+    def find_latest_comment(self, side_thread, old_submission, comment_id=None):
+        chain = self.traverse(old_submission)
+        archived = False
+        if chain is None:
+            archived = True
+            chain = [old_submission]
+        if len(chain) > 1 or comment_id is None:
+            comment_id = chain[-1].comments[0].id
+        comments = fetch_comment_tree(chain[-1], root_id=comment_id, verbose=False)
+        comments.set_accuracy(self.is_accurate)
+        comments.verbose = (self.verbosity > 1)
+        new_comment = walk_down_thread(side_thread, comments.comment(comment_id))
+        return new_comment, chain, archived
+
+    def node(self, node_id):
         try:
-            is_approximate = self.count[0] == "~"
-            count = find_count_in_text(self.count.replace("-", "0"))
-            new_count = self.side_thread.update_count(count, chain)
-            if is_approximate:
-                new_count = round(new_count, -2)
-            self.count = f"{'~' if is_approximate else ''}{new_count:,d}"
-        except (ValueError, TypeError):
-            self.count = f"{self.count}*"
+            return super().node(node_id)
+        except KeyError:
+            if self.reddit is not None:
+                return self.reddit.submission(node_id)
+        raise
 
 
 def get_counting_history(subreddit, time_limit, verbosity=1):
@@ -167,8 +180,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     verbosity = 1 - args.quiet + args.verbose
-    accurate = not args.fast
-    if accurate:
+    is_accurate = not args.fast
+    if is_accurate:
         verbosity = 2
     start = datetime.datetime.now()
     subreddit = reddit.subreddit('counting')
@@ -180,8 +193,10 @@ if __name__ == "__main__":
     time_limit = datetime.timedelta(weeks=26.5)
     if verbosity > 0:
         print("Getting history")
-    submissions_dict, tree, new_threads = get_counting_history(subreddit, time_limit, verbosity)
-    tree = Tree(submissions_dict, tree)
+    submissions, submission_tree, new_threads = get_counting_history(subreddit,
+                                                                     time_limit,
+                                                                     verbosity)
+    tree = SubmissionTree(submissions, submission_tree, reddit, verbosity, is_accurate)
 
     if verbosity > 0:
         print("Updating tables")
@@ -209,11 +224,14 @@ if __name__ == "__main__":
         with open("archived_threads.md", "w") as f:
             print(archived_threads, file=f)
 
-    new_threads = set([tree.traverse(x)[-1].id for x in new_threads])
-    leaf_submissions = set([x.id for x in table.submissions])
-    new_threads = new_threads - leaf_submissions
+    new_threads = set(x.id for x in tree.roots)
+    known_submissions = set([x.id for x in table.submissions])
+    new_threads = new_threads - known_submissions
     if new_threads:
         with open("new_threads.txt", "w") as f:
+            if verbosity > 1:
+                n = len(new_threads)
+                print(f"{n} new thread{'' if n == 1 else 's'} found. Writing to file")
             print(*[f"New thread '{reddit.submission(x).title}' "
                     f"at reddit.com/comments/{x}" for x in new_threads],
                   sep="\n", file=f)
