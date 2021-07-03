@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, deque
 deleted_phrases = ['[deleted]', '[removed]', '[banned]']
 
 
@@ -129,6 +129,25 @@ class Tree():
     def delete_node(self, node):
         del self.nodes[node.id]
         del self.tree[node.id]
+
+    def delete_subtree(self, node):
+        queue = deque([node])
+        while queue:
+            node = queue.popleft()
+            queue.extend(self.find_children(node))
+            self.delete_node(node)
+
+    def prune(self, validation_function):
+        nodes = self.roots
+        history = []
+        queue = deque([(node, history) for node in nodes])
+        while queue:
+            node, history = queue.popleft
+            if validation_function(node, history):
+                history = history + [node]
+                queue.extend([(x, history) for x in self.find_children(node)])
+            else:
+                self.delete_subtree(node)
 
     @property
     def leaves(self):
