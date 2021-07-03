@@ -49,6 +49,9 @@ class Table():
     def submissions(self):
         return [row.submission for row in self.rows]
 
+    def sort(self, **kwargs):
+        self.rows = sorted(self.rows, **kwargs)
+
 
 class Row():
     def __init__(self, first_thread, current_thread, current_count):
@@ -58,13 +61,19 @@ class Row():
         submission_id, comment_id = find_urls_in_text(current_thread)[0]
         self.submission_id = submission_id
         self.comment_id = comment_id
-        self.count = current_count.strip()
+        self.count_string = current_count.strip()
+        self.count = find_count_in_text(self.count_string.replace("-", "0"))
+        self.is_approximate = self.count_string[0] == "~"
         self.thread_type = known_threads.get(self.first_thread, fallback='decimal')
         self.side_thread = get_side_thread(self.thread_type)
 
     def __str__(self):
         return (f"[{self.thread_name}](/{self.first_thread}) | "
-                f"[{self.title}]({self.link}) | {self.count}")
+                f"[{self.title}]({self.link}) | {self.count_string}")
+
+    def __lt__(self, other):
+        return (self.count < other.count
+                or (other.is_approximate and not self.is_approximate))
 
     @property
     def link(self):
@@ -177,13 +186,17 @@ if __name__ == "__main__":
     if verbosity > 0:
         print("Updating tables")
     updated_document = []
+    table_counter = 0
     for paragraph in document:
         if paragraph[0] == "text":
             updated_document.append(paragraph[1])
         elif paragraph[0] == "table":
-            paragraph = Table([Row(*x) for x in paragraph[1]], tree)
-            paragraph.update(verbosity, accuracy=accurate)
-            updated_document.append(paragraph)
+            table_counter += 1
+            table = Table([Row(*x) for x in paragraph[1]])
+            table.update(tree)
+            if table_counter == 2:
+                table.sort(reverse=True)
+            updated_document.append(table)
 
     with open("directory.md", "w") as f:
         print(*updated_document, file=f, sep='\n\n')
