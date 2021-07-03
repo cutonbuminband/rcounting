@@ -218,7 +218,9 @@ if __name__ == "__main__":
     archived_threads = table.archived_threads()
     if archived_threads:
         n = len(archived_threads)
-        print(f'writing {n} archived thread{"s" if n > 1 else ""} to archived_threads.md')
+        if verbosity > 0:
+            print(f'writing {n} archived thread{"s" if n > 1 else ""}'
+                  ' to archived_threads.md')
         with open("archived_threads.md", "a") as f:
             print(*[archived_threads.rows], file=f, sep='\n')
 
@@ -227,7 +229,7 @@ if __name__ == "__main__":
     new_threads = new_threads - known_submissions
     if new_threads:
         with open("new_threads.txt", "w") as f:
-            if verbosity > 1:
+            if verbosity > 0:
                 n = len(new_threads)
                 print(f"{n} new thread{'' if n == 1 else 's'} found. Writing to file")
             print(*[f"New thread '{reddit.submission(x).title}' "
