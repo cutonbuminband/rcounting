@@ -119,7 +119,7 @@ def update_increasing_type(n):
     def update(old_count, chain):
         total = 0
         values = parse_thread_title(chain[-1].title, regex)
-        for idx, value in values:
+        for idx, value in enumerate(values):
             total += triangle_n_dimension(idx + 1, value)
         return total
 
