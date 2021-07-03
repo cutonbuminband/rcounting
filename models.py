@@ -205,6 +205,8 @@ class CommentTree(Tree):
             return []
 
     def is_broken(self, comment):
+        if comment.is_root:
+            return False
         parent = comment.parent()
         replies = self.add_missing_replies(parent)
         if comment.id not in [x.id for x in replies]:
