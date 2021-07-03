@@ -29,7 +29,6 @@ rschaosid,Robert_Schaosid,Robert_Salad,FartyMcRemovedsolid,was_rschaosid,Moorael
 Smartstocks,SsPincus,TestSsSpeed
 SolidGoldMagikarp,Richard_Schaosid
 thephilsblogbar2,thephilsblogbar3,buy_me_a_pint,thephilsblogbar
-thephilsblogbar,buy_me_a_pint,thephilsblogbar2,thephilsblogbar3
 Trial-Name,Perma_Name,Trial-Nombre
 Urbul,Urbul_bot
 WGJC8463,WGJC3107
