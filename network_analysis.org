@@ -48,6 +48,41 @@ def core_number(G):
 #+end_src
 
 Making it work with weighted graphs requires a bit of thought. All references to `degree` can be changed to `weighted_degree`, but the line `core[u] -= 1` needs a bit of rejiggering, since it needs to be converted to a recalculation of what the weighted degree would be if we removed v as a neighbor of u.
+
+** Playing with networkx
+Before we get that far, we might try to play around with the networkx library, and see what sort of functionality it offers out of the box
+#+begin_src jupyter-python
+  import networkx as nx
+  import csv
+  G = nx.DiGraph()
+  edges = []
+  with open('graph_1000.csv', 'r', newline='') as f:
+      reader = csv.DictReader(f)
+      for row in reader:
+          edges.append([row['Source'], row['Target'], row['Weight']])
+  G.add_weighted_edges_from(edges)
+  G.remove_edges_from(nx.selfloop_edges(G))
+#+end_src
+
+#+RESULTS:
+
+#+begin_src jupyter-python
+  from networkx.algorithms.core import core_number
+  
+  core = core_number(G)
+
+#+end_src
+#+RESULTS:
+#+begin_src jupyter-python
+  import numpy as np
+  frame = pd.DataFrame(edges, columns=["Source", "Target", "Weight"])
+  frame.set_index("Source", inplace=True)
+  frame['Weight'] = frame['Weight'].astype(int)
+  frame['Weight'] = 1 + np.log10(frame['Weight'])
+#+end_src
+
+#+RESULTS:
+
 * The onion decomposition
 https://www.nature.com/articles/srep31708
 
