@@ -132,6 +132,13 @@ def triangle_n_dimension(n, value):
     return math.comb(value - 2 + n, n)
 
 
+def update_2i(count, chain):
+    title = chain[-1].title
+    digits = title.split("|")[-1].strip()
+    corner = sum([(-4)**idx * int(digit) for idx, digit in enumerate(digits[::-2])])
+    return (2 * corner + 1)**2
+
+
 def update_dates(count, chain):
     chain = chain[:-1]
     regex = r"([,\d]+)$"  # All digits at the end of the line, plus optional separators
@@ -204,7 +211,7 @@ known_threads = {
     'base 16 roman': SideThread(form=roman_numeral),
     'binary encoded hexadecimal': SideThread(form=base_n(2), length=1024),
     'binary encoded decimal': SideThread(form=base_n(2)),
-    'base 2i': SideThread(form=base_n(4), length=None),
+    'base 2i': SideThread(form=base_n(4), update_function=update_2i),
     'bijective base 2': SideThread(form=base_n(3), length=1024),
     'cyclical bases': SideThread(form=base_n(16)),
     'wait 2': SideThread(rule=CountingRule(wait_n=2)),
