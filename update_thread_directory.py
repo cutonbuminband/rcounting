@@ -79,6 +79,7 @@ class Row():
     @property
     def title(self):
         if self.first_thread == self.submission.id:
+            self.submission.comment_sort = 'old'
             return self.submission.comments[0].body.split('\n')[0]
         sections = self.submission.title.split("|")
         if len(sections) > 1:
