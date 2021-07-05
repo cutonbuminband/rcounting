@@ -18,8 +18,9 @@ class Table():
         self.show_archived = show_archived
 
     def __str__(self):
-        table_header = ['Name &amp; Initial Thread|Current Thread|# of Counts',
-                        ':--:|:--:|--:']
+        table_header = [' ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀Name &amp; Initial Thread⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ |'
+                        ' ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀Current Thread⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ |'
+                        ' ⠀⠀⠀# of Counts⠀⠀⠀', ':--:|:--:|--:']
         if self.show_archived:
             return "\n".join(table_header + [str(x) for x in self.rows])
         else:
@@ -77,6 +78,8 @@ class Row():
 
     @property
     def title(self):
+        if self.first_thread == self.submission.id:
+            return self.submission.comments[0].body.split('\n')[0]
         sections = self.submission.title.split("|")
         if len(sections) > 1:
             sections = sections[1:]
