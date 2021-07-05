@@ -207,7 +207,7 @@ if __name__ == "__main__":
             updated_document.append(paragraph[1])
         elif paragraph[0] == "table":
             table_counter += 1
-            table = Table([Row(*x) for x in paragraph[1]])
+            table = Table([Row(*x) for x in paragraph[1]], show_archived=True)
             table.update(tree)
             if table_counter == 2:
                 table.sort(reverse=True)
