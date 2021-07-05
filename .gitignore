@@ -1,4 +1,5 @@
 praw.ini
+.env
 .venv
 *.png
 *.csv
