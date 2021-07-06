@@ -55,7 +55,9 @@ class Row():
         thread_name, first_thread_id = parse_markdown_links(first_thread)[0]
         self.thread_name = thread_name.strip()
         self.first_thread = first_thread_id.strip()[1:]
-        submission_id, comment_id = find_urls_in_text(current_thread)[0]
+        title, link = parse_markdown_links(current_thread)[0]
+        self.title = title
+        submission_id, comment_id = find_urls_in_text(link)[0]
         self.submission_id = submission_id
         self.comment_id = comment_id
         self.count_string = current_count.strip()
@@ -76,18 +78,18 @@ class Row():
     def link(self):
         return f"/comments/{self.submission.id}/_/{self.comment_id}?context=3"
 
-    @property
-    def title(self):
+    def update_title(self):
         if self.first_thread == self.submission.id:
             self.submission.comment_sort = 'old'
             body = self.submission.comments[0].body.split('\n')[0]
             markdown_link = parse_markdown_links(body)
-            return markdown_link[0] if markdown_link else body
+            self.title = markdown_link[0] if markdown_link else body
+            return
         sections = self.submission.title.split("|")
         if len(sections) > 1:
             sections = sections[1:]
         title = (' '.join(sections)).strip()
-        return title if title else self.count
+        self.title = title if title else str(self.count)
 
     def format_count(self):
         if self.count is None:
@@ -109,6 +111,7 @@ class Row():
         if len(chain) > 1:
             self.count = self.side_thread.update_count(self.count, chain)
             self.count_string = self.format_count()
+            self.update_title()
 
 
 class SubmissionTree(Tree):
