@@ -80,7 +80,9 @@ class Row():
     def title(self):
         if self.first_thread == self.submission.id:
             self.submission.comment_sort = 'old'
-            return self.submission.comments[0].body.split('\n')[0]
+            body = self.submission.comments[0].body.split('\n')[0]
+            markdown_link = parse_markdown_links(body)
+            return markdown_link[0] if markdown_link else body
         sections = self.submission.title.split("|")
         if len(sections) > 1:
             sections = sections[1:]
