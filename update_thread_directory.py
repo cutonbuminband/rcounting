@@ -83,7 +83,7 @@ class Row():
             self.submission.comment_sort = 'old'
             body = self.submission.comments[0].body.split('\n')[0]
             markdown_link = parse_markdown_links(body)
-            self.title = markdown_link[0] if markdown_link else body
+            self.title = markdown_link[0][0] if markdown_link else body
             return
         sections = self.submission.title.split("|")
         if len(sections) > 1:
