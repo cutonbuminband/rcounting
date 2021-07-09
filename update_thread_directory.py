@@ -1,5 +1,6 @@
 import datetime
 import configparser
+import re
 from models import Tree
 from side_threads import get_side_thread
 from parsing import find_urls_in_text, find_urls_in_submission, find_count_in_text
@@ -10,6 +11,15 @@ from utils import flatten
 config = configparser.ConfigParser()
 config.read('side_threads.ini')
 known_threads = config['threads']
+
+
+def normalise_title(title):
+    title = title.translate(str.maketrans('[]', '()'))
+    regex = r'\(*reviv\w*\)*'
+    match = re.search(regex, title.lower())
+    if match:
+        return title[:match.span()[0]] + '(Revival)' + title[match.span()[1]:]
+    return title
 
 
 class Table():
@@ -58,6 +68,7 @@ class Row():
         title, link = parse_markdown_links(current_thread)[0]
         self.title = title
         submission_id, comment_id = find_urls_in_text(link)[0]
+        self.title = normalise_title(title)
         self.submission_id = submission_id
         self.comment_id = comment_id
         self.count_string = current_count.strip()
