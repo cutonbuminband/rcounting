@@ -3,8 +3,7 @@ import configparser
 import re
 from models import Tree
 from side_threads import get_side_thread
-from parsing import find_urls_in_text, find_urls_in_submission, find_count_in_text
-from parsing import parse_markdown_links, parse_directory_page
+import parsing
 from thread_navigation import fetch_comment_tree
 from utils import flatten
 
@@ -62,17 +61,16 @@ class Table():
 
 class Row():
     def __init__(self, first_thread, current_thread, current_count):
-        thread_name, first_thread_id = parse_markdown_links(first_thread)[0]
+        thread_name, first_thread_id = parsing.parse_markdown_links(first_thread)[0]
         self.thread_name = thread_name.strip()
         self.first_thread = first_thread_id.strip()[1:]
-        title, link = parse_markdown_links(current_thread)[0]
-        self.title = title
-        submission_id, comment_id = find_urls_in_text(link)[0]
+        title, link = parsing.parse_markdown_links(current_thread)[0]
         self.title = normalise_title(title)
+        submission_id, comment_id = parsing.find_urls_in_text(link)[0]
         self.submission_id = submission_id
         self.comment_id = comment_id
         self.count_string = current_count.strip()
-        self.count = find_count_in_text(self.count_string.replace("-", "0"))
+        self.count = parsing.find_count_in_text(self.count_string.replace("-", "0"))
         self.is_approximate = self.count_string[0] == "~"
         self.thread_type = known_threads.get(self.first_thread, fallback='decimal')
         self.side_thread = get_side_thread(self.thread_type)
@@ -93,7 +91,7 @@ class Row():
         if self.first_thread == self.submission.id:
             self.submission.comment_sort = 'old'
             body = self.submission.comments[0].body.split('\n')[0]
-            markdown_link = parse_markdown_links(body)
+            markdown_link = parsing.parse_markdown_links(body)
             self.title = markdown_link[0][0] if markdown_link else body
             return
         sections = self.submission.title.split("|")
@@ -176,7 +174,7 @@ def get_counting_history(subreddit, time_limit, verbosity=1):
         submissions_dict[submission.id] = submission
         try:
             url = next(filter(lambda x: int(x[0], 36) < int(submission.id, 36),
-                              find_urls_in_submission(submission)))
+                              parsing.find_urls_in_submission(submission)))
             tree[submission.id] = url[0]
         except StopIteration:
             new_threads.append(submission)
@@ -212,7 +210,7 @@ if __name__ == "__main__":
 
     wiki_page = subreddit.wiki['directory']
     document = wiki_page.content_md.replace("\r\n", "\n")
-    document = parse_directory_page(document)
+    document = parsing.parse_directory_page(document)
 
     time_limit = datetime.timedelta(weeks=26.5)
     if verbosity > 0:
