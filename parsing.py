@@ -39,6 +39,12 @@ def parse_markdown_links(body):
     return links
 
 
+def strip_markdown_links(body):
+    regex = r'\[(.+?)\]\((.+?(?<!\\))\)'
+    replacement = r'\1'
+    return re.sub(regex, replacement, body)
+
+
 def parse_directory_page(directory_page):
     paragraphs = directory_page.split("\n\n")
     regex = r"^.*\|.*\|.*$"

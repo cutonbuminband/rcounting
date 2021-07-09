@@ -4,7 +4,7 @@ import re
 from string import digits, ascii_uppercase
 from models import comment_to_dict
 from thread_navigation import fetch_comment_tree
-from parsing import parse_thread_title, find_urls_in_text
+import parsing
 from utils import is_leap_year
 
 minute = 60
@@ -71,16 +71,18 @@ class OnlyDoubleCounting():
         return pd.DataFrame([comment_to_dict(x) for x in comments])
 
 
-def validate_from_character_list(valid_characters):
+def validate_from_character_list(valid_characters, strip_links=True):
     def looks_like_count(comment_body):
         body = comment_body.upper()
+        if strip_links:
+            body = parsing.strip_markdown_links(body)
         return any([character in body for character in valid_characters])
     return looks_like_count
 
 
-def base_n(n=10):
+def base_n(n=10, strip_links=True):
     alphanumeric = digits + ascii_uppercase
-    return validate_from_character_list(alphanumeric[:n])
+    return validate_from_character_list(alphanumeric[:n], strip_links)
 
 
 def permissive(comment):
@@ -107,7 +109,7 @@ double_wave_regex = r'(-?\d+).*\((\d+)\).*\((\d+)\)'
 
 def update_wave(old_count, chain):
     try:
-        a, b = parse_thread_title(chain[-1].title, wave_regex)
+        a, b = parsing.parse_thread_title(chain[-1].title, wave_regex)
         return 2 * b ** 2 - a
     except TypeError:
         return None
@@ -118,7 +120,7 @@ def update_increasing_type(n):
 
     def update(old_count, chain):
         total = 0
-        values = parse_thread_title(chain[-1].title, regex)
+        values = parsing.parse_thread_title(chain[-1].title, regex)
         for idx, value in enumerate(values):
             total += triangle_n_dimension(idx + 1, value)
         return total
@@ -154,7 +156,8 @@ def update_from_traversal(old_count, chain):
     count = old_count
     for thread in chain[:-1][::-1]:
         try:
-            urls = filter(lambda x: x[0] == thread.id, find_urls_in_text(new_thread.selftext))
+            urls = filter(lambda x: x[0] == thread.id,
+                          parsing.find_urls_in_text(new_thread.selftext))
             submission_id, comment_id = next(urls)
         except StopIteration:
             return None
@@ -232,7 +235,8 @@ known_threads = {
     'increasing sequences': SideThread(update_function=update_increasing_type(1)),
     'double increasing sequences': SideThread(update_function=update_increasing_type(2)),
     'triple increasing sequences': SideThread(update_function=update_increasing_type(3)),
-    'dates': SideThread(update_function=update_dates)
+    'dates': SideThread(update_function=update_dates),
+    'invisible numbers': SideThread(form=base_n(10, strip_links=False)),
 }
 
 base_n_lengths = [None,
