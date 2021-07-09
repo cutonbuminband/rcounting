@@ -1,5 +1,5 @@
 from collections import defaultdict, deque
-deleted_phrases = ['[deleted]', '[removed]', '[banned]']
+from utils import deleted_phrases
 
 
 class RedditPost():
@@ -71,8 +71,8 @@ class Comment(RedditPost):
     def refresh(self):
         pass
 
-    def traverse(self, limit=None):
-        return self.tree.traverse(self, limit)
+    def walk_up_tree(self, limit=None):
+        return self.tree.walk_up_tree(self, limit)
 
     def parent(self):
         return self.tree.parent(self)
@@ -102,7 +102,7 @@ class Tree():
     def find_children(self, node):
         return [self.node(x) for x in self.reversed_tree[node.id]]
 
-    def traverse(self, node, limit=None):
+    def walk_up_tree(self, node, limit=None):
         if isinstance(node, str):
             try:
                 node = self.node(node)
@@ -120,6 +120,13 @@ class Tree():
             counter += 1
         return nodes
 
+    def walk_down_tree(self, node, limit=None):
+        result = [node]
+        while node.id in self.reversed_tree:
+            node = self.find_children(node)[0]
+            result.append(node)
+        return result
+
     def __len__(self):
         return len(self.tree.keys())
 
@@ -136,18 +143,6 @@ class Tree():
             node = queue.popleft()
             queue.extend(self.find_children(node))
             self.delete_node(node)
-
-    def prune(self, validation_function):
-        nodes = self.roots
-        history = []
-        queue = deque([(node, history) for node in nodes])
-        while queue:
-            node, history = queue.popleft
-            if validation_function(node, history):
-                history = history + [node]
-                queue.extend([(x, history) for x in self.find_children(node)])
-            else:
-                self.delete_subtree(node)
 
     @property
     def leaves(self):
@@ -211,7 +206,8 @@ class CommentTree(Tree):
             if self.verbose:
                 print(f"Fetching replies to comment {comment.id}")
             children = self.add_missing_replies(comment)
-        return sorted(children, key=lambda x: x.created_utc)
+        by_date = sorted(children, key=lambda x: x.created_utc)
+        return sorted(by_date, key = lambda x: x.body in deleted_phrases)
 
     def add_missing_replies(self, comment):
         praw_comment = self.reddit.comment(comment.id)
@@ -233,6 +229,17 @@ class CommentTree(Tree):
         if comment.id not in [x.id for x in replies]:
             return True
         return False
+
+    def prune(self, side_thread):
+        nodes = self.roots
+        queue = deque([(node, side_thread.get_history(node)) for node in nodes])
+        while queue:
+            node, history = queue.popleft()
+            is_valid, new_history = side_thread.is_valid_count(node, history)
+            if is_valid:
+                queue.extend([(x, new_history) for x in self.find_children(node)])
+            else:
+                self.delete_subtree(node)
 
 
 def edges_to_tree(edges):

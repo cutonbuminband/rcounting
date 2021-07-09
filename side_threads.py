@@ -5,7 +5,7 @@ from string import digits, ascii_uppercase
 from models import comment_to_dict
 from thread_navigation import fetch_comment_tree
 import parsing
-from utils import is_leap_year
+from utils import is_leap_year, deleted_phrases
 
 minute = 60
 hour = 60 * 60
@@ -44,11 +44,11 @@ class CountingRule():
                 & self._valid_user_time(history))
 
     def get_history(self, comment):
-        comments = comment.traverse(limit=self.n)
+        comments = comment.walk_up_tree(limit=self.n)
         max_time = max(self.thread_time, self.user_time)
         while (not comments[-1].is_root
                and (comment.created_utc - comments[-1].created_utc) < max_time):
-            comments = comments[:-1] + comments[-1].traverse(limit=9)
+            comments = comments[:-1] + comments[-1].walk_up_tree(limit=9)
         return pd.DataFrame([comment_to_dict(x) for x in comments[::-1]])
 
 
@@ -67,7 +67,7 @@ class OnlyDoubleCounting():
         return history['mask']
 
     def get_history(self, comment):
-        comments = comment.traverse(limit=2)[::-1]
+        comments = comment.walk_up_tree(limit=2)[::-1]
         return pd.DataFrame([comment_to_dict(x) for x in comments])
 
 
@@ -162,7 +162,7 @@ def update_from_traversal(old_count, chain):
         except StopIteration:
             return None
         tree = fetch_comment_tree(thread)
-        count += len(tree.comment(comment_id).traverse())
+        count += len(tree.comment(comment_id).walk_up_tree())
         new_thread = thread
     return count
 
@@ -191,21 +191,18 @@ class SideThread():
         else:
             return (False, history.loc[~mask, 'comment_id'].iloc[0])
 
-    def is_valid_count(self, comment):
-        history = self.history.append(comment_to_dict(comment), ignore_index=True)
-        return self.is_valid_thread(history)[0] and self.looks_like_count(comment)
+    def is_valid_count(self, comment, history):
+        history = history.append(comment_to_dict(comment), ignore_index=True)
+        return self.is_valid_thread(history)[0] and self.looks_like_count(comment), history
 
     def get_history(self, comment):
         """Fetch enough previous comments to be able to determine whether replies to
         `comment` are valid according to the side thread rules.
         """
-        self.history = self.rule.get_history(comment)
+        return self.rule.get_history(comment)
 
     def looks_like_count(self, comment):
-        return self.form(comment.body)
-
-    def update_history(self, comment):
-        self.history = self.history.append(comment_to_dict(comment), ignore_index=True)
+        return comment.body in self.deleted_phrases or self.form(comment.body)
 
 
 known_threads = {

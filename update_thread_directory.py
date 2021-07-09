@@ -4,7 +4,7 @@ from models import Tree
 from side_threads import get_side_thread
 from parsing import find_urls_in_text, find_urls_in_submission, find_count_in_text
 from parsing import parse_markdown_links, parse_directory_page
-from thread_navigation import fetch_comment_tree, walk_down_thread
+from thread_navigation import fetch_comment_tree
 from utils import flatten
 
 config = configparser.ConfigParser()
@@ -105,7 +105,7 @@ class Row():
         comment, chain, archived = submission_tree.find_latest_comment(self.side_thread,
                                                                        submission,
                                                                        self.comment_id)
-        comment = comment.traverse(limit=3)[-1]
+        comment = comment.walk_up_tree(limit=3)[-1]
         self.comment_id = comment.id
         self.submission = chain[-1]
         self.archived = archived
@@ -124,7 +124,7 @@ class SubmissionTree(Tree):
         super().__init__(submissions, submission_tree)
 
     def find_latest_comment(self, side_thread, old_submission, comment_id=None):
-        chain = self.traverse(old_submission)
+        chain = self.walk_up_tree(old_submission)
         archived = False
         if chain is None:
             archived = True
@@ -133,8 +133,12 @@ class SubmissionTree(Tree):
             comment_id = chain[-1].comments[0].id
         comments = fetch_comment_tree(chain[-1], root_id=comment_id, verbose=False,
                                       use_pushshift=self.use_pushshift)
+        comments.get_missing_replies = False
         comments.verbose = (self.verbosity > 1)
-        new_comment = walk_down_thread(side_thread, comments.comment(comment_id))
+        comment = comments.comment(comment_id)
+        comments.add_missing_replies(comment)
+        comments.prune(side_thread)
+        new_comment = comments.walk_down_tree(comment)[-1]
         return new_comment, chain, archived
 
     def node(self, node_id):
@@ -236,7 +240,7 @@ if __name__ == "__main__":
         with open("archived_threads.md", "a") as f:
             print(archived_threads)
 
-    new_threads = set(tree.traverse(thread)[-1].id for thread in new_threads)
+    new_threads = set(tree.walk_up_tree(thread)[-1].id for thread in new_threads)
     known_submissions = set([x.id for x in table.submissions])
     new_threads = new_threads - known_submissions
     if new_threads:

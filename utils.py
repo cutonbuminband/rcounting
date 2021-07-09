@@ -19,3 +19,6 @@ def format_timedelta(timedelta):
     units = ["day", "hour", "minute", "second"]
     formatted = [format_one_interval(n, unit) for n, unit in zip(amounts, units)]
     return ", ".join([x for x in formatted if x])
+
+
+deleted_phrases = ['[deleted]', '[removed]', '[banned]']
