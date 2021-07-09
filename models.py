@@ -120,6 +120,13 @@ class Tree():
             counter += 1
         return nodes
 
+    def walk_down_tree(self, node, limit=None):
+        result = [node]
+        while node.id in self.reversed_tree:
+            node = self.find_children(node)[0]
+            result.append(node)
+        return result
+
     def __len__(self):
         return len(self.tree.keys())
 

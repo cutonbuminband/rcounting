@@ -1,6 +1,6 @@
 from psaw import PushshiftAPI
 from parsing import find_urls_in_submission, post_to_count
-from models import CommentTree, comment_to_dict, deleted_phrases
+from models import CommentTree, comment_to_dict
 
 api = PushshiftAPI()
 
@@ -68,34 +68,6 @@ def extract_gets_and_assists(comment, n_threads=1000):
         assists.append({**rows[1], 'timedelta': rows[1]['timestamp'] - rows[2]['timestamp']})
         comment = find_previous_get(comment)
     return gets, assists
-
-
-def walk_down_thread(side_thread, comment):
-    side_thread.get_history(comment)
-
-    comment.refresh()
-    replies = comment.replies
-    if hasattr(replies, 'replace_more'):
-        replies.replace_more(limit=None)
-    while(len(replies) > 0):
-        for reply in replies:
-            if (side_thread.is_valid_count(reply) and reply.body not in deleted_phrases):
-                side_thread.update_history(reply)
-                comment = reply
-                break
-        else:  # We looped over all replies without finding a valid one
-            break
-        replies = comment.replies
-    # We've arrived at a leaf. Somewhere
-    if comment.get_missing_replies:
-        tree = comment.tree
-        if tree.is_broken(comment):
-            if tree.verbose:
-                print('Broken chain detected! Moving up one level and trying again')
-            parent = comment.parent()
-            tree.delete_node(comment)
-            return walk_down_thread(side_thread, parent)
-    return comment
 
 
 def fetch_comment_tree(thread, root_id=None, verbose=True, use_pushshift=True, history=1):

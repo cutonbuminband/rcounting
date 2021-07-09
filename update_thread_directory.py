@@ -4,7 +4,7 @@ from models import Tree
 from side_threads import get_side_thread
 from parsing import find_urls_in_text, find_urls_in_submission, find_count_in_text
 from parsing import parse_markdown_links, parse_directory_page
-from thread_navigation import fetch_comment_tree, walk_down_thread
+from thread_navigation import fetch_comment_tree
 from utils import flatten
 
 config = configparser.ConfigParser()
@@ -133,8 +133,12 @@ class SubmissionTree(Tree):
             comment_id = chain[-1].comments[0].id
         comments = fetch_comment_tree(chain[-1], root_id=comment_id, verbose=False,
                                       use_pushshift=self.use_pushshift)
+        comments.get_missing_replies = False
         comments.verbose = (self.verbosity > 1)
-        new_comment = walk_down_thread(side_thread, comments.comment(comment_id))
+        comment = comments.comment(comment_id)
+        comments.add_missing_replies(comment)
+        comments.prune(side_thread)
+        new_comment = comments.walk_down_tree(comment)[-1]
         return new_comment, chain, archived
 
     def node(self, node_id):
