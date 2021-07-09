@@ -202,7 +202,7 @@ class SideThread():
         return self.rule.get_history(comment)
 
     def looks_like_count(self, comment):
-        return comment.body in self.deleted_phrases or self.form(comment.body)
+        return comment.body in deleted_phrases or self.form(comment.body)
 
 
 known_threads = {
