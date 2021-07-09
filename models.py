@@ -1,5 +1,5 @@
 from collections import defaultdict, deque
-deleted_phrases = ['[deleted]', '[removed]', '[banned]']
+from utils import deleted_phrases
 
 
 class RedditPost():
@@ -206,7 +206,8 @@ class CommentTree(Tree):
             if self.verbose:
                 print(f"Fetching replies to comment {comment.id}")
             children = self.add_missing_replies(comment)
-        return sorted(children, key=lambda x: x.created_utc)
+        by_date = sorted(children, key=lambda x: x.created_utc)
+        return sorted(by_date, key = lambda x: x.body in deleted_phrases)
 
     def add_missing_replies(self, comment):
         praw_comment = self.reddit.comment(comment.id)

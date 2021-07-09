@@ -5,7 +5,7 @@ from string import digits, ascii_uppercase
 from models import comment_to_dict
 from thread_navigation import fetch_comment_tree
 import parsing
-from utils import is_leap_year
+from utils import is_leap_year, deleted_phrases
 
 minute = 60
 hour = 60 * 60
@@ -202,7 +202,7 @@ class SideThread():
         return self.rule.get_history(comment)
 
     def looks_like_count(self, comment):
-        return self.form(comment.body)
+        return comment.body in self.deleted_phrases or self.form(comment.body)
 
 
 known_threads = {
