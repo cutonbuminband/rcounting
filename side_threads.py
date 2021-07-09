@@ -191,21 +191,18 @@ class SideThread():
         else:
             return (False, history.loc[~mask, 'comment_id'].iloc[0])
 
-    def is_valid_count(self, comment):
-        history = self.history.append(comment_to_dict(comment), ignore_index=True)
-        return self.is_valid_thread(history)[0] and self.looks_like_count(comment)
+    def is_valid_count(self, comment, history):
+        history = history.append(comment_to_dict(comment), ignore_index=True)
+        return self.is_valid_thread(history)[0] and self.looks_like_count(comment), history
 
     def get_history(self, comment):
         """Fetch enough previous comments to be able to determine whether replies to
         `comment` are valid according to the side thread rules.
         """
-        self.history = self.rule.get_history(comment)
+        return self.rule.get_history(comment)
 
     def looks_like_count(self, comment):
         return self.form(comment.body)
-
-    def update_history(self, comment):
-        self.history = self.history.append(comment_to_dict(comment), ignore_index=True)
 
 
 known_threads = {

@@ -137,18 +137,6 @@ class Tree():
             queue.extend(self.find_children(node))
             self.delete_node(node)
 
-    def prune(self, validation_function):
-        nodes = self.roots
-        history = []
-        queue = deque([(node, history) for node in nodes])
-        while queue:
-            node, history = queue.popleft
-            if validation_function(node, history):
-                history = history + [node]
-                queue.extend([(x, history) for x in self.find_children(node)])
-            else:
-                self.delete_subtree(node)
-
     @property
     def leaves(self):
         leaf_ids = set(self.nodes.keys()) - set(self.tree.values())
@@ -233,6 +221,17 @@ class CommentTree(Tree):
         if comment.id not in [x.id for x in replies]:
             return True
         return False
+
+    def prune(self, side_thread):
+        nodes = self.roots
+        queue = deque([(node, side_thread.get_history(node)) for node in nodes])
+        while queue:
+            node, history = queue.popleft()
+            is_valid, new_history = side_thread.is_valid_count(node, history)
+            if is_valid:
+                queue.extend([(x, new_history) for x in self.find_children(node)])
+            else:
+                self.delete_subtree(node)
 
 
 def edges_to_tree(edges):
