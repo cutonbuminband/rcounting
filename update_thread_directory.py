@@ -105,6 +105,7 @@ class Row():
         comment, chain, archived = submission_tree.find_latest_comment(self.side_thread,
                                                                        submission,
                                                                        self.comment_id)
+        comment = comment.traverse(limit=3)[-1]
         self.comment_id = comment.id
         self.submission = chain[-1]
         self.archived = archived
