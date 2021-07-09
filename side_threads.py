@@ -44,11 +44,11 @@ class CountingRule():
                 & self._valid_user_time(history))
 
     def get_history(self, comment):
-        comments = comment.traverse(limit=self.n)
+        comments = comment.walk_up_tree(limit=self.n)
         max_time = max(self.thread_time, self.user_time)
         while (not comments[-1].is_root
                and (comment.created_utc - comments[-1].created_utc) < max_time):
-            comments = comments[:-1] + comments[-1].traverse(limit=9)
+            comments = comments[:-1] + comments[-1].walk_up_tree(limit=9)
         return pd.DataFrame([comment_to_dict(x) for x in comments[::-1]])
 
 
@@ -67,7 +67,7 @@ class OnlyDoubleCounting():
         return history['mask']
 
     def get_history(self, comment):
-        comments = comment.traverse(limit=2)[::-1]
+        comments = comment.walk_up_tree(limit=2)[::-1]
         return pd.DataFrame([comment_to_dict(x) for x in comments])
 
 
@@ -162,7 +162,7 @@ def update_from_traversal(old_count, chain):
         except StopIteration:
             return None
         tree = fetch_comment_tree(thread)
-        count += len(tree.comment(comment_id).traverse())
+        count += len(tree.comment(comment_id).walk_up_tree())
         new_thread = thread
     return count
 

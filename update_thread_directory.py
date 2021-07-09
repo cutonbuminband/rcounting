@@ -105,7 +105,7 @@ class Row():
         comment, chain, archived = submission_tree.find_latest_comment(self.side_thread,
                                                                        submission,
                                                                        self.comment_id)
-        comment = comment.traverse(limit=3)[-1]
+        comment = comment.walk_up_tree(limit=3)[-1]
         self.comment_id = comment.id
         self.submission = chain[-1]
         self.archived = archived
@@ -124,7 +124,7 @@ class SubmissionTree(Tree):
         super().__init__(submissions, submission_tree)
 
     def find_latest_comment(self, side_thread, old_submission, comment_id=None):
-        chain = self.traverse(old_submission)
+        chain = self.walk_up_tree(old_submission)
         archived = False
         if chain is None:
             archived = True
@@ -236,7 +236,7 @@ if __name__ == "__main__":
         with open("archived_threads.md", "a") as f:
             print(archived_threads)
 
-    new_threads = set(tree.traverse(thread)[-1].id for thread in new_threads)
+    new_threads = set(tree.walk_up_tree(thread)[-1].id for thread in new_threads)
     known_submissions = set([x.id for x in table.submissions])
     new_threads = new_threads - known_submissions
     if new_threads:

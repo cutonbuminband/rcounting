@@ -71,8 +71,8 @@ class Comment(RedditPost):
     def refresh(self):
         pass
 
-    def traverse(self, limit=None):
-        return self.tree.traverse(self, limit)
+    def walk_up_tree(self, limit=None):
+        return self.tree.walk_up_tree(self, limit)
 
     def parent(self):
         return self.tree.parent(self)
@@ -102,7 +102,7 @@ class Tree():
     def find_children(self, node):
         return [self.node(x) for x in self.reversed_tree[node.id]]
 
-    def traverse(self, node, limit=None):
+    def walk_up_tree(self, node, limit=None):
         if isinstance(node, str):
             try:
                 node = self.node(node)
