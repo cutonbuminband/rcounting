@@ -67,6 +67,7 @@ class Row():
         title, link = parsing.parse_markdown_links(current_thread)[0]
         self.title = normalise_title(title)
         submission_id, comment_id = parsing.find_urls_in_text(link)[0]
+        comment_id = None if not comment_id else comment_id
         self.submission_id = submission_id
         self.comment_id = comment_id
         self.count_string = current_count.strip()
@@ -85,7 +86,10 @@ class Row():
 
     @property
     def link(self):
-        return f"/comments/{self.submission.id}/_/{self.comment_id}?context=3"
+        if self.comment_id is not None:
+            return f"/comments/{self.submission_id}/_/{self.comment_id}?context=3"
+        else:
+            return f"/comments/{self.submission_id}"
 
     def update_title(self):
         if self.first_thread == self.submission.id:
@@ -117,6 +121,7 @@ class Row():
         comment = comment.walk_up_tree(limit=3)[-1]
         self.comment_id = comment.id
         self.submission = chain[-1]
+        self.submission_id = self.submission.id
         self.archived = archived
         if len(chain) > 1:
             self.count = self.side_thread.update_count(self.count, chain)
