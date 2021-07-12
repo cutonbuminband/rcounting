@@ -60,7 +60,7 @@ class Table():
 
 
 class Row():
-    def __init__(self, first_thread, current_thread, current_count):
+    def __init__(self, first_thread, current_thread, current_count, keep_title=True):
         thread_name, first_thread_id = parsing.parse_markdown_links(first_thread)[0]
         self.thread_name = thread_name.strip()
         self.first_thread = first_thread_id.strip()[1:]
@@ -75,6 +75,7 @@ class Row():
         self.is_approximate = self.count_string[0] == "~"
         self.thread_type = known_threads.get(self.first_thread, fallback='decimal')
         self.side_thread = get_side_thread(self.thread_type)
+        self.keep_title = keep_title
 
     def __str__(self):
         return (f"[{self.thread_name}](/{self.first_thread}) | "
@@ -124,6 +125,8 @@ class Row():
         self.submission = chain[-1]
         self.submission_id = self.submission.id
         self.archived = archived
+        if not self.keep_title:
+            self.update_title()
         if len(chain) > 1:
             self.count = self.side_thread.update_count(self.count, chain)
             self.count_string = self.format_count()
