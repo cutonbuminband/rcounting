@@ -19,35 +19,87 @@ The [[https://networkx.org/documentation/stable/][networkx]] library offers a lo
 
 That said, here's their function for calculating the coreness of each vertex:
 #+begin_src jupyter-python
-def core_number(G):
-    degrees = dict(G.degree())
-    # Sort nodes by degree.
-    nodes = sorted(degrees, key=degrees.get)
-    bin_boundaries = [0]
-    curr_degree = 0
-    for i, v in enumerate(nodes):
-        if degrees[v] > curr_degree:
-            bin_boundaries.extend([i] * (degrees[v] - curr_degree))
-            curr_degree = degrees[v]
-    node_pos = {v: pos for pos, v in enumerate(nodes)}
-    # The initial guess for the core number of a node is its degree.
-    core = degrees
-    neighbors = {v: list(nx.all_neighbors(G, v)) for v in G}
-    for v in nodes:
-        for u in neighbors[v]:
-            if core[u] > core[v]:
-                neighbors[u].remove(v)
-                pos = node_pos[u]
-                bin_start = bin_boundaries[core[u]]
-                node_pos[u] = bin_start
-                node_pos[nodes[bin_start]] = pos
-                nodes[bin_start], nodes[pos] = nodes[pos], nodes[bin_start]
-                bin_boundaries[core[u]] += 1
-                core[u] -= 1
-    return core
+  def core_number(G):
+      degrees = dict(G.degree())
+      # Sort nodes by degree.
+      nodes = sorted(degrees, key=degrees.get)
+      bin_boundaries = [0]
+      curr_degree = 0
+
+      # Mark where each degree changes, including if it changes by more than one
+      for i, v in enumerate(nodes):
+          if degrees[v] > curr_degree:
+              bin_boundaries.extend([i] * (degrees[v] - curr_degree))
+              curr_degree = degrees[v]
+
+      # This is a bit redundant given that we've sorted the nodes already... I
+      # think it's so that we can iterate over the nodes and reorder them at the
+      # same time
+      node_pos = {v: pos for pos, v in enumerate(nodes)}
+      # The initial guess for the core number of a node is its degree.
+      core = degrees
+      neighbors = {v: list(nx.all_neighbors(G, v)) for v in G}
+      # I think this should have been an iteration over indices in the graph
+      # rather than anything else. I'll try an code it again to see what happens
+      for v in nodes:
+          for u in neighbors[v]:
+              # If the neighbor is more central than us:
+              if core[u] > core[v]:
+                  # Remove this node from the neighborlist of the other one
+                  neighbors[u].remove(v)
+                  # Move the other node to the start of its bin by swapping it
+                  # with whatever was at the start of the bin previously
+                  pos = node_pos[u]
+                  bin_start = bin_boundaries[core[u]]
+                  node_pos[u] = bin_start
+                  node_pos[nodes[bin_start]] = pos
+                  nodes[bin_start], nodes[pos] = nodes[pos], nodes[bin_start]
+                  # Move the bin boundary up by one, so that "u" is now the last
+                  # node of degree n - 1
+                  bin_boundaries[core[u]] += 1
+                  # And update the corresponding degree in u
+                  core[u] -= 1
+      return core
+#+end_src
+
+Pseudo-code from
+
+1.1 compute the degrees of vertices;
+1.2 order the set of vertices V in increasing order of their degrees;
+2 for each v ∈ V in the order do begin
+2.1 core[v] := degree[v];
+2.2 for each u ∈ Neighbors(v) do
+2.2.1 if degree[u] > degree[v] then begin
+2.2.1.1 degree[u] := degree[u] − 1;
+2.2.1.2 reorder V accordingly
+end
+end;
+
+#+begin_src jupyter-python
+  def weighted_core_number(G):
+      weighted_degrees = calculate_weighted_degrees(G)
+      degrees = dict(G.degree())
+      core = weighted_degrees
+      
 #+end_src
 
 Making it work with weighted graphs requires a bit of thought. All references to `degree` can be changed to `weighted_degree`, but the line `core[u] -= 1` needs a bit of rejiggering, since it needs to be converted to a recalculation of what the weighted degree would be if we removed v as a neighbor of u.
+
+If we have a node $i$, with neighbours $\{j\}$ and remove $\alpha \in \{j\}$, the difference becomes as follows:
+
+\begin{align}
+\Delta^2
+  &\equiv k'_{\mathrm{big}}^2 - k'_{\mathrm{small}}^2 \\
+  &= \sum_{ij} w_{ij} + (k_i - 1)w_{\alpha i}
+\end{align}
+As as sanity check, if all the $w_{ij} = 1$, we have
+$$
+\Delta^2 = k_i + k_i - 1 = 2k_i - 1,
+$$
+which is exactly the difference between neighbouring square numbers.
+
+Unfortunately, this means that the update function cannot just take a weighted degree and the weight of an edge as input, since the same weighted adegree could be achieved in different ways, and would be dependent on the real degree/real set of edges anyway. We need to keep track of that information somehow.
+
 
 ** Playing with networkx
 Before we get that far, we might try to play around with the networkx library, and see what sort of functionality it offers out of the box
