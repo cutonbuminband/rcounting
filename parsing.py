@@ -34,7 +34,7 @@ def post_to_urls(reddit_post, api=None):
 
 
 def parse_markdown_links(body):
-    regex = r'\[(.+?)\]\((.+?(?<!\\))\)'
+    regex = r'\[(.*?)\]\((.+?(?<!\\))\)'
     links = re.findall(regex, body)
     return links
 
