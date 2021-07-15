@@ -62,7 +62,7 @@ That said, here's their function for calculating the coreness of each vertex:
       return core
 #+end_src
 
-Pseudo-code from
+Pseudo-code from this [[https://arxiv.org/abs/cs/0310049][paper]]
 
 1.1 compute the degrees of vertices;
 1.2 order the set of vertices V in increasing order of their degrees;
@@ -76,11 +76,24 @@ end
 end;
 
 #+begin_src jupyter-python
+  import bisect
+  import math
+
   def weighted_core_number(G):
-      weighted_degrees = calculate_weighted_degrees(G)
-      degrees = dict(G.degree())
-      core = weighted_degrees
-      
+      core = calculate_weighted_degrees(G)
+      nodes = sorted(G, key=weighted_degree)
+      for i in range(len(nodes)):
+          v = nodes[i]
+          for u in neighbors[v]:
+              if core[u] > core[v]:
+                  neighbors[u].remove[v]
+                  old_position = bisect.bisect(nodes, core[u])
+                  core[u] = weighted_degree(neighbors[u])
+                  new_position = bisect.bisect(nodes, core[u])
+                  del nodes[old_position]
+                  nodes.insert(new_position, u)
+      return {k: math.sqrt(v) for k, v in core.items()}
+
 #+end_src
 
 Making it work with weighted graphs requires a bit of thought. All references to `degree` can be changed to `weighted_degree`, but the line `core[u] -= 1` needs a bit of rejiggering, since it needs to be converted to a recalculation of what the weighted degree would be if we removed v as a neighbor of u.
