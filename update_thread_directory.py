@@ -83,7 +83,8 @@ class Row():
 
     def __lt__(self, other):
         return (self.count < other.count
-                or (other.is_approximate and not self.is_approximate))
+                or ((self.count == other.count)
+                   and (other.is_approximate and not self.is_approximate)))
 
     @property
     def link(self):
