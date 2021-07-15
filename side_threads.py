@@ -289,7 +289,8 @@ no_validation = {'base 40': 1600,
                  'chess matches': 1000,
                  'permutations - letters': None,
                  'rickroll base 5': 1000,
-                 'iterate each letter': None}
+                 'iterate each letter': None,
+                 'unary': 1000}
 
 known_threads.update({k: SideThread(form=permissive, length=v) for k, v in no_validation.items()})
 
