@@ -107,14 +107,14 @@ class Row():
             title = title if title else str(self.count)
         self.title = normalise_title(title)
 
-    def format_count(self):
-        if self.count is None:
+    def format_count(self, count):
+        if count is None:
             return self.count_string + "*"
-        if self.count == 0:
+        if count == 0:
             return "-"
         if self.is_approximate:
-            return f"~{self.count:,d}"
-        return f"{self.count:,d}"
+            return f"~{count:,d}"
+        return f"{count:,d}"
 
     def update(self, submission_tree):
         submission = tree.node(self.submission_id)
@@ -129,8 +129,10 @@ class Row():
         if not self.keep_title:
             self.update_title()
         if len(chain) > 1:
-            self.count = self.side_thread.update_count(self.count, chain)
-            self.count_string = self.format_count()
+            count = self.side_thread.update_count(self.count, chain)
+            self.count_string = self.format_count(count)
+            if count is not None:
+                self.count = count
             self.update_title()
 
 
