@@ -105,7 +105,7 @@ class Row():
                 sections = sections[1:]
             title = (' '.join(sections)).strip()
             title = title if title else str(self.count)
-        self.title = self.normalise_title(title)
+        self.title = normalise_title(title)
 
     def format_count(self):
         if self.count is None:
