@@ -49,17 +49,19 @@ def parse_directory_page(directory_page):
     paragraphs = directory_page.split("\n\n")
     regex = r"^.*\|.*\|.*$"
     tagged_results = []
+    text = []
     for paragraph in paragraphs:
         lines = [line for line in paragraph.split("\n") if line]
         mask = all([bool(re.match(regex, line)) for line in lines])
         if not mask:
-            tagged_results.append(['text', paragraph])
+            text.append(paragraph)
         else:
-            rows = []
-            for row in lines[2:]:
-                fields = row.split('|')
-                rows.append(fields)
+            tagged_results.append(['text', '\n\n'.join(text)])
+            text = []
+            rows = [row.split('|') for row in lines[2:]]
             tagged_results.append(['table', rows])
+    if text:
+        tagged_results.append(['text', '\n\n'.join(text)])
     return tagged_results
 
 
