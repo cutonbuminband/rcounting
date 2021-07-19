@@ -199,6 +199,37 @@ def get_counting_history(subreddit, time_limit, verbosity=1):
     return submissions_dict, tree, new_threads
 
 
+def update_archive_page(archive_document, archived_threads):
+    def normalise(body):
+        return body.translate(str.maketrans('', '', '\'"()^/'))
+
+    for thread in archived_threads:
+        row = str(thread)
+        for table in map(lambda x: x[1], filter(lambda x: x[0] == "table", archive_document)):
+            last_letter = normalise(table[-1][0][3])
+            if normalise(row)[3] <= last_letter:
+                table.append(row.split(' | '))
+                break
+    result = []
+    archive_header = [' ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀Name &amp; Initial Thread⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ |'
+                      ' ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀Last Thread⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ |'
+                      ' ⠀⠀⠀# of Counts⠀⠀⠀', ':--:|:--:|--:']
+
+    def sort_order(row):
+        thread_name, first_submission = parsing.parse_markdown_links(row[0])[0]
+        title = normalise(thread_name.lower().replace('*', ''))
+        return [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', title)]
+
+    for paragraph in archive_document:
+        if paragraph[0] == 'text':
+            result.append(paragraph[1])
+        else:
+            table = sorted(paragraph[1], key=sort_order)
+            table.insert(0, archive_header)
+            result.append('\n'.join([' | '.join(row) for row in table]))
+    return result
+
+
 if __name__ == "__main__":
     import argparse
     from reddit_interface import reddit
@@ -241,7 +272,7 @@ if __name__ == "__main__":
             updated_document.append(paragraph[1])
         elif paragraph[0] == "table":
             table_counter += 1
-            table = Table([Row(*x) for x in paragraph[1]], show_archived=True)
+            table = Table([Row(*x) for x in paragraph[1]])
             table.update(tree)
             if table_counter == 2:
                 table.sort(reverse=True)
@@ -255,10 +286,14 @@ if __name__ == "__main__":
     if archived_threads:
         n = len(archived_threads)
         if verbosity > 0:
-            print(f'writing {n} archived thread{"s" if n > 1 else ""}'
-                  ' to archived_threads.md')
-        with open("archived_threads.md", "a") as f:
-            print(archived_threads)
+            print(f'Moving {n} archived thread{"s" if n > 1 else ""}'
+                  ' to /r/counting/wiki/directory/archive')
+        archive_wiki = subreddit.wiki['directory/archive']
+        archive = archive_wiki.content_md.replace('\r\n', '\n')
+        archive = parsing.parse_directory_page(archive)
+        new_archive = update_archive_page(archive, archived_threads)
+        new_archive = '\n\n'.join(new_archive)
+        archive_wiki.edit(new_archive, reason="Ran the update script")
 
     new_threads = set(tree.walk_down_tree(thread)[-1].id for thread in new_threads)
     known_submissions = set([x.id for x in table.submissions])
