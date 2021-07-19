@@ -201,13 +201,13 @@ def get_counting_history(subreddit, time_limit, verbosity=1):
 
 def update_archive_page(archive_document, archived_threads):
     def normalise(body):
-        return body.translate(str.maketrans('', '', '\'"()^/'))
+        return body.translate(str.maketrans('', '', '\'"()^/*')).lower()
 
     for thread in archived_threads:
         row = str(thread)
         for table in map(lambda x: x[1], filter(lambda x: x[0] == "table", archive_document)):
-            last_letter = normalise(table[-1][0][3])
-            if normalise(row)[3] <= last_letter:
+            last_letter = normalise(table[-1][0])[1]
+            if normalise(row)[1] <= last_letter:
                 table.append(row.split(' | '))
                 break
     result = []
@@ -217,7 +217,7 @@ def update_archive_page(archive_document, archived_threads):
 
     def sort_order(row):
         thread_name, first_submission = parsing.parse_markdown_links(row[0])[0]
-        title = normalise(thread_name.lower().replace('*', ''))
+        title = normalise(thread_name)
         return [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', title)]
 
     for paragraph in archive_document:
