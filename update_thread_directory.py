@@ -254,7 +254,7 @@ if __name__ == "__main__":
     document = wiki_page.content_md.replace("\r\n", "\n")
     document = parsing.parse_directory_page(document)
 
-    time_limit = datetime.timedelta(weeks=26.5)
+    time_limit = datetime.timedelta(days=187)
     if verbosity > 0:
         print("Getting history")
     submissions, submission_tree, new_threads = get_counting_history(subreddit,
