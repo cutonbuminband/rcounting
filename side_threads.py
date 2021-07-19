@@ -103,7 +103,7 @@ def reddit_username_form(comment_body):
 base_10 = base_n(10)
 default_rule = CountingRule()
 
-wave_regex = r'(-?\d+).*\((\d+)\)'  # maybe a minus sign, a count, and a bracketed count
+wave_regex = r'(-?\d+).*\((\d+)\+?\)'  # an int, then a bracketed int, maybe with a plus after it
 double_wave_regex = r'(-?\d+).*\((\d+)\).*\((\d+)\)'
 
 
