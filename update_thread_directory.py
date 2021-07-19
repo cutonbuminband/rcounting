@@ -212,8 +212,8 @@ def update_archive_page(archive_document, archived_threads):
                 break
     result = []
     archive_header = [' ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀Name &amp; Initial Thread⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ |'
-                      ' ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀Last Thread⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ |'
-                      ' ⠀⠀⠀# of Counts⠀⠀⠀', ':--:|:--:|--:']
+                      ' ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀Last Thread⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ | ⠀⠀⠀# of Counts⠀⠀⠀\n'
+                      ':--:|:--:|--:']
 
     def sort_order(row):
         thread_name, first_submission = parsing.parse_markdown_links(row[0])[0]
