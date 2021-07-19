@@ -94,6 +94,7 @@ brainfuck = validate_from_character_list('><+-.,[]')
 roman_numeral = validate_from_character_list('IVXLCDMↁↂↇ')
 mayan_form = validate_from_character_list('Ø1234|-')
 twitter_form = validate_from_character_list('@')
+parentheses_form = validate_from_character_list('()')
 
 
 def reddit_username_form(comment_body):
@@ -234,6 +235,7 @@ known_threads = {
     'triple increasing sequences': SideThread(update_function=update_increasing_type(3)),
     'dates': SideThread(update_function=update_dates),
     'invisible numbers': SideThread(form=base_n(10, strip_links=False)),
+    'parentheses': SideThread(form=parentheses_form),
 }
 
 base_n_lengths = [None,
