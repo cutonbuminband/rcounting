@@ -5,7 +5,7 @@
 
 Here we propose a generalization of the k-shell decomposition method, which we call the weighted k-shell decomposition method (Wk-shell). This method applies the same pruning routine that was described earlier, but is based on an alternative measure for the node degree. This measure considers both the degree of a node and the weights of its links, and we assign for each node a weighted degree, k'. The weighted degree of a node i is defined as $k'_{i}=\sqrt {k_{i} \sum _{j}^{k_{i}}{w_{ij}}}$ .
 
-Using the above approach in the case of unweighted networks, where wij = 1, the weighted degree is equivalent to the node degree (k' ≡ k), and we resume the same network partitioning as with the Uk-shell decomposition method. However, in order that a typical weighted link be regarded as of unit weight before we calculate k' using equation (1), we perform the following steps. First, we normalize all the weights with their mean value 〈w〉, next we divide the resulting weights with their minimum value, and we discretize them by rounding to the closest integer; this way the minimum link weight is equal to 1
+Using the above approach in the case of unweighted networks, where $w_{ij} = 1$, the weighted degree is equivalent to the node degree (k' ≡ k), and we resume the same network partitioning as with the Uk-shell decomposition method. However, in order that a typical weighted link be regarded as of unit weight before we calculate k' using equation (1), we perform the following steps. First, we normalize all the weights with their mean value 〈w〉, next we divide the resulting weights with their minimum value, and we discretize them by rounding to the closest integer; this way the minimum link weight is equal to 1
 
 Here's what that means in code:
 #+begin_src jupyter-python
@@ -62,40 +62,6 @@ That said, here's their function for calculating the coreness of each vertex:
       return core
 #+end_src
 
-Pseudo-code from this [[https://arxiv.org/abs/cs/0310049][paper]]
-
-1.1 compute the degrees of vertices;
-1.2 order the set of vertices V in increasing order of their degrees;
-2 for each v ∈ V in the order do begin
-2.1 core[v] := degree[v];
-2.2 for each u ∈ Neighbors(v) do
-2.2.1 if degree[u] > degree[v] then begin
-2.2.1.1 degree[u] := degree[u] − 1;
-2.2.1.2 reorder V accordingly
-end
-end;
-
-#+begin_src jupyter-python
-  import bisect
-  import math
-
-  def weighted_core_number(G):
-      core = calculate_weighted_degrees(G)
-      nodes = sorted(G, key=weighted_degree)
-      for i in range(len(nodes)):
-          v = nodes[i]
-          for u in neighbors[v]:
-              if core[u] > core[v]:
-                  neighbors[u].remove[v]
-                  old_position = bisect.bisect(nodes, core[u])
-                  core[u] = weighted_degree(neighbors[u])
-                  new_position = bisect.bisect(nodes, core[u])
-                  del nodes[old_position]
-                  nodes.insert(new_position, u)
-      return {k: math.sqrt(v) for k, v in core.items()}
-
-#+end_src
-
 Making it work with weighted graphs requires a bit of thought. All references to `degree` can be changed to `weighted_degree`, but the line `core[u] -= 1` needs a bit of rejiggering, since it needs to be converted to a recalculation of what the weighted degree would be if we removed v as a neighbor of u.
 
 If we have a node $i$, with neighbours $\{j\}$ and remove $\alpha \in \{j\}$, the difference becomes as follows:
@@ -111,7 +77,42 @@ $$
 $$
 which is exactly the difference between neighbouring square numbers.
 
-Unfortunately, this means that the update function cannot just take a weighted degree and the weight of an edge as input, since the same weighted adegree could be achieved in different ways, and would be dependent on the real degree/real set of edges anyway. We need to keep track of that information somehow.
+Unfortunately, this means that the update function cannot just take a weighted degree and the weight of an edge as input, since the same weighted degree could be achieved in different ways, and would be dependent on the real degree/real set of edges anyway. We need to keep track of that information somehow.
+
+We can look at the pseudo-code from this [[https://arxiv.org/abs/cs/0310049][paper]], and replace each instance of "degree" with "weighted degree"
+
+1.1 compute the degrees of vertices;
+1.2 order the set of vertices V in increasing order of their degrees;
+2 for each v ∈ V in the order do begin
+2.1 core[v] := degree[v];
+2.2 for each u ∈ Neighbors(v) do
+2.2.1 if degree[u] > degree[v] then begin
+2.2.1.1 degree[u] := calculate_weighted_degree(u);
+2.2.1.2 reorder V accordingly
+end
+end;
+
+#+begin_src jupyter-python
+  import bisect
+  import math
+  
+  def weighted_core_number(G):
+      core = calculate_weighted_degrees(G)
+      nodes = sorted(G, key=weighted_degree)
+      neighbors = {v: list(nx.all_neighbors(G, v)) for v in G}
+      for i in range(len(nodes)):
+          v = nodes[i]
+          for u in neighbors[v]:
+              if core[u] > core[v]:
+                  neighbors[u].remove[v]
+                  old_position = bisect.bisect(nodes, core[u])
+                  core[u] = weighted_degree(neighbors[u])
+                  new_position = bisect.bisect(nodes, core[u])
+                  del nodes[old_position]
+                  nodes.insert(new_position, u)
+      return core
+  
+#+end_src
 
 
 ** Playing with networkx
