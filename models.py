@@ -211,7 +211,7 @@ class CommentTree(Tree):
                 print(f"Fetching replies to comment {comment.id}")
             children = self.add_missing_replies(comment)
         by_date = sorted(children, key=lambda x: x.created_utc)
-        return sorted(by_date, key = lambda x: x.body in deleted_phrases)
+        return sorted(by_date, key=lambda x: x.body in deleted_phrases)
 
     def add_missing_replies(self, comment):
         if comment.id not in self.nodes:
