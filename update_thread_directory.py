@@ -121,7 +121,10 @@ class Row():
         comment, chain, archived = submission_tree.find_latest_comment(self.side_thread,
                                                                        submission,
                                                                        self.comment_id)
-        comment = comment.walk_up_tree(limit=3)[-1]
+        try:
+            comment = comment.walk_up_tree(limit=3)[-1]
+        except TypeError:
+            pass
         self.comment_id = comment.id
         self.submission = chain[-1]
         self.submission_id = self.submission.id
@@ -159,7 +162,10 @@ class SubmissionTree(Tree):
         comment = comments.comment(comment_id)
         comments.add_missing_replies(comment)
         comments.prune(side_thread)
-        new_comment = comments.walk_down_tree(comment)[-1]
+        try:
+            new_comment = comments.walk_down_tree(comment)[-1]
+        except TypeError:
+            new_comment = comment
         return new_comment, chain, archived
 
     def node(self, node_id):
