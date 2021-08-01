@@ -44,12 +44,12 @@ class CountingRule():
                 & self._valid_user_time(history))
 
     def get_history(self, comment):
-        comments = comment.walk_up_tree(limit=self.n)
+        comments = comment.walk_up_tree(limit=self.n + 1)
         max_time = max(self.thread_time, self.user_time)
         while (not comments[-1].is_root
                and (comment.created_utc - comments[-1].created_utc) < max_time):
             comments = comments[:-1] + comments[-1].walk_up_tree(limit=9)
-        return pd.DataFrame([comment_to_dict(x) for x in comments[::-1]])
+        return pd.DataFrame([comment_to_dict(x) for x in comments[:0:-1]])
 
 
 class OnlyDoubleCounting():
@@ -67,7 +67,7 @@ class OnlyDoubleCounting():
         return history['mask']
 
     def get_history(self, comment):
-        comments = comment.walk_up_tree(limit=2)[::-1]
+        comments = comment.walk_up_tree(limit=2)[:0:-1]
         return pd.DataFrame([comment_to_dict(x) for x in comments])
 
 
