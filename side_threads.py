@@ -248,7 +248,7 @@ base_n_lengths = [None,
                   None, None, None, None, None,
                   1296]
 
-base_n_threads = {'base i': SideThread(form=base_n(i), length=length)
+base_n_threads = {f'base {i}': SideThread(form=base_n(i), length=length)
                   for i, length in enumerate(base_n_lengths) if length is not None}
 known_threads.update(base_n_threads)
 
