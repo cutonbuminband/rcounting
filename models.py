@@ -214,7 +214,10 @@ class CommentTree(Tree):
         return sorted(by_date, key = lambda x: x.body in deleted_phrases)
 
     def add_missing_replies(self, comment):
+        if comment.id not in self.nodes:
+            self.add_nodes([comment])
         praw_comment = self.reddit.comment(comment.id)
+
         praw_comment.refresh()
         replies = praw_comment.replies
         replies.replace_more(limit=None)
