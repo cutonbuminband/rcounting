@@ -153,7 +153,9 @@ class Tree():
 
     @property
     def roots(self):
-        root_ids = set(self.nodes.keys()) - set(self.tree.values())
+        root_ids = set(self.tree.values()) - set(self.tree.keys())
+        root_ids = [[x] if x in self.nodes else self.reversed_tree[x] for x in root_ids]
+        root_ids = [root_id for ids in root_ids for root_id in ids]
         return [self.node(root_id) for root_id in root_ids]
 
     def add_nodes(self, new_nodes, new_tree):
