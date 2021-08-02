@@ -165,6 +165,7 @@ class SubmissionTree(Tree):
         try:
             new_comment = comments.walk_down_tree(comment)[-1]
         except TypeError:
+            print(f"failed to update {chain[-1].title}")
             new_comment = comment
         return new_comment, chain, archived
 
