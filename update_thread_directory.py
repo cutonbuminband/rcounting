@@ -159,8 +159,8 @@ class SubmissionTree(Tree):
                                       use_pushshift=self.use_pushshift)
         comments.get_missing_replies = False
         comments.verbose = (self.verbosity > 1)
+        comments.add_missing_replies(self.reddit.comment(comment_id))
         comment = comments.comment(comment_id)
-        comments.add_missing_replies(comment)
         comments.prune(side_thread)
         try:
             new_comment = comments.walk_down_tree(comment)[-1]
