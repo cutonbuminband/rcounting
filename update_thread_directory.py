@@ -62,17 +62,21 @@ class Table():
 
 
 class Row():
-    def __init__(self, first_thread, current_thread, current_count, keep_title=True):
-        thread_name, first_thread_id = parsing.parse_markdown_links(first_thread)[0]
-        self.thread_name = thread_name.strip()
-        self.first_thread = first_thread_id.strip()[1:]
-        title, link = parsing.parse_markdown_links(current_thread)[0]
+    def __init__(
+            self,
+            name,
+            first_thread,
+            title,
+            current_submission_id,
+            current_comment_id,
+            current_count,
+            keep_title=True):
+        self.name = name
+        self.first_thread = first_thread
         self.title = normalise_title(title)
-        submission_id, comment_id = parsing.find_urls_in_text(link)[0]
-        comment_id = None if not comment_id else comment_id
-        self.submission_id = submission_id
-        self.comment_id = comment_id
-        self.count_string = current_count.strip()
+        self.submission_id = current_submission_id
+        self.comment_id = current_comment_id
+        self.count_string = current_count
         self.count = parsing.find_count_in_text(self.count_string.replace("-", "0"))
         self.is_approximate = self.count_string[0] == "~"
         self.starred_count = self.count_string[-1] == "*"
@@ -81,7 +85,7 @@ class Row():
         self.keep_title = keep_title
 
     def __str__(self):
-        return (f"[{self.thread_name}](/{self.first_thread}) | "
+        return (f"[{self.name}](/{self.first_thread}) | "
                 f"[{self.title}]({self.link}) | {self.count_string}")
 
     def __lt__(self, other):
@@ -211,7 +215,7 @@ def get_counting_history(subreddit, time_limit, verbosity=1):
 
 
 def name_sort(row):
-    title = row.title.translate(str.maketrans('', '', '\'"()^/*')).lower()
+    title = row.name.translate(str.maketrans('', '', '\'"()^/*')).lower()
     return tuple(int(c) if c.isdigit() else c for c in re.split(r'(\d+)', title))
 
 

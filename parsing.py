@@ -58,11 +58,24 @@ def parse_directory_page(directory_page):
         else:
             tagged_results.append(['text', '\n\n'.join(text)])
             text = []
-            rows = [row.split('|') for row in lines[2:]]
+            rows = [parse_row(row) for row in lines[2:]]
             tagged_results.append(['table', rows])
     if text:
         tagged_results.append(['text', '\n\n'.join(text)])
     return tagged_results
+
+
+def parse_row(markdown_row):
+    first, current, count = markdown_row.split("|")
+    name, first_thread = parse_markdown_links(first)[0]
+    name = name.strip()
+    thread_id = first_thread.strip()[1:]
+    title, link = parse_markdown_links(current)[0]
+    title = title.strip()
+    submission_id, comment_id = find_urls_in_text(link)[0]
+    comment_id = None if not comment_id else comment_id
+    count = count.strip()
+    return name, thread_id, title, submission_id, comment_id, count
 
 
 def parse_thread_title(title, regex):
