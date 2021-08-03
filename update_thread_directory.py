@@ -73,6 +73,7 @@ class Row():
         self.count_string = current_count.strip()
         self.count = parsing.find_count_in_text(self.count_string.replace("-", "0"))
         self.is_approximate = self.count_string[0] == "~"
+        self.starred_count = self.count_string[-1] == "*"
         self.thread_type = known_threads.get(self.first_thread, fallback='decimal')
         self.side_thread = get_side_thread(self.thread_type)
         self.keep_title = keep_title
@@ -82,9 +83,8 @@ class Row():
                 f"[{self.title}]({self.link}) | {self.count_string}")
 
     def __lt__(self, other):
-        return (self.count < other.count
-                or ((self.count == other.count)
-                   and (other.is_approximate and not self.is_approximate)))
+        return ((self.count, self.starred_count, self.is_approximate)
+                < (other.count, other.starred_count, other.is_approximate))
 
     @property
     def link(self):
@@ -136,6 +136,8 @@ class Row():
             self.count_string = self.format_count(count)
             if count is not None:
                 self.count = count
+            else:
+                self.starred_count = True
             self.update_title()
 
 
