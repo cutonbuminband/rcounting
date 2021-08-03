@@ -252,7 +252,10 @@ if __name__ == "__main__":
                        help='Print less output during directory updates')
 
     parser.add_argument('--pushshift', '-p', action='store_true',
-                        help=('Use  an online archive fetch older comments '))
+                        help=('Use an online archive fetch older comments.'))
+
+    parser.add_argument('--dry-run', action='store_true',
+                        help=('Write results to files instead of updating the wiki pages'))
 
     args = parser.parse_args()
     verbosity = 1 - args.quiet + args.verbose
@@ -288,7 +291,11 @@ if __name__ == "__main__":
             updated_document.append(table)
 
     new_page = '\n\n'.join(map(str, updated_document))
-    wiki_page.edit(new_page, reason="Ran the update script")
+    if not args.dry_run:
+        wiki_page.edit(new_page, reason="Ran the update script")
+    else:
+        with open('directory.md', 'w') as f:
+            print(new_page, file=f)
 
     table = Table(flatten([x.rows for x in updated_document if hasattr(x, 'rows')]))
     archived_threads = table.archived_rows()
@@ -302,7 +309,11 @@ if __name__ == "__main__":
         archive = parsing.parse_directory_page(archive)
         new_archive = update_archive_page(archive, archived_threads)
         new_archive = '\n\n'.join(new_archive)
-        archive_wiki.edit(new_archive, reason="Ran the update script")
+        if not args.dry_run:
+            archive_wiki.edit(new_archive, reason="Ran the update script")
+        else:
+            with open('archive.md', 'w') as f:
+                print(new_archive, file=f)
 
     new_threads = set(tree.walk_down_tree(thread)[-1].id for thread in new_threads)
     known_submissions = set([x.id for x in table.submissions])
