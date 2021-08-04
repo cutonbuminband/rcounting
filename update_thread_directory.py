@@ -297,8 +297,8 @@ if __name__ == "__main__":
         with open('directory.md', 'w') as f:
             print(new_page, file=f)
 
-    table = Table(flatten([x.rows for x in updated_document if hasattr(x, 'rows')]))
-    archived_threads = table.archived_rows()
+    full_table = Table(flatten([x.rows for x in updated_document if hasattr(x, 'rows')]))
+    archived_threads = full_table.archived_rows()
     if archived_threads:
         n = len(archived_threads)
         if verbosity > 0:
