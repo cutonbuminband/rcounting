@@ -68,27 +68,18 @@ class Table():
 
 
 class Row():
-    def __init__(
-            self,
-            name,
-            first_thread,
-            title,
-            current_submission_id,
-            current_comment_id,
-            current_count,
-            keep_title=True):
+    def __init__(self, name, first_thread, title, submission_id, comment_id, count):
         self.name = name
         self.first_thread = first_thread
         self.title = normalise_title(title)
-        self.submission_id = current_submission_id
-        self.comment_id = current_comment_id
-        self.count_string = current_count
+        self.submission_id = submission_id
+        self.comment_id = comment_id
+        self.count_string = count
         self.count = parsing.find_count_in_text(self.count_string.replace("-", "0"))
         self.is_approximate = self.count_string[0] == "~"
         self.starred_count = self.count_string[-1] == "*"
         self.thread_type = known_threads.get(self.first_thread, fallback='default')
         self.side_thread = get_side_thread(self.thread_type)
-        self.keep_title = keep_title
 
     def __str__(self):
         return (f"[{self.name}](/{self.first_thread}) | "
@@ -141,8 +132,6 @@ class Row():
         self.submission = chain[-1]
         self.submission_id = self.submission.id
         self.archived = archived
-        if not self.keep_title:
-            self.update_title()
         if len(chain) > 1:
             count = self.side_thread.update_count(self.count, chain)
             self.count_string = self.format_count(count)
