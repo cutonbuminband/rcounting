@@ -90,3 +90,8 @@ def find_urls_in_submission(submission):
     # And then in every top-level comment
     for comment in submission.comments:
         yield from find_urls_in_text(comment.body)
+
+
+def is_revived(title):
+    regex = r'\(*reviv\w*\)*'
+    return re.search(regex, title.lower())

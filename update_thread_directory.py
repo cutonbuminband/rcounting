@@ -16,10 +16,10 @@ known_threads = config['threads']
 
 def normalise_title(title):
     title = title.translate(str.maketrans('[]', '()'))
-    regex = r'\(*reviv\w*\)*'
-    match = re.search(regex, title.lower())
-    if match:
-        return title[:match.span()[0]] + '(Revival)' + title[match.span()[1]:]
+    title = title.replace('|', '&#124;')
+    if revived := parsing.is_revived(title):
+        start, end = revived.span()
+        return title[:start] + '(Revival)' + title[end:]
     return title
 
 
@@ -110,8 +110,7 @@ class Row():
         else:
             sections = self.submission.title.split("|")
             if len(sections) > 1:
-                sections = sections[1:]
-            title = (' '.join(sections)).strip()
+                title = '|'.join(sections[1:]).strip()
             title = title if title else str(self.count)
         self.title = normalise_title(title)
 
