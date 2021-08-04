@@ -24,7 +24,7 @@ def normalise_title(title):
 
 
 class Table():
-    def __init__(self, rows, show_archived=False):
+    def __init__(self, rows=[], show_archived=False):
         self.rows = rows
         self.show_archived = show_archived
 
@@ -36,6 +36,12 @@ class Table():
             return "\n".join(table_header + [str(x) for x in self.rows])
         else:
             return "\n".join(table_header + [str(x) for x in self.rows if not x.archived])
+
+    def append(self, row):
+        self.rows.append(row)
+
+    def __add__(self, other):
+        return Table(self.rows + other.rows)
 
     def update(self, tree, verbosity=1):
         for row in self.rows:
