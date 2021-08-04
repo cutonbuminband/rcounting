@@ -2,6 +2,10 @@ def flatten(mylist):
     return [element for sublist in mylist for element in sublist]
 
 
+def partition(mylist, indices):
+    return [mylist[i:j] for i, j in zip([0] + indices, indices + [None])]
+
+
 def is_leap_year(n):
     return n % 4 == 0 and (n % 400 == 0 or n % 100 != 0)
 
