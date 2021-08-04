@@ -249,27 +249,26 @@ if __name__ == "__main__":
 
     if verbosity > 0:
         print("Updating tables")
-    updated_document = []
     table_counter = 0
-    for paragraph in document:
+    for idx, paragraph in enumerate(document):
         if paragraph[0] == "text":
-            updated_document.append(paragraph[1])
+            document[idx] = paragraph[1]
         elif paragraph[0] == "table":
             table_counter += 1
             table = Table([Row(*x) for x in paragraph[1]])
             table.update(tree, verbosity=verbosity)
             if table_counter == 2:
                 table.sort(reverse=True)
-            updated_document.append(table)
+            document[idx] = table
 
-    new_page = '\n\n'.join(map(str, updated_document))
+    new_page = '\n\n'.join(map(str, document))
     if not args.dry_run:
         wiki_page.edit(new_page, reason="Ran the update script")
     else:
         with open('directory.md', 'w') as f:
             print(new_page, file=f)
 
-    full_table = Table(flatten([x.rows for x in updated_document if hasattr(x, 'rows')]))
+    full_table = Table(flatten([x.rows for x in document if hasattr(x, 'rows')]))
     archived_threads = full_table.archived_rows()
     if archived_threads:
         n = len(archived_threads)
