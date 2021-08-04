@@ -112,18 +112,19 @@ wave_regex = r'(-?\d+).*\((\d+)\+?\)'  # an int, then a bracketed int, maybe wit
 double_wave_regex = r'(-?\d+).*\((\d+)\).*\((\d+)\)'
 
 
-def update_wave(old_count, chain):
-    try:
-        a, b = parsing.parse_thread_title(chain[-1].title, wave_regex)
-        return 2 * b ** 2 - a
-    except TypeError:
-        return None
+def update_wave(old_count, chain, was_revival=None):
+    if was_revival is not None:
+        chain = [x for x, y in zip(chain, was_revival) if not y]
+    a, b = parsing.parse_thread_title(chain[-1].title, wave_regex)
+    return 2 * b ** 2 - a
 
 
 def update_increasing_type(n):
     regex = r'(-?\d+)' + r'.*\((\d+)\)' * n
 
-    def update(old_count, chain):
+    def update(old_count, chain, was_revival=None):
+        if was_revival is not None:
+            chain = [x for x, y in zip(chain, was_revival) if not y]
         total = 0
         values = parsing.parse_thread_title(chain[-1].title, regex)
         for idx, value in enumerate(values):
@@ -139,14 +140,18 @@ def triangle_n_dimension(n, value):
     return math.comb(value - 2 + n, n)
 
 
-def update_2i(count, chain):
+def update_2i(count, chain, was_revival=None):
+    if was_revival is not None:
+        chain = [x for x, y in zip(chain, was_revival) if not y]
     title = chain[-1].title
     digits = title.split("|")[-1].strip()
     corner = sum([(-4)**idx * int(digit) for idx, digit in enumerate(digits[::-2])])
     return (2 * corner + 1)**2
 
 
-def update_dates(count, chain):
+def update_dates(count, chain, was_revival=None):
+    if was_revival is not None:
+        chain = [x for x, y in zip(chain, was_revival) if not y]
     chain = chain[:-1]
     regex = r"([,\d]+)$"  # All digits at the end of the line, plus optional separators
     for submission in chain:
@@ -183,9 +188,13 @@ class SideThread():
         else:
             self.update_count = self.update_from_length
 
-    def update_from_length(self, old_count, chain):
+    def update_from_length(self, old_count, chain, was_revival=None):
+        if was_revival is not None:
+            chain = [x for x, y in zip(chain[1:], was_revival[1:]) if not y]
+        else:
+            chain = chain[1:]
         if self.length is not None:
-            return old_count + self.length * (len(chain) - 1)
+            return old_count + self.length * (len(chain))
         else:
             return None
 

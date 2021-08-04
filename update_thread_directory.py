@@ -142,8 +142,9 @@ class Row():
         self.submission = chain[-1]
         self.submission_id = self.submission.id
         self.archived = archived
-        if len(chain) > 1:
-            count = self.side_thread.update_count(self.count, chain)
+        was_revival = [parsing.is_revived(x.title) for x in chain]
+        if not all(was_revival[1:]):
+            count = side_thread.update_count(self.count, chain, was_revival)
             self.count_string = self.format_count(count)
             if count is not None:
                 self.count = count
