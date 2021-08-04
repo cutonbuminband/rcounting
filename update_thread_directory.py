@@ -124,8 +124,8 @@ class Row():
 
     def update(self, submission_tree):
         submission = tree.node(self.submission_id)
-        comment, chain, archived = submission_tree.find_latest_comment(self.side_thread,
-                                                                       submission,
+        comment, chain, archived = submission_tree.find_latest_comment(submission,
+                                                                       self.side_thread,
                                                                        self.comment_id)
         try:
             comment = comment.walk_up_tree(limit=3)[-1]
@@ -155,7 +155,7 @@ class SubmissionTree(Tree):
         self.use_pushshift = use_pushshift
         super().__init__(submissions, submission_tree)
 
-    def find_latest_comment(self, side_thread, old_submission, comment_id=None):
+    def find_latest_comment(self, old_submission, side_thread, comment_id=None):
         chain = self.walk_down_tree(old_submission)
         archived = False
         if chain is None:
