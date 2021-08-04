@@ -86,7 +86,7 @@ class Row():
         self.count = parsing.find_count_in_text(self.count_string.replace("-", "0"))
         self.is_approximate = self.count_string[0] == "~"
         self.starred_count = self.count_string[-1] == "*"
-        self.thread_type = known_threads.get(self.first_thread, fallback='decimal')
+        self.thread_type = known_threads.get(self.first_thread, fallback='default')
         self.side_thread = get_side_thread(self.thread_type)
         self.keep_title = keep_title
 

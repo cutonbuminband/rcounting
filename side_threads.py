@@ -328,13 +328,15 @@ default_thread_unknown_length = [
 ]
 
 
-def get_side_thread(thread_name):
+def get_side_thread(thread_name, verbosity=1):
     """Return the properties of the side thread with first post thread_id"""
-    if thread_name in default_thread_unknown_length:
-        return SideThread(length=None)
-    elif thread_name in default_thread_varying_length:
-        return SideThread(update_function=update_from_traversal)
-    elif thread_name not in known_threads:
-        return SideThread()
-    else:
+    if thread_name in known_threads:
         return known_threads[thread_name]
+    elif thread_name in default_thread_unknown_length:
+        return SideThread(length=None, form=base_10)
+    elif thread_name in default_thread_varying_length:
+        return SideThread(update_function=update_from_traversal, form=base_10)
+    else:
+        if verbosity > 0:
+            print(f'No rule found for {thread_name}. Falling back on default rule')
+        return SideThread()
