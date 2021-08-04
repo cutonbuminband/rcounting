@@ -183,6 +183,10 @@ class CommentTree(Tree):
         new_tree = {x.id: x.parent_id[3:] for x in comments if not is_root(x)}
         super().add_nodes(new_comments, new_tree)
 
+    @property
+    def comments(self):
+        return self.nodes.values()
+
     def parent(self, node):
         parent_id = self.tree[node.id]
         return self.node(parent_id)

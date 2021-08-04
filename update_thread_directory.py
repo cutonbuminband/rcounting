@@ -77,6 +77,7 @@ class Table():
 
 class Row():
     def __init__(self, name, first_thread, title, submission_id, comment_id, count):
+        self.archived = False
         self.name = name
         self.first_thread = first_thread
         self.title = normalise_title(title)
@@ -272,6 +273,30 @@ if __name__ == "__main__":
                 table.sort(reverse=True)
             document[idx] = table
 
+    second_last_header = document[-3].lower()
+    if "new" in second_last_header and "revived" in second_last_header:
+        new_table = document[-2]
+    else:
+        new_table = Table()
+        document = document[:-1] + ['\n## New and Revived Threads', new_table] + document[-1:]
+
+    new_submission_ids = set(tree.walk_down_tree(thread)[-1].id for thread in new_threads)
+    full_table = Table(flatten([x.rows for x in document if hasattr(x, 'rows')]))
+    known_submissions = set([x.id for x in full_table.submissions])
+    new_submission_ids = new_submission_ids - known_submissions
+    if new_submission_ids:
+        print('Finding new threads')
+        for submission_id in new_submission_ids:
+            first_submission = tree.walk_up_tree(submission_id)[-1]
+            name = f'**{first_submission.title.split("|")[0].strip()}**'
+            title = title_from_first_comment(first_submission)
+            row = Row(name, first_submission.id, title, first_submission.id, None, '-')
+            row.update(tree)
+            comments = row.submission.comments
+            if (len(comments) >= 50 and len(set(x.author for x in comments)) >= 5
+                    or row.submission_id != first_submission.id):
+                new_table.append(row)
+
     new_page = '\n\n'.join(map(str, document))
     if not args.dry_run:
         wiki_page.edit(new_page, reason="Ran the update script")
@@ -279,7 +304,6 @@ if __name__ == "__main__":
         with open('directory.md', 'w') as f:
             print(new_page, file=f)
 
-    full_table = Table(flatten([x.rows for x in document if hasattr(x, 'rows')]))
     archived_threads = full_table.archived_rows()
     if archived_threads:
         n = len(archived_threads)
@@ -308,18 +332,6 @@ if __name__ == "__main__":
         else:
             with open('archive.md', 'w') as f:
                 print(new_archive, file=f)
-
-    new_threads = set(tree.walk_down_tree(thread)[-1].id for thread in new_threads)
-    known_submissions = set([x.id for x in table.submissions])
-    new_threads = new_threads - known_submissions
-    if new_threads:
-        with open("new_threads.txt", "w") as f:
-            if verbosity > 0:
-                n = len(new_threads)
-                print(f"{n} new thread{'' if n == 1 else 's'} found. Writing to file")
-            print(*[f"New thread '{reddit.submission(x).title}' "
-                    f"at reddit.com/comments/{x}" for x in new_threads],
-                  sep="\n", file=f)
 
     end = datetime.datetime.now()
     print(end - start)
