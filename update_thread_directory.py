@@ -23,6 +23,12 @@ def normalise_title(title):
     return title
 
 
+def title_from_first_comment(submission):
+    submission.comment_sort = 'old'
+    body = submission.comments[0].body.split('\n')[0]
+    return normalise_title(parsing.strip_markdown_links(body))
+
+
 class Table():
     def __init__(self, rows=[], show_archived=False, kind='directory'):
         labels = {'directory': 'Current', 'archive': 'Last'}
@@ -99,10 +105,8 @@ class Row():
 
     def update_title(self):
         if self.first_thread == self.submission.id:
-            self.submission.comment_sort = 'old'
-            body = self.submission.comments[0].body.split('\n')[0]
-            markdown_link = parsing.parse_markdown_links(body)
-            title = markdown_link[0][0] if markdown_link else body
+            self.title = title_from_first_comment(self.submission)
+            return
         else:
             sections = self.submission.title.split("|")
             if len(sections) > 1:
