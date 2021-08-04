@@ -125,6 +125,11 @@ class Row():
 
     def update(self, submission_tree, verbosity=1):
         side_thread = get_side_thread(self.thread_type, verbosity)
+        if verbosity > 0 and self.thread_type == "default":
+            print(f'No rule found for {self.name}. '
+                  'Not validating comment contents. '
+                  'Assuming n=1000 and no double counting.')
+
         submission = tree.node(self.submission_id)
         comment, chain, archived = submission_tree.find_latest_comment(submission,
                                                                        side_thread,

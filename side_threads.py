@@ -101,6 +101,10 @@ def reddit_username_form(comment_body):
     return 'u/' in comment_body
 
 
+def throwaway_form(comment_body):
+    return reddit_username_form(comment_body) and base_10(comment_body)
+
+
 base_10 = base_n(10)
 default_rule = CountingRule()
 
@@ -169,7 +173,7 @@ def update_from_traversal(old_count, chain):
 
 
 class SideThread():
-    def __init__(self, rule=default_rule, form=base_10, length=1000,
+    def __init__(self, rule=default_rule, form=permissive, length=1000,
                  update_function=None):
         self.form = form
         self.rule = rule
@@ -215,27 +219,33 @@ known_threads = {
     'base 2i': SideThread(form=base_n(4), update_function=update_2i),
     'bijective base 2': SideThread(form=base_n(3), length=1024),
     'cyclical bases': SideThread(form=base_n(16)),
-    'wait 2': SideThread(rule=CountingRule(wait_n=2)),
-    'wait 2 - letters': SideThread(rule=CountingRule(wait_n=2), form=permissive),
-    'wait 3': SideThread(rule=CountingRule(wait_n=3)),
-    'wait 10': SideThread(rule=CountingRule(wait_n=10)),
-    'once per thread': SideThread(rule=CountingRule(wait_n=None)),
-    'slow': SideThread(rule=CountingRule(thread_time=minute)),
-    'slower': SideThread(CountingRule(user_time=hour)),
-    'slowestest': SideThread(CountingRule(thread_time=hour, user_time=day)),
+    'wait 2': SideThread(form=base_10, rule=CountingRule(wait_n=2)),
+    'wait 2 - letters': SideThread(rule=CountingRule(wait_n=2)),
+    'wait 3': SideThread(form=base_10, rule=CountingRule(wait_n=3)),
+    'wait 10': SideThread(form=base_10, rule=CountingRule(wait_n=10)),
+    'once per thread': SideThread(form=base_10, rule=CountingRule(wait_n=None)),
+    'slow': SideThread(form=base_10, rule=CountingRule(thread_time=minute)),
+    'slower': SideThread(form=base_10, rule=CountingRule(user_time=hour)),
+    'slowestest': SideThread(form=base_10, rule=CountingRule(thread_time=hour, user_time=day)),
     'unicode': SideThread(form=base_n(16), length=1024),
     'valid brainfuck programs': SideThread(form=brainfuck),
-    'only double counting': SideThread(rule=OnlyDoubleCounting()),
+    'only double counting': SideThread(form=base_10, rule=OnlyDoubleCounting()),
     'mayan numerals': SideThread(length=800, form=mayan_form),
     'reddit usernames': SideThread(length=722, form=reddit_username_form),
     'twitter handles': SideThread(length=1369, form=twitter_form),
-    'wave': SideThread(update_function=update_wave),
-    'increasing sequences': SideThread(update_function=update_increasing_type(1)),
-    'double increasing sequences': SideThread(update_function=update_increasing_type(2)),
-    'triple increasing sequences': SideThread(update_function=update_increasing_type(3)),
-    'dates': SideThread(update_function=update_dates),
+    'wave': SideThread(form=base_10, update_function=update_wave),
+    'increasing sequences': SideThread(form=base_10, update_function=update_increasing_type(1)),
+    'double increasing': SideThread(form=base_10, update_function=update_increasing_type(2)),
+    'triple increasing': SideThread(form=base_10, update_function=update_increasing_type(3)),
+    'dates': SideThread(form=base_10, update_function=update_dates),
     'invisible numbers': SideThread(form=base_n(10, strip_links=False)),
     'parentheses': SideThread(form=parentheses_form),
+    'dollars and cents': SideThread(form=base_n(4)),
+    'throwaways': SideThread(form=throwaway_form),
+    'by 3s in base 7': SideThread(form=base_n(7)),
+    'unary': SideThread(form=validate_from_character_list("|")),
+    'four fours': SideThread(form=validate_from_character_list("4")),
+    'using 12345': SideThread(form=validate_from_character_list("12345")),
 }
 
 base_n_lengths = [None,
@@ -253,54 +263,63 @@ base_n_threads = {f'base {i}': SideThread(form=base_n(i), length=length)
 known_threads.update(base_n_threads)
 
 # See: https://www.reddit.com/r/counting/comments/o7ko8r/free_talk_friday_304/h3c7433/?context=3
-default_threads = {'no repeating digits': 840,
-                   'time': 900,
-                   'permutations': 720,
-                   'factoradic': 720,
-                   'seconds minutes hours': 1200,
-                   'feet and inches': 600,
-                   'lucas_numbers': 200,
-                   'hoi4 states': 806,
-                   'eban': 800}
-known_threads.update({key: SideThread(length=length) for key, length in default_threads.items()})
 
-no_validation = {'base 40': 1600,
-                 'base 51': 1000,
-                 'base 60': 900,
-                 'base 62': 992,
-                 'base 64': 1024,
-                 'base 93': 930,
-                 'base 100': 1000,
-                 'base 187': 1000,
-                 'youtube': 1024,
-                 'previous_dates': None,
-                 'writing numbers': 1000,
-                 'mississippi': 1000,
-                 'qwerty alphabet': 676,
-                 'acronyms': 676,
-                 'letters': 676,
-                 'palindromes - letters': 676,
-                 'four fours': 1000,
-                 'top subreddits': 1000,
-                 'bijective base 69': 1000,
-                 'cards': 676,
-                 'musical notes': 1008,
-                 'octal letter stack': 1024,
-                 'planetary octal': 1024,
-                 'by 3s in base 7': 1000,
-                 'chess matches': 1000,
-                 'permutations - letters': None,
-                 'rickroll base 5': 1000,
-                 'iterate each letter': None,
-                 'unary': 1000}
+default_threads = ['decimal', 'age', 'palindromes', 'rational numbers',
+                   'n read as base n number', 'by 8s', 'by 69s', 'powers of 2',
+                   'california license plates', 'by 0.02s', 'by 2s even', 'by one-hundredths',
+                   'by 2s odd', 'by 3s', 'by 4s', 'by 5s', 'by 7s', 'by 8s',
+                   'by 10s', 'by 12s', 'by 20s', 'by 23s', 'by 29s', 'by 40s', 'by 50s', 'by 64s',
+                   'by 99s', 'by 123s', 'by meters', 'negative numbers', 'previous dates',
+                   'prime factorization', 'scientific notation', 'street view counting',
+                   '3 or fewer palindromes', 'four squares', '69, 420, or 666',
+                   'all even or all odd', 'no consecutive digits', 'unordered consecutive digits',
+                   'prime numbers', 'triangular numbers', 'thread completion', 'sheep',
+                   'top subreddits', 'william the conqueror']
+known_threads.update({thread_name: SideThread(form=base_10, length=1000)
+                      for thread_name in default_threads})
 
-known_threads.update({k: SideThread(form=permissive, length=v) for k, v in no_validation.items()})
+default_threads = {
+    'no repeating digits': 840,
+    'time': 900,
+    'permutations': 720,
+    'factoradic': 720,
+    'seconds minutes hours': 1200,
+    'feet and inches': 600,
+    'lucas numbers': 200,
+    'hoi4 states': 806,
+    'eban': 800,
+    'ipv4': 1024,
+}
+known_threads.update({key: SideThread(form=base_10, length=length)
+                      for key, length in default_threads.items()})
+
+
+no_validation = {
+    'base 40': 1600,
+    'base 60': 900,
+    'base 62': 992,
+    'base 64': 1024,
+    'base 93': 930,
+    'youtube': 1024,
+    'previous_dates': None,
+    'qwerty alphabet': 676,
+    'acronyms': 676,
+    'letters': 676,
+    'palindromes - letters': 676,
+    'cards': 676,
+    'musical notes': 1008,
+    'octal letter stack': 1024,
+    'planetary octal': 1024,
+    'permutations - letters': None,
+    'iterate each letter': None}
+
+known_threads.update({k: SideThread(length=v) for k, v in no_validation.items()})
 
 default_thread_varying_length = [
     'tug of war',
     'by day of the week',
     'by day of the year',
-    'by gme increase/decrease %',
+    'by gme increase/decrease',
     'by length of username',
     'by number of post upvotes',
     'by random number',
@@ -313,6 +332,7 @@ default_thread_varying_length = [
     'pick from five',
     '2d tug of war',
     'boost 5',
+    'by random number (1-1000)'
 ]
 
 default_thread_unknown_length = [
@@ -325,6 +345,7 @@ default_thread_unknown_length = [
     'powerball',
     'by number of digits squared',
     'by list size',
+    'divisors'
 ]
 
 
@@ -337,6 +358,8 @@ def get_side_thread(thread_name, verbosity=1):
     elif thread_name in default_thread_varying_length:
         return SideThread(update_function=update_from_traversal, form=base_10)
     else:
-        if verbosity > 0:
-            print(f'No rule found for {thread_name}. Falling back on default rule')
+        if verbosity > 0 and thread_name != 'default':
+            print(f'No rule found for {thread_name}. '
+                  'Not validating comment contents. '
+                  'Assuming n=1000 and no double counting.')
         return SideThread()
