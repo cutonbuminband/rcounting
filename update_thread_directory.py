@@ -24,18 +24,20 @@ def normalise_title(title):
 
 
 class Table():
-    def __init__(self, rows=[], show_archived=False):
+    def __init__(self, rows=[], show_archived=False, kind='directory'):
+        labels = {'directory': 'Current', 'archive': 'Last'}
+        header = ['⠀' * 10 + 'Name &amp; Initial Thread' + '⠀' * 10,
+                  '⠀' * 10 + f'{labels[kind]} Thread' + '⠀' * 10,
+                  '⠀' * 3 + '# of Counts' + '⠀' * 3]
+        self.header = [' | '.join(header), ':--:|:--:|--:']
         self.rows = rows
         self.show_archived = show_archived
 
     def __str__(self):
-        table_header = [' ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀Name &amp; Initial Thread⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ |'
-                        ' ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀Current Thread⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ |'
-                        ' ⠀⠀⠀# of Counts⠀⠀⠀', ':--:|:--:|--:']
         if self.show_archived:
-            return "\n".join(table_header + [str(x) for x in self.rows])
+            return "\n".join(self.header + [str(x) for x in self.rows])
         else:
-            return "\n".join(table_header + [str(x) for x in self.rows if not x.archived])
+            return "\n".join(self.header + [str(x) for x in self.rows if not x.archived])
 
     def append(self, row):
         self.rows.append(row)
@@ -288,7 +290,7 @@ if __name__ == "__main__":
         titles[0] = archive_header
         keys = [name_sort(x) for x in archived_rows]
         indices = [bisect.bisect_left(keys, (split.lower(),)) for split in splits[1:-1]]
-        parts = [Table(list(x)) for x in partition(archived_rows, indices)]
+        parts = [Table(list(x), kind='archive') for x in partition(archived_rows, indices)]
         archive = list(itertools.chain.from_iterable(zip(titles, parts)))
 
         new_archive = '\n\n'.join([str(x) for x in archive])
