@@ -3,11 +3,11 @@ import configparser
 import re
 import bisect
 import itertools
-from models import Tree
-from side_threads import get_side_thread
+import models
+import side_threads
 import parsing
-from thread_navigation import fetch_comment_tree
-from utils import flatten, partition
+import thread_navigation as navigation
+import utils
 
 config = configparser.ConfigParser()
 config.read('side_threads.ini')
@@ -125,7 +125,7 @@ class Row():
         return f"{count:,d}"
 
     def update(self, submission_tree, verbosity=1):
-        side_thread = get_side_thread(self.thread_type, verbosity)
+        side_thread = side_threads.get_side_thread(self.thread_type, verbosity)
         if verbosity > 0 and self.thread_type == "default":
             print(f'No rule found for {self.name}. '
                   'Not validating comment contents. '
@@ -154,7 +154,7 @@ class Row():
             self.update_title()
 
 
-class SubmissionTree(Tree):
+class SubmissionTree(models.Tree):
     def __init__(self, submissions, submission_tree, reddit=None, use_pushshift=True):
         self.reddit = reddit
         self.use_pushshift = use_pushshift
@@ -168,8 +168,8 @@ class SubmissionTree(Tree):
             chain = [old_submission]
         if len(chain) > 1 or comment_id is None:
             comment_id = chain[-1].comments[0].id
-        comments = fetch_comment_tree(chain[-1], root_id=comment_id, verbose=False,
-                                      use_pushshift=self.use_pushshift)
+        comments = navigation.fetch_comment_tree(chain[-1], root_id=comment_id, verbose=False,
+                                                 use_pushshift=self.use_pushshift)
         comments.get_missing_replies = False
         comments.verbose = (verbosity > 1)
         comments.add_missing_replies(self.reddit.comment(comment_id))
@@ -281,7 +281,7 @@ if __name__ == "__main__":
         document = document[:-1] + ['\n## New and Revived Threads', new_table] + document[-1:]
 
     new_submission_ids = set(tree.walk_down_tree(thread)[-1].id for thread in new_threads)
-    full_table = Table(flatten([x.rows for x in document if hasattr(x, 'rows')]))
+    full_table = Table(utils.flatten([x.rows for x in document if hasattr(x, 'rows')]))
     known_submissions = set([x.id for x in full_table.submissions])
     new_submission_ids = new_submission_ids - known_submissions
     if new_submission_ids:
@@ -315,7 +315,7 @@ if __name__ == "__main__":
         archive = parsing.parse_directory_page(archive)
         archive_header = archive[0][1]
         archived_rows = [entry[1][:] for entry in archive if entry[0] == 'table']
-        archived_rows = [Row(*x) for x in flatten(archived_rows)]
+        archived_rows = [Row(*x) for x in utils.flatten(archived_rows)]
         archived_rows += archived_threads.rows
         archived_rows.sort(key=name_sort)
         splits = ['A', 'D', 'I', 'P', 'T', '[']
@@ -323,7 +323,7 @@ if __name__ == "__main__":
         titles[0] = archive_header
         keys = [name_sort(x) for x in archived_rows]
         indices = [bisect.bisect_left(keys, (split.lower(),)) for split in splits[1:-1]]
-        parts = [Table(list(x), kind='archive') for x in partition(archived_rows, indices)]
+        parts = [Table(list(x), kind='archive') for x in utils.partition(archived_rows, indices)]
         archive = list(itertools.chain.from_iterable(zip(titles, parts)))
 
         new_archive = '\n\n'.join([str(x) for x in archive])
