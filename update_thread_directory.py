@@ -37,11 +37,11 @@ class Table():
         else:
             return "\n".join(table_header + [str(x) for x in self.rows if not x.archived])
 
-    def update(self, tree):
+    def update(self, tree, verbosity=1):
         for row in self.rows:
-            if verbosity > 0:
+            if verbosity > 1:
                 print(f"Updating side thread: {row.thread_type}")
-            row.update(tree)
+            row.update(tree, verbosity=verbosity)
 
     def archived_rows(self):
         rows = [row for row in self.rows if row.archived]
@@ -122,7 +122,7 @@ class Row():
             return f"~{count:,d}"
         return f"{count:,d}"
 
-    def update(self, submission_tree):
+    def update(self, submission_tree, verbosity=1):
         submission = tree.node(self.submission_id)
         comment, chain, archived = submission_tree.find_latest_comment(submission,
                                                                        self.side_thread,
@@ -148,14 +148,12 @@ class Row():
 
 
 class SubmissionTree(Tree):
-    def __init__(self, submissions, submission_tree, reddit=None, verbosity=1,
-                 use_pushshift=True):
-        self.verbosity = verbosity
+    def __init__(self, submissions, submission_tree, reddit=None, use_pushshift=True):
         self.reddit = reddit
         self.use_pushshift = use_pushshift
         super().__init__(submissions, submission_tree)
 
-    def find_latest_comment(self, old_submission, side_thread, comment_id=None):
+    def find_latest_comment(self, old_submission, side_thread, comment_id=None, verbosity=1):
         chain = self.walk_down_tree(old_submission)
         archived = False
         if chain is None:
@@ -166,7 +164,7 @@ class SubmissionTree(Tree):
         comments = fetch_comment_tree(chain[-1], root_id=comment_id, verbose=False,
                                       use_pushshift=self.use_pushshift)
         comments.get_missing_replies = False
-        comments.verbose = (self.verbosity > 1)
+        comments.verbose = (verbosity > 1)
         comments.add_missing_replies(self.reddit.comment(comment_id))
         comment = comments.comment(comment_id)
         comments.prune(side_thread)
@@ -252,8 +250,7 @@ if __name__ == "__main__":
     submissions, submission_tree, new_threads = get_counting_history(subreddit,
                                                                      time_limit,
                                                                      verbosity)
-    tree = SubmissionTree(submissions, submission_tree, reddit, verbosity,
-                          use_pushshift=args.pushshift)
+    tree = SubmissionTree(submissions, submission_tree, reddit, use_pushshift=args.pushshift)
 
     if verbosity > 0:
         print("Updating tables")
@@ -265,7 +262,7 @@ if __name__ == "__main__":
         elif paragraph[0] == "table":
             table_counter += 1
             table = Table([Row(*x) for x in paragraph[1]])
-            table.update(tree)
+            table.update(tree, verbosity=verbosity)
             if table_counter == 2:
                 table.sort(reverse=True)
             updated_document.append(table)
