@@ -79,7 +79,6 @@ class Row():
         self.is_approximate = self.count_string[0] == "~"
         self.starred_count = self.count_string[-1] == "*"
         self.thread_type = known_threads.get(self.first_thread, fallback='default')
-        self.side_thread = get_side_thread(self.thread_type)
 
     def __str__(self):
         return (f"[{self.name}](/{self.first_thread}) | "
@@ -120,9 +119,10 @@ class Row():
         return f"{count:,d}"
 
     def update(self, submission_tree, verbosity=1):
+        side_thread = get_side_thread(self.thread_type, verbosity)
         submission = tree.node(self.submission_id)
         comment, chain, archived = submission_tree.find_latest_comment(submission,
-                                                                       self.side_thread,
+                                                                       side_thread,
                                                                        self.comment_id)
         try:
             comment = comment.walk_up_tree(limit=3)[-1]
