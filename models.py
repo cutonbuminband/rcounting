@@ -121,7 +121,7 @@ class Tree():
         return nodes
 
     def walk_down_tree(self, node, limit=None):
-        if node.id not in self.nodes:
+        if node.id not in self.nodes and node.id not in self.reversed_tree:
             return None
         result = [node]
         while node.id in self.reversed_tree:

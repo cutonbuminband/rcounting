@@ -124,7 +124,7 @@ class Row():
             return f"~{count:,d}"
         return f"{count:,d}"
 
-    def update(self, submission_tree, verbosity=1):
+    def update(self, submission_tree, from_archive=False, verbosity=1):
         side_thread = side_threads.get_side_thread(self.thread_type, verbosity)
         if verbosity > 0 and self.thread_type == "default":
             print(f'No rule found for {self.name}. '
@@ -139,11 +139,14 @@ class Row():
             comment = comment.walk_up_tree(limit=3)[-1]
         except TypeError:
             pass
+        self.comment = comment
         self.comment_id = comment.id
         self.submission = chain[-1]
         self.submission_id = self.submission.id
         self.archived = archived
         was_revival = [parsing.is_revived(x.title) for x in chain]
+        if from_archive:
+            was_revival[1] = True
         if not all(was_revival[1:]):
             count = side_thread.update_count(self.count, chain, was_revival)
             self.count_string = self.format_count(count)
@@ -167,6 +170,7 @@ class SubmissionTree(models.Tree):
             archived = True
             chain = [old_submission]
         if len(chain) > 1 or comment_id is None:
+            chain[-1].comment_sort = 'old'
             comment_id = chain[-1].comments[0].id
         comments = navigation.fetch_comment_tree(chain[-1], root_id=comment_id, verbose=False,
                                                  use_pushshift=self.use_pushshift)
@@ -297,6 +301,32 @@ if __name__ == "__main__":
                     or row.submission_id != first_submission.id):
                 new_table.append(row)
 
+    archive_wiki = subreddit.wiki['directory/archive']
+    archive = archive_wiki.content_md.replace('\r\n', '\n')
+    archive = parsing.parse_directory_page(archive)
+    archive_header = archive[0][1]
+    archived_rows = [entry[1][:] for entry in archive if entry[0] == 'table']
+    archived_rows = [Row(*x) for x in utils.flatten(archived_rows)]
+    archived_dict = {x.submission_id: x for x in archived_rows}
+
+    revived_threads = set([x.id for x in tree.leaves]) - new_submission_ids - known_submissions
+    print('Finding revived threads')
+    updated_archive = False
+    for thread in revived_threads:
+        chain = tree.walk_up_tree(thread)
+        for submission in chain:
+            submission.comment_sort = 'old'
+            if submission.id in archived_dict:
+                row = archived_dict[submission.id]
+                row.update(tree, from_archive=True)
+                comment_chain = row.comment.walk_up_tree()
+                if len(comment_chain) >= 20 or (row.submission_id != submission.id):
+                    updated_archive = True
+                    new_table.append(row)
+                    del archived_dict[submission.id]
+                break
+
+    new_table.sort(key=name_sort)
     new_page = '\n\n'.join(map(str, document))
     if not args.dry_run:
         wiki_page.edit(new_page, reason="Ran the update script")
@@ -304,18 +334,13 @@ if __name__ == "__main__":
         with open('directory.md', 'w') as f:
             print(new_page, file=f)
 
+    archived_rows = list(archived_dict.values())
     archived_threads = full_table.archived_rows()
-    if archived_threads:
+    if archived_threads or updated_archive:
         n = len(archived_threads)
         if verbosity > 0:
             print(f'Moving {n} archived thread{"s" if n != 1 else ""}'
                   ' to /r/counting/wiki/directory/archive')
-        archive_wiki = subreddit.wiki['directory/archive']
-        archive = archive_wiki.content_md.replace('\r\n', '\n')
-        archive = parsing.parse_directory_page(archive)
-        archive_header = archive[0][1]
-        archived_rows = [entry[1][:] for entry in archive if entry[0] == 'table']
-        archived_rows = [Row(*x) for x in utils.flatten(archived_rows)]
         archived_rows += archived_threads.rows
         archived_rows.sort(key=name_sort)
         splits = ['A', 'D', 'I', 'P', 'T', '[']
