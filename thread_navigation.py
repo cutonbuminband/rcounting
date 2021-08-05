@@ -70,7 +70,8 @@ def extract_gets_and_assists(comment, n_threads=1000):
     return gets, assists
 
 
-def fetch_comment_tree(thread, root_id=None, verbose=True, use_pushshift=True, history=1):
+def fetch_comment_tree(thread, root_id=None, verbose=True, use_pushshift=True, history=1,
+                       fill_gaps=False):
     r = thread._reddit
     if use_pushshift:
         comment_ids = [x for x in api._get_submission_comment_ids(thread.id)]
@@ -87,6 +88,8 @@ def fetch_comment_tree(thread, root_id=None, verbose=True, use_pushshift=True, h
         comment_ids = comment_ids[max(0, idx - history):]
     comments = [comment for comment in r.info(['t1_' + x for x in comment_ids])]
     thread_tree = CommentTree(comments, reddit=r, verbose=verbose)
+    if fill_gaps:
+        thread_tree.fill_gaps()
     return thread_tree
 
 

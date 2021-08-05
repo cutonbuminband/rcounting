@@ -237,6 +237,14 @@ class CommentTree(Tree):
             praw_comment = praw_comment.parent()
         self.add_nodes(comments)
 
+    def fill_gaps(self):
+        for node in self.roots:
+            if not node.is_root:
+                node.walk_up_tree()
+        for leaf in self.leaves:
+            if self.is_broken(leaf):
+                self.delete_node(leaf)
+
     def find_children(self, comment):
         children = [self.comment(x) for x in self.reversed_tree[comment.id]]
         if not children and self.get_missing_replies:
