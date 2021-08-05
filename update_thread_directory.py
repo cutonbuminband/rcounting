@@ -81,8 +81,8 @@ class Row():
         self.name = name
         self.first_thread = first_thread
         self.title = normalise_title(title)
-        self.submission_id = submission_id
-        self.comment_id = comment_id
+        self.initial_submission_id = submission_id
+        self.initial_comment_id = comment_id
         self.count_string = count
         self.count = parsing.find_count_in_text(self.count_string.replace("-", "0"))
         self.is_approximate = self.count_string[0] == "~"
@@ -96,6 +96,14 @@ class Row():
     def __lt__(self, other):
         return ((self.count, self.starred_count, self.is_approximate)
                 < (other.count, other.starred_count, other.is_approximate))
+
+    @property
+    def submission_id(self):
+        return self.submission.id if hasattr(self, 'submission') else self.initial_submission_id
+
+    @property
+    def comment_id(self):
+        return self.comment.id if hasattr(self, 'comment') else self.initial_comment_id
 
     @property
     def link(self):
@@ -142,9 +150,7 @@ class Row():
         except TypeError:
             pass
         self.comment = comment
-        self.comment_id = comment.id
         self.submission = chain[-1]
-        self.submission_id = self.submission.id
         self.archived = archived
         was_revival = [parsing.is_revived(x.title) for x in chain]
         if from_archive:
