@@ -109,13 +109,13 @@ After you run it, it'll print out whether all the counts in the chain were valid
 
 ### Updating the thread directory
 
-The script `update_thread_directory.py` will try and update the directory of side threads found at www.reddit.com/r/counting/wiki/directory. It roughly follows the following steps
+The script `update_thread_directory.py` will try and update the [directory of side threads](www.reddit.com/r/counting/wiki/directory). It roughly follows the following steps
 
 1. It gets all submissions to r/counting made within the last six months
 2. It tries to find a link to the parent submission of each submission
    - First it looks for a reddit url in the body of each submission (trying to find the "continued from here" line
    - If that fails, it goes through all the top level comments of the submission looking for a reddit url
-3. It Constructs a chain for each thread from parent submission to child submission
+3. It constructs a chain for each thread from parent submission to child submission
 4. For each row in each table in the directory, it extracts
   - Which side thread it is, based on the link to the first thread
   - What the previous submission, comment and total count were.
@@ -125,14 +125,11 @@ The script `update_thread_directory.py` will try and update the directory of sid
   - A per-thread rule describing what looks like a count (to skip over mid-thread conversations)
 7. If the latest submission is not the same as the previous one, it tries to update the total count field
 
-Once it's done all that, it outputs three files:
-- `directory.md`: The updated directory in markdown format
-- `archived_threads.md`: A table of all threads which were in the existing directory, but where no non-archived submissions were found in their chain
-- `new_threads.txt`: A list of all submissions made to r/counting which did not match any threads already found in the directory.
+Some of the rows in the table might have been [archived]() by reddit. These are moved from the directory to the archive.
 
-The rows corresponding to archived threads are not included in `directory.md`.
+Some of the threads from the last six months might not be in the directory. These are potentially new or revived threads. If a submission contains no links to previous submissions, it's considered a new thread, and once it has more than 50 counts by 5 different users, it's automatically added to the directory. Submissions which link to archived threads are considered to be revivals of the archived thread, and once the submission has 20 counts, it's moved from the archive to the new threads table.
 
-If you run the script with no parameters it takes around 15 minutes to run. It relies on pushshift to get the comments for each reddit thread, and the pushshift archive is sometimes quite a ways behind in getting data from reddit. Currently, there's a delay of around 3 days. If you want a more up to date listing, you can call the script as `python3 update_thread_directory.py --accurate` to get the latest comments from reddit. This causes the script to run 2-3 times more slowly.
+If you run the script with no parameters it takes around 15 minutes to run, depending on how out of date the directory pages are.
 ## Contributing and Future Ideas
 This is a loosely organised list of things which could be done in the future. If you have any suggestions, don't hesitate to write, or to send a pull request.
 
