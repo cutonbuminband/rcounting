@@ -214,6 +214,12 @@ def name_sort(row):
     return tuple(int(c) if c.isdigit() else c for c in re.split(r'(\d+)', title))
 
 
+def load_wiki_page(subreddit, location):
+    wiki_page = subreddit.wiki[location]
+    document = wiki_page.content_md.replace("\r\n", "\n")
+    return wiki_page, parsing.parse_directory_page(document)
+
+
 if __name__ == "__main__":
     import argparse
     from reddit_interface import reddit
@@ -236,10 +242,7 @@ if __name__ == "__main__":
     verbosity = 1 - args.quiet + args.verbose
     start = datetime.datetime.now()
     subreddit = reddit.subreddit('counting')
-
-    wiki_page = subreddit.wiki['directory']
-    document = wiki_page.content_md.replace("\r\n", "\n")
-    document = parsing.parse_directory_page(document)
+    wiki_page, document = load_wiki_page(subreddit, 'directory')
 
     time_limit = datetime.timedelta(days=187)
     if verbosity > 0:
@@ -287,9 +290,7 @@ if __name__ == "__main__":
                     or row.submission_id != first_submission.id):
                 new_table.append(row)
 
-    archive_wiki = subreddit.wiki['directory/archive']
-    archive = archive_wiki.content_md.replace('\r\n', '\n')
-    archive = parsing.parse_directory_page(archive)
+    archive_wiki, archive = load_wiki_page(subreddit, 'directory/archive')
     archive_header = archive[0][1]
     archived_rows = [entry[1][:] for entry in archive if entry[0] == 'table']
     archived_rows = [Row(*x) for x in utils.flatten(archived_rows)]
