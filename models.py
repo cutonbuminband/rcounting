@@ -85,11 +85,16 @@ class Comment(RedditPost):
     def get_missing_replies(self):
         return self.tree.get_missing_replies
 
+    @property
+    def depth(self):
+        return self.tree.find_depth(self)
+
 
 class Tree():
     def __init__(self, nodes, tree):
         self.tree = tree
         self.nodes = nodes
+        self.depths = {}
 
     @property
     def reversed_tree(self):
@@ -147,6 +152,26 @@ class Tree():
             queue.extend(self.find_children(node))
             self.delete_node(node)
 
+    def find_depth(self, node):
+        if node.id in self.root_ids:
+            return 0
+        elif node.id in self.depths:
+            return self.depths[node.id]
+        else:
+            depth = 1 + self.find_depth(node.parent())
+            self.depths[node.id] = depth
+            return depth
+
+    @property
+    def deepest_node(self):
+        max_depth = 0
+        result = None
+        for leaf in self.leaves:
+            if depth := self.find_depth(leaf) > max_depth:
+                max_depth = depth
+                result = leaf
+        return result
+
     @property
     def leaves(self):
         leaf_ids = set(self.nodes.keys()) - set(self.tree.values())
@@ -154,10 +179,13 @@ class Tree():
 
     @property
     def roots(self):
+        return [self.node(root_id) for root_id in self.root_ids]
+
+    @property
+    def root_ids(self):
         root_ids = (set(self.nodes.keys()) | set(self.tree.values())) - set(self.tree.keys())
         root_ids = [[x] if x in self.nodes else self.reversed_tree[x] for x in root_ids]
-        root_ids = [root_id for ids in root_ids for root_id in ids]
-        return [self.node(root_id) for root_id in root_ids]
+        return [root_id for ids in root_ids for root_id in ids]
 
     def add_nodes(self, new_nodes, new_tree):
         self.tree.update(new_tree)

@@ -124,7 +124,7 @@ class Row():
             return f"~{count:,d}"
         return f"{count:,d}"
 
-    def update(self, submission_tree, from_archive=False, verbosity=1):
+    def update(self, submission_tree, from_archive=False, verbosity=1, deepest_comment=False):
         side_thread = side_threads.get_side_thread(self.thread_type, verbosity)
         if verbosity > 0 and self.thread_type == "default":
             print(f'No rule found for {self.name}. '
@@ -134,7 +134,9 @@ class Row():
         submission = tree.node(self.submission_id)
         comment, chain, archived = submission_tree.find_latest_comment(submission,
                                                                        side_thread,
-                                                                       self.comment_id)
+                                                                       self.comment_id,
+                                                                       verbosity,
+                                                                       deepest_comment)
         try:
             comment = comment.walk_up_tree(limit=3)[-1]
         except TypeError:
@@ -163,7 +165,8 @@ class SubmissionTree(models.Tree):
         self.use_pushshift = use_pushshift
         super().__init__(submissions, submission_tree)
 
-    def find_latest_comment(self, old_submission, side_thread, comment_id=None, verbosity=1):
+    def find_latest_comment(self, old_submission, side_thread, comment_id=None, verbosity=1,
+                            deepest_comment=False):
         chain = self.walk_down_tree(old_submission)
         archived = False
         if chain is None:
@@ -172,18 +175,26 @@ class SubmissionTree(models.Tree):
         if len(chain) > 1 or comment_id is None:
             chain[-1].comment_sort = 'old'
             comment_id = chain[-1].comments[0].id
-        comments = navigation.fetch_comment_tree(chain[-1], root_id=comment_id, verbose=False,
-                                                 use_pushshift=self.use_pushshift)
-        comments.get_missing_replies = False
+        if deepest_comment:
+            comments = chain[-1].comments
+            comments.replace_more(limit=None)
+            comments = models.CommentTree(comments.list(), reddit=chain[-1]._reddit)
+        else:
+            comments = navigation.fetch_comment_tree(chain[-1], root_id=comment_id, verbose=False,
+                                                     use_pushshift=self.use_pushshift)
+            comments.get_missing_replies = False
+            comments.add_missing_replies(self.reddit.comment(comment_id))
         comments.verbose = (verbosity > 1)
-        comments.add_missing_replies(self.reddit.comment(comment_id))
         comment = comments.comment(comment_id)
         comments.prune(side_thread)
-        try:
-            new_comment = comments.walk_down_tree(comment)[-1]
-        except TypeError:
-            print(f"failed to update {chain[-1].title}")
-            new_comment = comment
+        if deepest_comment:
+            new_comment = comments.deepest_node
+        else:
+            try:
+                new_comment = comments.walk_down_tree(comment)[-1]
+            except TypeError:
+                print(f"failed to update {chain[-1].title}")
+                new_comment = comment
         return new_comment, chain, archived
 
     def node(self, node_id):
@@ -295,9 +306,9 @@ if __name__ == "__main__":
             name = f'**{first_submission.title.split("|")[0].strip()}**'
             title = title_from_first_comment(first_submission)
             row = Row(name, first_submission.id, title, first_submission.id, None, '-')
-            row.update(tree)
-            comments = row.submission.comments
-            if (len(comments) >= 50 and len(set(x.author for x in comments)) >= 5
+            row.update(tree, deepest_comment=True)
+            n_authors = len(set(x.author for x in row.comment.walk_up_tree()))
+            if ((row.comment.depth >= 50 and n_authors >= 5)
                     or row.submission_id != first_submission.id):
                 new_table.append(row)
 
@@ -318,9 +329,8 @@ if __name__ == "__main__":
             submission.comment_sort = 'old'
             if submission.id in archived_dict:
                 row = archived_dict[submission.id]
-                row.update(tree, from_archive=True)
-                comment_chain = row.comment.walk_up_tree()
-                if len(comment_chain) >= 20 or (row.submission_id != submission.id):
+                row.update(tree, from_archive=True, deepest_comment=True)
+                if row.comment.depth >= 20 or (row.submission_id != submission.id):
                     updated_archive = True
                     new_table.append(row)
                     del archived_dict[submission.id]
