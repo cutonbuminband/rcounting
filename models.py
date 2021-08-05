@@ -282,6 +282,23 @@ class CommentTree(Tree):
                 self.delete_subtree(node)
 
 
+class SubmissionTree(Tree):
+    def __init__(self, submissions, submission_tree, reddit=None):
+        self.reddit = reddit
+        super().__init__(submissions, submission_tree)
+
+    def is_archived(self, submission):
+        return submission.id not in self.nodes
+
+    def node(self, node_id):
+        try:
+            return super().node(node_id)
+        except KeyError:
+            if self.reddit is not None:
+                return self.reddit.submission(node_id)
+            raise
+
+
 def edges_to_tree(edges):
     tree = defaultdict(list)
     for source, dest in edges:

@@ -6,7 +6,6 @@ import itertools
 import models
 import side_threads
 import parsing
-import thread_navigation as navigation
 import utils
 
 config = configparser.ConfigParser()
@@ -139,19 +138,36 @@ class Row():
                   'Not validating comment contents. '
                   'Assuming n=1000 and no double counting.')
 
-        submission = tree.node(self.submission_id)
-        comment, chain, archived = submission_tree.find_latest_comment(submission,
-                                                                       side_thread,
-                                                                       self.comment_id,
-                                                                       verbosity,
-                                                                       deepest_comment)
-        try:
-            comment = comment.walk_up_tree(limit=3)[-1]
-        except TypeError:
-            pass
-        self.comment = comment
+        chain = tree.walk_down_tree(tree.node(self.submission_id))
         self.submission = chain[-1]
-        self.archived = archived
+        if tree.is_archived(self.submission):
+            self.archived = True
+            return
+
+        if len(chain) > 1:
+            self.initial_comment_id = None
+
+        if deepest_comment:
+            comments = models.CommentTree([], reddit=tree.reddit)
+            for comment in self.submission.comments:
+                comments.add_missing_replies(comment)
+        else:
+            if self.comment_id is None:
+                comment = next(filter(side_thread.looks_like_count, self.submission.comments))
+            else:
+                comment = tree.reddit.comment(self.comment_id)
+            comments = models.CommentTree([], reddit=tree.reddit)
+            comments.add_missing_replies(comment)
+        comments.get_missing_replies = False
+        comments.verbose = (verbosity > 1)
+        comments.prune(side_thread)
+        if deepest_comment:
+            comment = comments.deepest_node.walk_up_tree(limit=3)[-1]
+        else:
+            comment_chain = comments.walk_down_tree(comment)
+            comment = comment_chain[-3 if len(comment_chain) >= 3 else 0]
+
+        self.comment = comment
         was_revival = [parsing.is_revived(x.title) for x in chain]
         if from_archive:
             was_revival[1] = True
@@ -163,53 +179,6 @@ class Row():
             else:
                 self.starred_count = True
             self.update_title()
-
-
-class SubmissionTree(models.Tree):
-    def __init__(self, submissions, submission_tree, reddit=None, use_pushshift=True):
-        self.reddit = reddit
-        self.use_pushshift = use_pushshift
-        super().__init__(submissions, submission_tree)
-
-    def find_latest_comment(self, old_submission, side_thread, comment_id=None, verbosity=1,
-                            deepest_comment=False):
-        chain = self.walk_down_tree(old_submission)
-        archived = False
-        if chain is None:
-            archived = True
-            chain = [old_submission]
-        if len(chain) > 1 or comment_id is None:
-            chain[-1].comment_sort = 'old'
-            comment_id = chain[-1].comments[0].id
-        if deepest_comment:
-            comments = chain[-1].comments
-            comments.replace_more(limit=None)
-            comments = models.CommentTree(comments.list(), reddit=chain[-1]._reddit)
-        else:
-            comments = navigation.fetch_comment_tree(chain[-1], root_id=comment_id, verbose=False,
-                                                     use_pushshift=self.use_pushshift)
-            comments.get_missing_replies = False
-            comments.add_missing_replies(self.reddit.comment(comment_id))
-        comments.verbose = (verbosity > 1)
-        comment = comments.comment(comment_id)
-        comments.prune(side_thread)
-        if deepest_comment:
-            new_comment = comments.deepest_node
-        else:
-            try:
-                new_comment = comments.walk_down_tree(comment)[-1]
-            except TypeError:
-                print(f"failed to update {chain[-1].title}")
-                new_comment = comment
-        return new_comment, chain, archived
-
-    def node(self, node_id):
-        try:
-            return super().node(node_id)
-        except KeyError:
-            if self.reddit is not None:
-                return self.reddit.submission(node_id)
-        raise
 
 
 def get_counting_history(subreddit, time_limit, verbosity=1):
@@ -278,7 +247,7 @@ if __name__ == "__main__":
     submissions, submission_tree, new_threads = get_counting_history(subreddit,
                                                                      time_limit,
                                                                      verbosity)
-    tree = SubmissionTree(submissions, submission_tree, reddit, use_pushshift=args.pushshift)
+    tree = models.SubmissionTree(submissions, submission_tree, reddit)
 
     if verbosity > 0:
         print("Updating tables")
