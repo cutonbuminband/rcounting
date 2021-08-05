@@ -1,6 +1,5 @@
 import datetime
 import configparser
-import re
 import bisect
 import itertools
 import models
@@ -209,11 +208,6 @@ def get_counting_history(subreddit, time_limit, verbosity=1):
     return submissions_dict, tree, new_threads
 
 
-def name_sort(row):
-    title = row.name.translate(str.maketrans('', '', '\'"()^/*')).lower()
-    return tuple(int(c) if c.isdigit() else c for c in re.split(r'(\d+)', title))
-
-
 def load_wiki_page(subreddit, location):
     wiki_page = subreddit.wiki[location]
     document = wiki_page.content_md.replace("\r\n", "\n")
@@ -312,7 +306,7 @@ if __name__ == "__main__":
                     del archived_dict[submission.id]
                 break
 
-    new_table.sort(key=name_sort)
+    new_table.sort(key=lambda x: parsing.name_sort(x.name))
     new_page = '\n\n'.join(map(str, document))
     if not args.dry_run:
         wiki_page.edit(new_page, reason="Ran the update script")
@@ -328,11 +322,11 @@ if __name__ == "__main__":
             print(f'Moving {n} archived thread{"s" if n != 1 else ""}'
                   ' to /r/counting/wiki/directory/archive')
         archived_rows += archived_threads.rows
-        archived_rows.sort(key=name_sort)
+        archived_rows.sort(key=lambda x: parsing.name_sort(x.name))
         splits = ['A', 'D', 'I', 'P', 'T', '[']
         titles = [f'\n### {splits[idx]}-{chr(ord(x) - 1)}' for idx, x in enumerate(splits[1:])]
         titles[0] = archive_header
-        keys = [name_sort(x) for x in archived_rows]
+        keys = [parsing.name_sort(x.name) for x in archived_rows]
         indices = [bisect.bisect_left(keys, (split.lower(),)) for split in splits[1:-1]]
         parts = [Table(list(x), kind='archive') for x in utils.partition(archived_rows, indices)]
         archive = list(itertools.chain.from_iterable(zip(titles, parts)))

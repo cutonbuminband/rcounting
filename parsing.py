@@ -95,3 +95,8 @@ def find_urls_in_submission(submission):
 def is_revived(title):
     regex = r'\(*reviv\w*\)*'
     return re.search(regex, title.lower())
+
+
+def name_sort(name):
+    title = name.translate(str.maketrans('', '', '\'"()^/*')).lower()
+    return tuple(int(c) if c.isdigit() else c for c in re.split(r'(\d+)', title))
