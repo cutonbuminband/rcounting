@@ -168,7 +168,7 @@ def update_dates(count, chain, was_revival=None):
     return count
 
 
-def update_from_traversal(old_count, chain):
+def update_from_traversal(old_count, chain, was_revival):
     new_thread = chain[-1]
     count = old_count
     for thread in chain[:-1][::-1]:
