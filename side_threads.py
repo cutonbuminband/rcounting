@@ -12,6 +12,10 @@ hour = 60 * 60
 day = 60 * 60 * 24
 
 
+ignored_users = ["LuckyNumber-Bot", "CountingStatsBot", "CountingHelper"]
+ignored_users = [x.lower() for x in ignored_users]
+
+
 class CountingRule():
     def __init__(self, wait_n=1, thread_time=0, user_time=0):
         self.n = wait_n
@@ -207,7 +211,10 @@ class SideThread():
 
     def is_valid_count(self, comment, history):
         history = history.append(comment_to_dict(comment), ignore_index=True)
-        return self.is_valid_thread(history)[0] and self.looks_like_count(comment), history
+        valid_history = self.is_valid_thread(history)[0]
+        valid_count = self.looks_like_count(comment)
+        valid_user = str(comment.author).lower() not in ignored_users
+        return valid_history and valid_count and valid_user, history
 
     def get_history(self, comment):
         """Fetch enough previous comments to be able to determine whether replies to
