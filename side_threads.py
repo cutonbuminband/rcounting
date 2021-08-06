@@ -101,6 +101,9 @@ twitter_form = validate_from_character_list('@')
 parentheses_form = validate_from_character_list('()')
 
 
+def d20_form(comment_body):
+    return "|" in comment_body and base_10(comment_body)
+
 def reddit_username_form(comment_body):
     return 'u/' in comment_body
 
@@ -262,6 +265,10 @@ known_threads = {
     'unary': SideThread(form=validate_from_character_list("|")),
     'four fours': SideThread(form=validate_from_character_list("4")),
     'using 12345': SideThread(form=validate_from_character_list("12345")),
+    'japanese': SideThread(form=validate_from_character_list("一二三四五六七八九十百千")),
+    'roman progressbar': SideThread(form=roman_numeral),
+    'symbols': SideThread(form=validate_from_character_list("!@#$%^&*()")),
+    '2d20 experimental v theoretical': SideThread(form=d20_form),
 }
 
 base_n_lengths = [None,
@@ -290,7 +297,7 @@ default_threads = ['decimal', 'age', 'palindromes', 'rational numbers',
                    '3 or fewer palindromes', 'four squares', '69, 420, or 666',
                    'all even or all odd', 'no consecutive digits', 'unordered consecutive digits',
                    'prime numbers', 'triangular numbers', 'thread completion', 'sheep',
-                   'top subreddits', 'william the conqueror']
+                   'top subreddits', 'william the conqueror', '10 at a time']
 known_threads.update({thread_name: SideThread(form=base_10, length=1000)
                       for thread_name in default_threads})
 
