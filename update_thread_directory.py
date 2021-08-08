@@ -118,7 +118,8 @@ class Row():
             sections = self.submission.title.split("|")
             if len(sections) > 1:
                 title = '|'.join(sections[1:]).strip()
-            title = title if title else str(self.count)
+            else:
+                title = title_from_first_comment(self.submission)
         self.title = normalise_title(title)
 
     def format_count(self, count):
