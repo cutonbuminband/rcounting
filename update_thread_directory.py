@@ -284,13 +284,13 @@ if __name__ == "__main__":
             print(new_page, file=f)
 
     archived_rows = list(archived_dict.values())
-    archived_threads = [x for x in full_table if x.archived]
-    if archived_threads or updated_archive:
-        n = len(archived_threads)
+    new_archived_threads = [x for x in full_table if x.archived]
+    if new_archived_threads or updated_archive:
+        n = len(new_archived_threads)
         if verbosity > 0:
             print(f'Moving {n} archived thread{"s" if n != 1 else ""}'
                   ' to /r/counting/wiki/directory/archive')
-        archived_rows += archived_threads
+        archived_rows += new_archived_threads
         archived_rows.sort(key=lambda x: parsing.name_sort(x.name))
         splits = ['A', 'D', 'I', 'P', 'T', '[']
         titles = [f'\n### {splits[idx]}-{chr(ord(x) - 1)}' for idx, x in enumerate(splits[1:])]
