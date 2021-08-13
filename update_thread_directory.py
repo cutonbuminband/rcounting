@@ -27,50 +27,15 @@ def title_from_first_comment(submission):
     return normalise_title(parsing.strip_markdown_links(body))
 
 
-class Table():
-    def __init__(self, rows=[], show_archived=False, kind='directory'):
-        labels = {'directory': 'Current', 'archive': 'Last'}
-        header = ['⠀' * 10 + 'Name &amp; Initial Thread' + '⠀' * 10,
-                  '⠀' * 10 + f'{labels[kind]} Thread' + '⠀' * 10,
-                  '⠀' * 3 + '# of Counts' + '⠀' * 3]
-        self.header = [' | '.join(header), ':--:|:--:|--:']
-        self.rows = rows
-        self.show_archived = show_archived
-
-    def __str__(self):
-        if self.show_archived:
-            return "\n".join(self.header + [str(x) for x in self.rows])
-        else:
-            return "\n".join(self.header + [str(x) for x in self.rows if not x.archived])
-
-    def append(self, row):
-        self.rows.append(row)
-
-    def __add__(self, other):
-        return Table(self.rows + other.rows)
-
-    def update(self, tree, verbosity=1):
-        for row in self.rows:
-            if verbosity > 1:
-                print(f"Updating side thread: {row.thread_type}")
-            row.update(tree, verbosity=verbosity)
-
-    def archived_rows(self):
-        rows = [row for row in self.rows if row.archived]
-        return Table(rows, show_archived=True)
-
-    def __getitem__(self, key):
-        return self.rows[key]
-
-    def __len__(self):
-        return len(self.rows)
-
-    @property
-    def submissions(self):
-        return [row.submission for row in self.rows]
-
-    def sort(self, **kwargs):
-        self.rows = sorted(self.rows, **kwargs)
+def rows2string(rows=[], show_archived=False, kind='directory'):
+    labels = {'directory': 'Current', 'archive': 'Last'}
+    header = ['⠀' * 10 + 'Name &amp; Initial Thread' + '⠀' * 10,
+              '⠀' * 10 + f'{labels[kind]} Thread' + '⠀' * 10,
+              '⠀' * 3 + '# of Counts' + '⠀' * 3]
+    header = [' | '.join(header), ':--:|:--:|--:']
+    if not show_archived:
+        rows = [x for x in rows if not x.archived]
+    return "\n".join(header + [str(x) for x in rows])
 
 
 class Row():
@@ -133,6 +98,8 @@ class Row():
 
     def update(self, submission_tree, from_archive=False, verbosity=1, deepest_comment=False):
         side_thread = side_threads.get_side_thread(self.thread_type, verbosity)
+        if verbosity > 1:
+            print(f"Updating side thread: {row.thread_type}")
         if verbosity > 0 and self.thread_type == "default":
             print(f'No rule found for {self.name}. '
                   'Not validating comment contents. '
@@ -255,22 +222,23 @@ if __name__ == "__main__":
             document[idx] = paragraph[1]
         elif paragraph[0] == "table":
             table_counter += 1
-            table = Table([Row(*x) for x in paragraph[1]])
-            table.update(tree, verbosity=verbosity)
+            rows = [Row(*x) for x in paragraph[1]]
+            for row in rows:
+                row.update(tree, verbosity=verbosity)
             if table_counter == 2:
-                table.sort(reverse=True)
-            document[idx] = table
+                rows.sort(reverse=True)
+            document[idx] = rows
 
     second_last_header = document[-3].lower()
     if "new" in second_last_header and "revived" in second_last_header:
         new_table = document[-2]
     else:
-        new_table = Table()
+        new_table = []
         document = document[:-1] + ['\n## New and Revived Threads', new_table] + document[-1:]
 
     new_submission_ids = set(tree.walk_down_tree(thread)[-1].id for thread in new_threads)
-    full_table = Table(utils.flatten([x.rows for x in document if hasattr(x, 'rows')]))
-    known_submissions = set([x.id for x in full_table.submissions])
+    full_table = utils.flatten([x for x in document if not isinstance(x, str)])
+    known_submissions = set([x.submission_id for x in full_table])
     new_submission_ids = new_submission_ids - known_submissions
     if new_submission_ids:
         print('Finding new threads')
@@ -308,7 +276,7 @@ if __name__ == "__main__":
                 break
 
     new_table.sort(key=lambda x: parsing.name_sort(x.name))
-    new_page = '\n\n'.join(map(str, document))
+    new_page = '\n\n'.join([x if isinstance(x, str) else rows2string(x) for x in document])
     if not args.dry_run:
         wiki_page.edit(new_page, reason="Ran the update script")
     else:
@@ -316,23 +284,23 @@ if __name__ == "__main__":
             print(new_page, file=f)
 
     archived_rows = list(archived_dict.values())
-    archived_threads = full_table.archived_rows()
+    archived_threads = [x for x in full_table if x.archived]
     if archived_threads or updated_archive:
         n = len(archived_threads)
         if verbosity > 0:
             print(f'Moving {n} archived thread{"s" if n != 1 else ""}'
                   ' to /r/counting/wiki/directory/archive')
-        archived_rows += archived_threads.rows
+        archived_rows += archived_threads
         archived_rows.sort(key=lambda x: parsing.name_sort(x.name))
         splits = ['A', 'D', 'I', 'P', 'T', '[']
         titles = [f'\n### {splits[idx]}-{chr(ord(x) - 1)}' for idx, x in enumerate(splits[1:])]
         titles[0] = archive_header
         keys = [parsing.name_sort(x.name) for x in archived_rows]
         indices = [bisect.bisect_left(keys, (split.lower(),)) for split in splits[1:-1]]
-        parts = [Table(list(x), kind='archive') for x in utils.partition(archived_rows, indices)]
+        parts = utils.partition(archived_rows, indices)
+        parts = [rows2string(x, show_archived=True, kind='archive') for x in parts]
         archive = list(itertools.chain.from_iterable(zip(titles, parts)))
-
-        new_archive = '\n\n'.join([str(x) for x in archive])
+        new_archive = '\n\n'.join(archive)
         if not args.dry_run:
             archive_wiki.edit(new_archive, reason="Ran the update script")
         else:
