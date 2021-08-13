@@ -114,8 +114,8 @@ class Row():
         if len(chain) > 1:
             self.initial_comment_id = None
 
+        comments = models.CommentTree(reddit=tree.reddit)
         if deepest_comment:
-            comments = models.CommentTree([], reddit=tree.reddit)
             for comment in self.submission.comments:
                 comments.add_missing_replies(comment)
         else:
@@ -123,7 +123,6 @@ class Row():
                 comment = next(filter(side_thread.looks_like_count, self.submission.comments))
             else:
                 comment = tree.reddit.comment(self.comment_id)
-            comments = models.CommentTree([], reddit=tree.reddit)
             comments.add_missing_replies(comment)
         comments.get_missing_replies = False
         comments.verbose = (verbosity > 1)
