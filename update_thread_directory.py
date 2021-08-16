@@ -268,7 +268,7 @@ if __name__ == "__main__":
             if submission.id in archived_dict:
                 row = archived_dict[submission.id]
                 row.update(tree, from_archive=True, deepest_comment=True)
-                if row.comment.depth >= 20 or (row.submission_id != submission.id):
+                if row.comment.depth >= 20 or len(chain) > 2:
                     updated_archive = True
                     new_table.append(row)
                     del archived_dict[submission.id]
