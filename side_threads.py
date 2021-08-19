@@ -12,7 +12,7 @@ hour = 60 * 60
 day = 60 * 60 * 24
 
 
-ignored_users = ["LuckyNumber-Bot", "CountingStatsBot", "CountingHelper"]
+ignored_users = ["LuckyNumber-Bot", "CountingStatsBot", "CountingHelper", "WikiSummarizerBot"]
 ignored_users = [x.lower() for x in ignored_users]
 
 
