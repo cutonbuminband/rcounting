@@ -1,4 +1,5 @@
 import math
+import string
 import pandas as pd
 import re
 from string import digits, ascii_uppercase
@@ -110,6 +111,27 @@ def reddit_username_form(comment_body):
 
 def throwaway_form(comment_body):
     return reddit_username_form(comment_body) and base_10(comment_body)
+
+
+def permutation_order(word, alphabet, no_leading_zeros=False):
+    word_length = len(word)
+    if word_length == 0:
+        return 0
+    index = alphabet.index(word[0])
+    position = index - int(no_leading_zeros)
+    n_digits = len(alphabet)
+    new_alphabet = alphabet[:index] + alphabet[index + 1:]
+    first_place_counts = position * math.perm(n_digits - 1, word_length - 1)
+    return first_place_counts + permutation_order(word[1:], new_alphabet)
+
+
+def update_no_repeating(old_count, chain, was_revival=None):
+    if was_revival is not None:
+        chain = [x for x, y in zip(chain, was_revival) if not y]
+    count = parsing.find_count_in_text(chain[-1].title.split("|")[-1])
+    word = str(count)
+    result = 9 * sum([math.perm(9, i - 1) for i in range(1, len(word))])
+    return result + permutation_order(word, string.digits, no_leading_zeros=True)
 
 
 base_10 = base_n(10)
@@ -269,6 +291,7 @@ known_threads = {
     'roman progressbar': SideThread(form=roman_numeral),
     'symbols': SideThread(form=validate_from_character_list("!@#$%^&*()")),
     '2d20 experimental v theoretical': SideThread(form=d20_form),
+    'no repeating digits': SideThread(update_function=update_no_repeating),
 }
 
 base_n_lengths = [None,
@@ -302,7 +325,6 @@ known_threads.update({thread_name: SideThread(form=base_10, length=1000)
                       for thread_name in default_threads})
 
 default_threads = {
-    'no repeating digits': 840,
     'time': 900,
     'permutations': 720,
     'factoradic': 720,
