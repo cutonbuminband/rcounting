@@ -114,6 +114,10 @@ def throwaway_form(comment_body):
     return reddit_username_form(comment_body) and base_10(comment_body)
 
 
+def ignore_revivals(chain, was_revival):
+    return chain if was_revival is None else [x for x, y in zip(chain, was_revival) if not y]
+
+
 def permutation_order(word, alphabet, no_leading_zeros=False):
     word_length = len(word)
     if word_length == 0:
@@ -127,8 +131,7 @@ def permutation_order(word, alphabet, no_leading_zeros=False):
 
 
 def update_no_repeating(old_count, chain, was_revival=None):
-    if was_revival is not None:
-        chain = [x for x, y in zip(chain, was_revival) if not y]
+    chain = ignore_revivals(chain, was_revival)
     count = parsing.find_count_in_text(chain[-1].title.split("|")[-1])
     word = str(count)
     result = 9 * sum([math.perm(9, i - 1) for i in range(1, len(word))])
@@ -136,8 +139,7 @@ def update_no_repeating(old_count, chain, was_revival=None):
 
 
 def update_powerball(old_count, chain, was_revival=None):
-    if was_revival is not None:
-        chain = [x for x, y in zip(chain, was_revival) if not y]
+    chain = ignore_revivals(chain, was_revival)
     count_string = chain[-1].title.split("|")[-1]
     balls, powerball = count_string.split("+")
     balls = balls.split()
@@ -160,8 +162,7 @@ def collatz(n):
 
 
 def update_collatz(old_count, chain, was_revival=None):
-    if was_revival is not None:
-        chain = [x for x, y in zip(chain, was_revival) if not y]
+    chain = ignore_revivals(chain, was_revival)
     title = chain[-1].title
     regex = r".*\((.*)\)"
     contents = re.match(regex, title).groups()[0]
@@ -177,8 +178,7 @@ double_wave_regex = r'(-?\d+).*\((\d+)\).*\((\d+)\)'
 
 
 def update_wave(old_count, chain, was_revival=None):
-    if was_revival is not None:
-        chain = [x for x, y in zip(chain, was_revival) if not y]
+    chain = ignore_revivals(chain, was_revival)
     a, b = parsing.parse_thread_title(chain[-1].title, wave_regex)
     return 2 * b ** 2 - a
 
@@ -187,8 +187,7 @@ def update_increasing_type(n):
     regex = r'(-?\d+)' + r'.*\((\d+)\)' * n
 
     def update(old_count, chain, was_revival=None):
-        if was_revival is not None:
-            chain = [x for x, y in zip(chain, was_revival) if not y]
+        chain = ignore_revivals(chain, was_revival)
         total = 0
         values = parsing.parse_thread_title(chain[-1].title, regex)
         for idx, value in enumerate(values):
@@ -205,8 +204,7 @@ def triangle_n_dimension(n, value):
 
 
 def update_2i(count, chain, was_revival=None):
-    if was_revival is not None:
-        chain = [x for x, y in zip(chain, was_revival) if not y]
+    chain = ignore_revivals(chain, was_revival)
     title = chain[-1].title
     digits = title.split("|")[-1].strip()
     corner = sum([(-4)**idx * int(digit) for idx, digit in enumerate(digits[::-2])])
@@ -214,9 +212,7 @@ def update_2i(count, chain, was_revival=None):
 
 
 def update_dates(count, chain, was_revival=None):
-    if was_revival is not None:
-        chain = [x for x, y in zip(chain, was_revival) if not y]
-    chain = chain[:-1]
+    chain = ignore_revivals(chain, was_revival)[:-1]
     regex = r"([,\d]+)$"  # All digits at the end of the line, plus optional separators
     for submission in chain:
         year = int(re.search(regex, submission.title).group().replace(",", ""))
@@ -253,10 +249,7 @@ class SideThread():
             self.update_count = self.update_from_length
 
     def update_from_length(self, old_count, chain, was_revival=None):
-        if was_revival is not None:
-            chain = [x for x, y in zip(chain[1:], was_revival[1:]) if not y]
-        else:
-            chain = chain[1:]
+        chain = ignore_revivals(chain, was_revival)[1:]
         if self.length is not None:
             return old_count + self.length * (len(chain))
         else:
