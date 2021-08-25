@@ -145,6 +145,30 @@ def update_powerball(old_count, chain, was_revival=None):
     return permutation_order(balls, alphabet) * 26 + int(powerball) - 1
 
 
+collatz_dict = {}
+
+
+def collatz(n):
+    if n == 1:
+        return 1
+    elif n in collatz_dict:
+        return collatz_dict[n]
+    elif n % 2 == 0:
+        return 1 + collatz(n // 2)
+    else:
+        return 1 + collatz(3 * n + 1)
+
+
+def update_collatz(old_count, chain, was_revival=None):
+    if was_revival is not None:
+        chain = [x for x, y in zip(chain, was_revival) if not y]
+    title = chain[-1].title
+    regex = r".*\((.*)\)"
+    contents = re.match(regex, title).groups()[0]
+    current, steps = [int(x) for x in contents.split("|")]
+    return sum([collatz(i) for i in range(1, current)]) + steps
+
+
 base_10 = base_n(10)
 default_rule = CountingRule()
 
@@ -304,6 +328,7 @@ known_threads = {
     '2d20 experimental v theoretical': SideThread(form=d20_form),
     'no repeating digits': SideThread(update_function=update_no_repeating),
     'powerball': SideThread(update_function=update_powerball),
+    'collatz conjecture': SideThread(update_function=update_collatz),
 }
 
 base_n_lengths = [None,
@@ -397,7 +422,6 @@ default_thread_unknown_length = [
     'base of previous digit',
     'no successive digits',
     'rotational symmetry',
-    'collatz conjecture',
     'by number of digits squared',
     'by list size',
     'divisors'
