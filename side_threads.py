@@ -105,6 +105,7 @@ parentheses_form = validate_from_character_list('()')
 def d20_form(comment_body):
     return "|" in comment_body and base_10(comment_body)
 
+
 def reddit_username_form(comment_body):
     return 'u/' in comment_body
 
@@ -132,6 +133,16 @@ def update_no_repeating(old_count, chain, was_revival=None):
     word = str(count)
     result = 9 * sum([math.perm(9, i - 1) for i in range(1, len(word))])
     return result + permutation_order(word, string.digits, no_leading_zeros=True)
+
+
+def update_powerball(old_count, chain, was_revival=None):
+    if was_revival is not None:
+        chain = [x for x, y in zip(chain, was_revival) if not y]
+    count_string = chain[-1].title.split("|")[-1]
+    balls, powerball = count_string.split("+")
+    balls = balls.split()
+    alphabet = [str(x) for x in range(1, 70)]
+    return permutation_order(balls, alphabet) * 26 + int(powerball) - 1
 
 
 base_10 = base_n(10)
@@ -292,6 +303,7 @@ known_threads = {
     'symbols': SideThread(form=validate_from_character_list("!@#$%^&*()")),
     '2d20 experimental v theoretical': SideThread(form=d20_form),
     'no repeating digits': SideThread(update_function=update_no_repeating),
+    'powerball': SideThread(update_function=update_powerball),
 }
 
 base_n_lengths = [None,
@@ -382,12 +394,10 @@ default_thread_varying_length = [
 
 default_thread_unknown_length = [
     'only repeating digits',
-    'rotational symmetry',
     'base of previous digit',
     'no successive digits',
     'rotational symmetry',
     'collatz conjecture',
-    'powerball',
     'by number of digits squared',
     'by list size',
     'divisors'
