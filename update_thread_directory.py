@@ -138,7 +138,10 @@ class Row():
         if from_archive:
             was_revival[1] = True
         if not all(was_revival[1:]):
-            count = side_thread.update_count(self.count, chain, was_revival)
+            try:
+                count = side_thread.update_count(self.count, chain, was_revival)
+            except Exception:
+                count = None
             self.count_string = self.format_count(count)
             if count is not None:
                 self.count = count
