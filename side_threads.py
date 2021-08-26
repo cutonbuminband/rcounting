@@ -5,7 +5,6 @@ import re
 import scipy.sparse
 import numpy as np
 import collections
-from string import digits, ascii_uppercase
 from models import comment_to_dict
 from thread_navigation import fetch_comment_tree
 import parsing
@@ -18,6 +17,7 @@ day = 60 * 60 * 24
 
 ignored_users = ["LuckyNumber-Bot", "CountingStatsBot", "CountingHelper", "WikiSummarizerBot"]
 ignored_users = [x.lower() for x in ignored_users]
+alphanumeric = string.digits + string.ascii_uppercase
 
 
 class CountingRule():
@@ -89,7 +89,6 @@ def validate_from_character_list(valid_characters, strip_links=True):
 
 
 def base_n(n=10, strip_links=True):
-    alphanumeric = digits + ascii_uppercase
     return validate_from_character_list(alphanumeric[:n], strip_links)
 
 
@@ -354,7 +353,6 @@ class OnlyRepeatingDigits(SideThread):
         chain = ignore_revivals(chain, was_revival)
         count = parsing.find_count_in_text(chain[-1].title.split("|")[-1])
         word = str(count)
-        charlist = string.digits + string.ascii_lowercase
         word_length = len(word)
         if word_length < 2:
             return 0
@@ -365,8 +363,8 @@ class OnlyRepeatingDigits(SideThread):
         current_matrix = scipy.sparse.identity(3**self.n, dtype=int, format='csr')
         for i in range(word_length - 1, 0, -1):
             prefix = word[:i]
-            current_char = word[i].lower()
-            suffixes = charlist[:string.digits.index(current_char)]
+            current_char = word[i].upper()
+            suffixes = alphanumeric[:string.digits.index(current_char)]
             states = [self.get_state(prefix + suffix) for suffix in suffixes]
             result += sum([current_matrix[state, self.indices].sum() for state in states])
             current_matrix *= self.transition_matrix
