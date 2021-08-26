@@ -2,6 +2,9 @@ import math
 import string
 import pandas as pd
 import re
+import scipy.sparse
+import numpy as np
+import collections
 from string import digits, ascii_uppercase
 from models import comment_to_dict
 from thread_navigation import fetch_comment_tree
@@ -279,6 +282,97 @@ class SideThread():
         return comment.body in deleted_phrases or self.form(comment.body)
 
 
+class OnlyRepeatingDigits(SideThread):
+    def __init__(self, n=10, rule=default_rule):
+        form = base_n(n)
+        self.n = n
+        self.lookup = {'0': '1', '1': '2', '2': '2'}
+        self.indices = self._indices(self.n)
+        self.transition_matrix = self.make_dfa()
+        super().__init__(rule=rule, form=form, update_function=self.update_function)
+
+    def connections(self, i):
+        base3 = np.base_repr(i, 3).zfill(self.n)
+        js = [int(base3[:idx] + self.lookup[x] + base3[idx + 1:], 3) for idx, x in enumerate(base3)]
+        result = collections.defaultdict(int)
+        for j in js:
+            if j == 1:
+                continue
+            result[j] += 1
+        return (len(result),
+                np.array(list(result.keys()), dtype=int),
+                np.array(list(result.values()), dtype=int))
+
+    def make_dfa(self):
+        data = np.zeros(self.n * 3 ** self.n, dtype=int)
+        x = np.zeros(self.n * 3 ** self.n, dtype=int)
+        y = np.zeros(self.n * 3 ** self.n, dtype=int)
+        idx = 0
+        for i in range(3**self.n):
+            length, js, new_data = self.connections(i)
+            x[idx:idx + length] = i
+            y[idx:idx + length] = js
+            data[idx:idx + length] = new_data
+            idx += length
+        return scipy.sparse.coo_matrix((data[:idx], (x[:idx], y[:idx])),
+                                       shape=(3**self.n, 3**self.n))
+
+    def _indices(self, n):
+        if n == 0:
+            return [0]
+        partial = [3 * x for x in self._indices(n - 1)]
+        return sorted(partial + [x + 2 for x in partial])
+
+    def count_only_repeating_words(self, k):
+        """The number of words of length k where no digit is present exactly once
+        """
+        # The idea is to use the inclusion-exclusion principle, starting with
+        # all n ^ k possible words. We then subtract all words where a given
+        # symbol occurrs only once. For each symbol there are k * (n-1) ^ (k-1)
+        # such words since there are k slots for the symbol of interest, and
+        # the remaining slots must be filled with one of the remaining symbols.
+        # There are thus n * k * (n-1)^ *(k-1) words where one symbol occurs
+        # only once. But this double counts all the cases where two symbols
+        # occur only once, so we have to add them back in. In general, there
+        # are (n-i)^(n-i) * C(n,i) * P(k,i) words where i symbols occur only
+        # once, giving the expression:
+
+        # The correction factor (n-1)/n accounts for the words which would
+        # start with a 0
+
+        return sum([(-1)**i * (self.n - i) ** (k - i) * math.comb(self.n, i) * math.perm(k, i)
+                    for i in range(0, min(self.n, k) + 1)]) * (self.n - 1) // self.n
+
+    def get_state(self, prefix):
+        result = ['0'] * self.n
+        for char in prefix:
+            index = (self.n - 1) - int(char, self.n)
+            result[index] = self.lookup[result[index]]
+        return int(''.join(result), 3)
+
+    def update_function(self, old_count, chain, was_revival=None):
+        chain = ignore_revivals(chain, was_revival)
+        count = parsing.find_count_in_text(chain[-1].title.split("|")[-1])
+        word = str(count)
+        charlist = string.digits + string.ascii_lowercase
+        word_length = len(word)
+        if word_length < 2:
+            return 0
+        result = sum([self.count_only_repeating_words(i) for i in range(1, word_length)])
+        result += ((int(word[0], self.n) - 1)
+                   * self.count_only_repeating_words(word_length)
+                   // (self.n - 1))
+        current_matrix = scipy.sparse.identity(3**self.n, dtype=int, format='csr')
+        for i in range(word_length - 1, 0, -1):
+            prefix = word[:i]
+            current_char = word[i].lower()
+            suffixes = charlist[:string.digits.index(current_char)]
+            states = [self.get_state(prefix + suffix) for suffix in suffixes]
+            result += sum([current_matrix[state, self.indices].sum() for state in states])
+            current_matrix *= self.transition_matrix
+        return result
+
+
 known_threads = {
     'roman': SideThread(form=roman_numeral),
     'balanced ternary': SideThread(form=balanced_ternary, length=729),
@@ -322,6 +416,7 @@ known_threads = {
     'no repeating digits': SideThread(update_function=update_no_repeating),
     'powerball': SideThread(update_function=update_powerball),
     'collatz conjecture': SideThread(update_function=update_collatz),
+    'only repeating digits': OnlyRepeatingDigits(),
 }
 
 base_n_lengths = [None,
@@ -411,7 +506,6 @@ default_thread_varying_length = [
 ]
 
 default_thread_unknown_length = [
-    'only repeating digits',
     'base of previous digit',
     'no successive digits',
     'rotational symmetry',
