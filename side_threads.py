@@ -149,6 +149,18 @@ def update_powerball(old_count, chain, was_revival=None):
     return permutation_order(balls, alphabet) * 26 + int(powerball) - 1
 
 
+def update_no_successive(old_count, chain, was_revival=None):
+    chain = ignore_revivals(chain, was_revival)
+    count = parsing.find_count_in_text(chain[-1].title.split("|")[-1])
+    word = str(count)
+    result = sum([9**i for i in range(1, len(word))])
+    previous_i = '0'
+    for idx, i in enumerate(word[:-1]):
+        result += 9 ** (len(word) - idx - 1) * (int(i) - (i >= previous_i))
+        previous_i = i
+    return result
+
+
 collatz_dict = {}
 
 
@@ -409,9 +421,10 @@ known_threads = {
     'symbols': SideThread(form=validate_from_character_list("!@#$%^&*()")),
     '2d20 experimental v theoretical': SideThread(form=d20_form),
     'no repeating digits': SideThread(update_function=update_no_repeating),
-    'powerball': SideThread(update_function=update_powerball),
-    'collatz conjecture': SideThread(update_function=update_collatz),
+    'powerball': SideThread(update_function=update_powerball, form=base_10),
+    'collatz conjecture': SideThread(update_function=update_collatz, form=base_10),
     'only repeating digits': OnlyRepeatingDigits(),
+    'no successive digits': SideThread(update_function=update_no_successive, form=base_10),
 }
 
 base_n_lengths = [None,
@@ -502,7 +515,6 @@ default_thread_varying_length = [
 
 default_thread_unknown_length = [
     'base of previous digit',
-    'no successive digits',
     'rotational symmetry',
     'by number of digits squared',
     'by list size',
