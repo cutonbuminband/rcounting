@@ -4,6 +4,7 @@ import pandas as pd
 import re
 import scipy.sparse
 import numpy as np
+import functools
 import collections
 from models import comment_to_dict
 from thread_navigation import fetch_comment_tree
@@ -115,11 +116,22 @@ def reddit_username_form(comment_body):
 def throwaway_form(comment_body):
     return reddit_username_form(comment_body) and base_10(comment_body)
 
+
 planets = ['MERCURY', 'VENUS', 'EARTH', 'MARS', 'JUPITER', 'SATURN', 'URANUS', 'NEPTUNE']
 planetary_octal_form = validate_from_character_list(planets)
 
+
 def ignore_revivals(chain, was_revival):
     return chain if was_revival is None else [x for x, y in zip(chain, was_revival) if not y]
+
+
+def update_from_title(update_function):
+    @functools.wraps(update_function)
+    def wrapper(old_count, chain, was_revival=None):
+        chain = ignore_revivals(chain, was_revival)
+        title = chain[-1].title
+        return update_function(title)
+    return wrapper
 
 
 def permutation_order(word, alphabet, no_leading_zeros=False):
@@ -134,26 +146,26 @@ def permutation_order(word, alphabet, no_leading_zeros=False):
     return first_place_counts + permutation_order(word[1:], new_alphabet)
 
 
-def update_no_repeating(old_count, chain, was_revival=None):
-    chain = ignore_revivals(chain, was_revival)
-    count = parsing.find_count_in_text(chain[-1].title.split("|")[-1])
+@update_from_title
+def update_no_repeating(title):
+    count = parsing.find_count_in_text(title.split("|")[-1])
     word = str(count)
     result = 9 * sum([math.perm(9, i - 1) for i in range(1, len(word))])
     return result + permutation_order(word, string.digits, no_leading_zeros=True)
 
 
-def update_powerball(old_count, chain, was_revival=None):
-    chain = ignore_revivals(chain, was_revival)
-    count_string = chain[-1].title.split("|")[-1]
+@update_from_title
+def update_powerball(title):
+    count_string = title.split("|")[-1]
     balls, powerball = count_string.split("+")
     balls = balls.split()
     alphabet = [str(x) for x in range(1, 70)]
     return permutation_order(balls, alphabet) * 26 + int(powerball) - 1
 
 
-def update_no_successive(old_count, chain, was_revival=None):
-    chain = ignore_revivals(chain, was_revival)
-    count = parsing.find_count_in_text(chain[-1].title.split("|")[-1])
+@update_from_title
+def update_no_successive(title):
+    count = parsing.find_count_in_text(title.split("|")[-1])
     word = str(count)
     result = sum([9**i for i in range(1, len(word))])
     previous_i = '0'
@@ -177,9 +189,8 @@ def collatz(n):
         return 1 + collatz(3 * n + 1)
 
 
-def update_collatz(old_count, chain, was_revival=None):
-    chain = ignore_revivals(chain, was_revival)
-    title = chain[-1].title
+@update_from_title
+def update_collatz(title):
     regex = r".*\((.*)\)"
     contents = re.match(regex, title).groups()[0]
     current, steps = [int(x) for x in contents.split("|")]
@@ -193,19 +204,19 @@ wave_regex = r'(-?\d+).*\((\d+)\+?\)'  # an int, then a bracketed int, maybe wit
 double_wave_regex = r'(-?\d+).*\((\d+)\).*\((\d+)\)'
 
 
-def update_wave(old_count, chain, was_revival=None):
-    chain = ignore_revivals(chain, was_revival)
-    a, b = parsing.parse_submission_title(chain[-1].title, wave_regex)
+@update_from_title
+def update_wave(title):
+    a, b = parsing.parse_submission_title(title, wave_regex)
     return 2 * b ** 2 - a
 
 
 def update_increasing_type(n):
     regex = r'(-?\d+)' + r'.*\((\d+)\)' * n
 
-    def update(old_count, chain, was_revival=None):
-        chain = ignore_revivals(chain, was_revival)
+    @update_from_title
+    def update(title):
         total = 0
-        values = parsing.parse_submission_title(chain[-1].title, regex)
+        values = parsing.parse_submission_title(title, regex)
         for idx, value in enumerate(values):
             total += triangle_n_dimension(idx + 1, value)
         return total
@@ -219,9 +230,8 @@ def triangle_n_dimension(n, value):
     return math.comb(value - 2 + n, n)
 
 
-def update_2i(count, chain, was_revival=None):
-    chain = ignore_revivals(chain, was_revival)
-    title = chain[-1].title
+@update_from_title
+def update_2i(title):
     digits = title.split("|")[-1].strip()
     corner = sum([(-4)**idx * int(digit) for idx, digit in enumerate(digits[::-2])])
     return (2 * corner + 1)**2
