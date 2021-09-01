@@ -453,7 +453,7 @@ default_threads = ['decimal', 'age', 'palindromes', 'rational numbers',
                    '3 or fewer palindromes', 'four squares', '69, 420, or 666',
                    'all even or all odd', 'no consecutive digits', 'unordered consecutive digits',
                    'prime numbers', 'triangular numbers', 'thread completion', 'sheep',
-                   'top subreddits', 'william the conqueror', '10 at a time']
+                   'top subreddits', 'william the conqueror', '10 at a time', 'rotational symmetry']
 known_threads.update({thread_name: SideThread(form=base_10, length=1000)
                       for thread_name in default_threads})
 
@@ -515,7 +515,6 @@ default_thread_varying_length = [
 
 default_thread_unknown_length = [
     'base of previous digit',
-    'rotational symmetry',
     'by number of digits squared',
     'by list size',
     'divisors'
