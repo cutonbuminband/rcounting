@@ -1,3 +1,4 @@
+import copy
 import datetime
 import configparser
 import bisect
@@ -269,7 +270,7 @@ if __name__ == "__main__":
         for submission in chain:
             submission.comment_sort = 'old'
             if submission.id in archived_dict:
-                row = archived_dict[submission.id]
+                row = copy.copy(archived_dict[submission.id])
                 row.update(tree, from_archive=True, deepest_comment=True)
                 if row.comment.depth >= 20 or len(chain) > 2:
                     updated_archive = True
