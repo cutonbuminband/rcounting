@@ -392,6 +392,7 @@ known_threads = {
     'wait 2': SideThread(form=base_10, rule=CountingRule(wait_n=2)),
     'wait 2 - letters': SideThread(rule=CountingRule(wait_n=2)),
     'wait 3': SideThread(form=base_10, rule=CountingRule(wait_n=3)),
+    'wait 9': SideThread(form=base_10, rule=CountingRule(wait_n=9)),
     'wait 10': SideThread(form=base_10, rule=CountingRule(wait_n=10)),
     'once per thread': SideThread(form=base_10, rule=CountingRule(wait_n=None)),
     'slow': SideThread(form=base_10, rule=CountingRule(thread_time=minute)),

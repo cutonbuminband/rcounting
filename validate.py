@@ -8,6 +8,7 @@ if __name__ == "__main__":
     rule_dict = {'default': 'default',
                  'wait2': 'wait 2',
                  'wait3': 'wait 3',
+                 'wait9': 'wait 9',
                  'wait10': 'wait 10',
                  'once_per_thread': 'once per thread',
                  'slow': 'slow',
