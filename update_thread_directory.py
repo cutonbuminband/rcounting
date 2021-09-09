@@ -226,8 +226,14 @@ if __name__ == "__main__":
         elif paragraph[0] == "table":
             table_counter += 1
             rows = [Row(*x) for x in paragraph[1]]
-            for row in rows:
-                row.update(tree, verbosity=verbosity)
+            for row_idx, row in enumerate(rows):
+                try:
+                    backup_row = copy.copy(row)
+                    row.update(tree, verbosity=verbosity)
+                except Exception as e:
+                    print(f"Unable to update new thread {row.title}")
+                    print(e)
+                    rows[row_idx] = backup_row
             if table_counter == 2:
                 rows.sort(reverse=True)
             document[idx] = rows
@@ -250,7 +256,12 @@ if __name__ == "__main__":
             name = f'**{first_submission.title.split("|")[0].strip()}**'
             title = title_from_first_comment(first_submission)
             row = Row(name, first_submission.id, title, first_submission.id, None, '-')
-            row.update(tree, deepest_comment=True)
+            try:
+                row.update(tree, deepest_comment=True)
+            except Exception as e:
+                print(f"Unable to update new thread {row.title}")
+                print(e)
+                continue
             n_authors = len(set(x.author for x in row.comment.walk_up_tree()))
             if ((row.comment.depth >= 50 and n_authors >= 5)
                     or row.submission_id != first_submission.id):
@@ -271,7 +282,12 @@ if __name__ == "__main__":
             submission.comment_sort = 'old'
             if submission.id in archived_dict:
                 row = copy.copy(archived_dict[submission.id])
-                row.update(tree, from_archive=True, deepest_comment=True)
+                try:
+                    row.update(tree, from_archive=True, deepest_comment=True)
+                except Exception as e:
+                    print(f"Unable to update new thread {row.title}")
+                    print(e)
+                    continue
                 if row.comment.depth >= 20 or len(chain) > 2:
                     updated_archive = True
                     new_table.append(row)
