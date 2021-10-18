@@ -115,6 +115,8 @@ def reddit_username_form(comment_body):
 def throwaway_form(comment_body):
     return reddit_username_form(comment_body) and base_10(comment_body)
 
+planets = ['MERCURY', 'VENUS', 'EARTH', 'MARS', 'JUPITER', 'SATURN', 'URANUS', 'NEPTUNE']
+planetary_octal_form = validate_from_character_list(planets)
 
 def ignore_revivals(chain, was_revival):
     return chain if was_revival is None else [x for x, y in zip(chain, was_revival) if not y]
@@ -426,6 +428,7 @@ known_threads = {
     'collatz conjecture': SideThread(update_function=update_collatz, form=base_10),
     'only repeating digits': OnlyRepeatingDigits(),
     'no successive digits': SideThread(update_function=update_no_successive, form=base_10),
+    'planetary octal': SideThread(length=1024, form=planetary_octal_form),
 }
 
 base_n_lengths = [None,
@@ -488,7 +491,6 @@ no_validation = {
     'cards': 676,
     'musical notes': 1008,
     'octal letter stack': 1024,
-    'planetary octal': 1024,
     'permutations - letters': None,
     'iterate each letter': None}
 
