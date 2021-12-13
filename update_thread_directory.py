@@ -23,8 +23,8 @@ def normalise_title(title):
 
 
 def title_from_first_comment(submission):
-    submission.comment_sort = 'old'
-    body = submission.comments[0].body.split('\n')[0]
+    comment = sorted(list(submission.comments), key=lambda x: x.created_utc)[0]
+    body = comment.body.split('\n')[0]
     return normalise_title(parsing.strip_markdown_links(body))
 
 
