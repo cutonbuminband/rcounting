@@ -254,9 +254,9 @@ if __name__ == "__main__":
         for submission_id in new_submission_ids:
             first_submission = tree.walk_up_tree(submission_id)[-1]
             name = f'**{first_submission.title.split("|")[0].strip()}**'
-            title = title_from_first_comment(first_submission)
-            row = Row(name, first_submission.id, title, first_submission.id, None, '-')
             try:
+                title = title_from_first_comment(first_submission)
+                row = Row(name, first_submission.id, title, first_submission.id, None, '-')
                 row.update(tree, deepest_comment=True)
             except Exception as e:
                 print(f"Unable to update new thread {row.title}")
