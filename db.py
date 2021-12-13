@@ -39,7 +39,7 @@ def table_to_submission_id(x):
 
 
 if __name__ == "__main__":
-    from thread_navigation import fetch_thread
+    from thread_navigation import fetch_comments
     from reddit_interface import reddit
 
     df = pd.read_csv(Path('~/Downloads/ALL_clean.csv'), usecols=[1, 2, 3, 4, 5])
@@ -59,7 +59,7 @@ if __name__ == "__main__":
             continue
         print(f"Writing submission {submission} to db")
         comment = reddit.comment(submission_df.iloc[-1]['comment_id'])
-        comments = fetch_thread(comment)
+        comments = fetch_comments(comment)
 
         new_df = pd.DataFrame(comments)
         merged_df = pd.merge(submission_df.drop(['timestamp', 'submission_id'], axis=1),

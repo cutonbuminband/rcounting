@@ -2,7 +2,7 @@
 import os
 from pathlib import Path
 from parsing import post_to_count
-from thread_navigation import fetch_thread, find_previous_get
+from thread_navigation import fetch_comments, find_previous_get
 import pandas as pd
 from aliases import apply_alias
 from utils import format_timedelta
@@ -15,7 +15,7 @@ def log_one_submission(leaf_comment):
     if os.path.isfile(hoc_path):
         return
 
-    comments = fetch_thread(leaf_comment)
+    comments = fetch_comments(leaf_comment)
 
     title = leaf_comment.submission.title
     df = pd.DataFrame(comments)
