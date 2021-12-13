@@ -4,12 +4,13 @@ from models import RedditPost
 
 def find_count_in_text(body, base=10):
     characters = "0123456789abcdefghijklmnopqrstuvwxyz"[:base]
+    separators = "' , .*/"
     try:
         regex = (f"^[^{characters}]*"    # We strip characters from the start
-                 rf"([{characters}, \.\*/]*)")  # And then we take all base n digits and separators
+                 rf"([{characters}{re.escape(separators)}]*)")  # And then we take all base n digits and separators
         count = re.findall(regex, body.lower())[0]
         # We remove any separators, and try to convert the remainder to an int.
-        stripped_count = count.translate(str.maketrans('', '', r' ,.*/'))
+        stripped_count = count.translate(str.maketrans("", "", separators))
         return int(stripped_count, base)
     except ValueError:
         raise ValueError(f"Unable to extract count from comment body: {body}")
