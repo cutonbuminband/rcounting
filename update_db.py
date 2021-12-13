@@ -29,7 +29,7 @@ while comment.submission.id != last_submission_id:
         comments = comments[['comment_id', 'username', 'timestamp', 'submission_id', 'body']]
         submission = pd.DataFrame([models.Submission(comment.submission).to_dict()])
         submission = submission[['submission_id', 'username', 'timestamp', 'title', 'body']]
-        n = (comments['body'].apply(lambda x: parsing.find_count_in_text(x))
+        n = (comments['body'].apply(lambda x: parsing.find_count_in_text(x, raise_exceptions=False))
              - comments.index).median()
         submission['basecount'] = int(n - (n % 1000))
         comments.to_sql('comments', db, index_label='position', if_exists='append')

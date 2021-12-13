@@ -2,7 +2,7 @@ import re
 from models import RedditPost
 
 
-def find_count_in_text(body, base=10):
+def find_count_in_text(body, base=10, raise_exceptions=True):
     characters = "0123456789abcdefghijklmnopqrstuvwxyz"[:base]
     separators = "' , .*/"
     try:
@@ -13,7 +13,10 @@ def find_count_in_text(body, base=10):
         stripped_count = count.translate(str.maketrans("", "", separators))
         return int(stripped_count, base)
     except ValueError:
-        raise ValueError(f"Unable to extract count from comment body: {body}")
+        if raise_exceptions:
+            raise ValueError(f"Unable to extract count from comment body: {body}")
+        else:
+            return float("nan")
 
 
 def find_urls_in_text(body):
