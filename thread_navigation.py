@@ -8,7 +8,10 @@ api = PushshiftAPI()
 def find_previous_get(comment):
     reddit = comment._reddit
     thread = comment.submission
-    new_thread_id, new_get_id = next(find_urls_in_submission(thread))
+    url = next(filter(lambda x: int(x[0], 36) < int(thread.id, 36),
+                      find_urls_in_submission(thread)))
+
+    new_thread_id, new_get_id = url
     if not new_get_id:
         new_get_id = find_get_in_thread(new_thread_id, reddit)
     comment = reddit.comment(new_get_id)
