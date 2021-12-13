@@ -25,7 +25,7 @@ is_updated = False
 while comment.submission.id != last_submission_id:
     is_updated = True
     if comment.submission.id not in known_submission_ids:
-        comments = pd.DataFrame(tn.fetch_comments(comment))
+        comments = pd.DataFrame(tn.fetch_comments(comment, use_pushshift=False))
         comments = comments[['comment_id', 'username', 'timestamp', 'submission_id', 'body']]
         submission = pd.DataFrame([models.Submission(comment.submission).to_dict()])
         submission = submission[['submission_id', 'username', 'timestamp', 'title', 'body']]

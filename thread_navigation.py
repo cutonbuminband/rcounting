@@ -96,7 +96,7 @@ def fetch_comment_tree(submission, root_id=None, verbose=True, use_pushshift=Tru
     return submission_tree
 
 
-def fetch_comments(comment, verbose=True):
-    tree = fetch_comment_tree(comment.submission, verbose=verbose)
+def fetch_comments(comment, verbose=True, use_pushshift=True):
+    tree = fetch_comment_tree(comment.submission, verbose=verbose, use_pushshift=use_pushshift)
     comments = tree.comment(comment.id).walk_up_tree()[::-1]
     return [x.to_dict() for x in comments]
