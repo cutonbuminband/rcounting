@@ -244,7 +244,7 @@ def update_from_traversal(old_count, chain, was_revival):
         urls = filter(lambda x: x[0] == thread.id,
                       parsing.find_urls_in_text(new_thread.selftext))
         submission_id, comment_id = next(urls)
-        tree = fetch_comment_tree(thread)
+        tree = fetch_comment_tree(thread, use_pushshift=False)
         count += len(tree.comment(comment_id).walk_up_tree())
         new_thread = thread
     return count
