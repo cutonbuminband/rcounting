@@ -35,7 +35,7 @@ class RedditPost():
         return {'username': self.author,
                 'timestamp': self.created_utc,
                 'comment_id': self.id,
-                'thread_id': self.thread_id[3:],
+                'submission_id': self.submission_id[3:],
                 'body': self.body}
 
 
@@ -43,13 +43,13 @@ class Submission(RedditPost):
     def __init__(self, s):
         super().__init__(s)
         self.title = s.title
-        self.thread_id = s.thread_id if hasattr(s, 'thread_id') else s.name
+        self.submission_id = s.submission_id if hasattr(s, 'submission_id') else s.name
 
     def to_dict(self):
         return {'username': self.author,
                 'timestamp': self.created_utc,
                 'comment_id': self.id,
-                'thread_id': self.thread_id[3:],
+                'submission_id': self.submission_id[3:],
                 'body': self.body,
                 'title': self.title}
 
@@ -60,9 +60,11 @@ class Submission(RedditPost):
 class Comment(RedditPost):
     def __init__(self, comment, tree=None):
         RedditPost.__init__(self, comment)
-        self.thread_id = comment.thread_id if hasattr(comment, 'thread_id') else comment.link_id
+        self.submission_id = (comment.submission_id
+                              if hasattr(comment, 'submission_id')
+                              else comment.link_id)
         self.parent_id = comment.parent_id
-        self.is_root = (self.parent_id == self.thread_id)
+        self.is_root = (self.parent_id == self.submission_id)
         self.tree = tree
 
     def __repr__(self):
@@ -325,5 +327,6 @@ def is_root(comment):
     try:
         return comment.is_root
     except AttributeError:
-        thread_id = comment.thread_id if hasattr(comment, 'thread_id') else comment.link_id
-        return comment.parent_id == thread_id
+        submission_id = (comment.submission_id
+                         if hasattr(comment, 'submission_id') else comment.link_id)
+        return comment.parent_id == submission_id

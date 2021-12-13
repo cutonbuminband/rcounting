@@ -195,7 +195,7 @@ double_wave_regex = r'(-?\d+).*\((\d+)\).*\((\d+)\)'
 
 def update_wave(old_count, chain, was_revival=None):
     chain = ignore_revivals(chain, was_revival)
-    a, b = parsing.parse_thread_title(chain[-1].title, wave_regex)
+    a, b = parsing.parse_submission_title(chain[-1].title, wave_regex)
     return 2 * b ** 2 - a
 
 
@@ -205,7 +205,7 @@ def update_increasing_type(n):
     def update(old_count, chain, was_revival=None):
         chain = ignore_revivals(chain, was_revival)
         total = 0
-        values = parsing.parse_thread_title(chain[-1].title, regex)
+        values = parsing.parse_submission_title(chain[-1].title, regex)
         for idx, value in enumerate(values):
             total += triangle_n_dimension(idx + 1, value)
         return total

@@ -25,8 +25,8 @@ def format_x_date_month(ax):
 
 
 def parts_vs_counts(df):
-    k_parts = df.groupby('username')['thread_id'].nunique()
-    hoc = df.groupby('username')['thread_id'].count()
+    k_parts = df.groupby('username')['submission_id'].nunique()
+    hoc = df.groupby('username')['submission_id'].count()
     combined = pd.merge(k_parts, hoc, left_index=True, right_index=True)
     combined.columns = ["k_parts", "total_counts"]
     combined = combined.query('k_parts > 10')

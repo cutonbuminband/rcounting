@@ -23,7 +23,7 @@ def combine_csvs(start, n):
     for i in range(n):
         hog_path = Path(f"results/LOG_{start}to{start+1000}.csv")
         df = pd.read_csv(hog_path,
-                         names=['count', 'username', 'timestamp', 'comment_id', 'thread_id'])
+                         names=['count', 'username', 'timestamp', 'comment_id', 'submission_id'])
         if len(df) % 1000 != 0:
             print(hog_path)
         df = df.set_index('comment_id')
@@ -51,9 +51,9 @@ def effective_number_of_counters(counters):
     return 1 / (normalised_counters ** 2).sum()
 
 
-def capture_the_flag_score(thread):
-    thread['score'] = thread['timestamp'].diff().shift(-1)
-    return thread.groupby('username')['score'].sum()
+def capture_the_flag_score(submission):
+    submission['score'] = submission['timestamp'].diff().shift(-1)
+    return submission.groupby('username')['score'].sum()
 
 
 def k_core(graph):

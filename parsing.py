@@ -67,18 +67,18 @@ def parse_directory_page(directory_page):
 
 def parse_row(markdown_row):
     first, current, count = markdown_row.split("|")
-    name, first_thread = parse_markdown_links(first)[0]
+    name, first_submission = parse_markdown_links(first)[0]
     name = name.strip()
-    thread_id = first_thread.strip()[1:]
+    submission_id = first_submission.strip()[1:]
     title, link = parse_markdown_links(current)[0]
     title = title.strip()
     submission_id, comment_id = find_urls_in_text(link)[0]
     comment_id = None if not comment_id else comment_id
     count = count.strip()
-    return name, thread_id, title, submission_id, comment_id, count
+    return name, submission_id, title, submission_id, comment_id, count
 
 
-def parse_thread_title(title, regex):
+def parse_submission_title(title, regex):
     sections = [x.strip() for x in title.split("|")]
     match = re.match(regex, sections[-1])
     return [int(x) for x in match.groups()] if match is not None else match

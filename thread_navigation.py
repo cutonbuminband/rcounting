@@ -7,22 +7,22 @@ api = PushshiftAPI()
 
 def find_previous_get(comment):
     reddit = comment._reddit
-    thread = comment.submission
-    url = next(filter(lambda x: int(x[0], 36) < int(thread.id, 36),
-                      find_urls_in_submission(thread)))
+    submission = comment.submission
+    url = next(filter(lambda x: int(x[0], 36) < int(submission.id, 36),
+                      find_urls_in_submission(submission)))
 
-    new_thread_id, new_get_id = url
+    new_submission_id, new_get_id = url
     if not new_get_id:
-        new_get_id = find_get_in_thread(new_thread_id, reddit)
+        new_get_id = find_get_in_submission(new_submission_id, reddit)
     comment = reddit.comment(new_get_id)
     new_get = find_get_from_comment(comment)
     print(new_get.submission, new_get.id)
     return new_get
 
 
-def find_get_in_thread(thread, reddit):
-    "Find the get based on thread id"
-    comment_ids = api._get_submission_comment_ids(thread.id)[::-1]
+def find_get_in_submission(submission, reddit):
+    "Find the get based on submission id"
+    comment_ids = api._get_submission_comment_ids(submission.id)[::-1]
     for comment_id in comment_ids[:-1]:
         comment = reddit.comment(comment_id)
         try:
@@ -31,7 +31,7 @@ def find_get_in_thread(thread, reddit):
                 return comment.id
         except ValueError:
             continue
-    raise ValueError(f"Unable to locate get in thread {thread.id}")
+    raise ValueError(f"Unable to locate get in submission {submission.id}")
 
 
 def search_up_from_gz(comment, max_retries=5):
@@ -58,11 +58,11 @@ def find_get_from_comment(comment):
     return comment
 
 
-def extract_gets_and_assists(comment, n_threads=1000):
+def extract_gets_and_assists(comment, n_submissions=1000):
     gets = []
     assists = []
     comment.refresh()
-    for n in range(n_threads):
+    for n in range(n_submissions):
         rows = []
         for i in range(3):
             rows.append(comment_to_dict(comment))
@@ -73,11 +73,11 @@ def extract_gets_and_assists(comment, n_threads=1000):
     return gets, assists
 
 
-def fetch_comment_tree(thread, root_id=None, verbose=True, use_pushshift=True, history=1,
+def fetch_comment_tree(submission, root_id=None, verbose=True, use_pushshift=True, history=1,
                        fill_gaps=False):
-    r = thread._reddit
+    r = submission._reddit
     if use_pushshift:
-        comment_ids = [x for x in api._get_submission_comment_ids(thread.id)]
+        comment_ids = [x for x in api._get_submission_comment_ids(submission.id)]
     else:
         comment_ids = []
     if not comment_ids:
@@ -90,10 +90,10 @@ def fetch_comment_tree(thread, root_id=None, verbose=True, use_pushshift=True, h
                 break
         comment_ids = comment_ids[max(0, idx - history):]
     comments = [comment for comment in r.info(['t1_' + x for x in comment_ids])]
-    thread_tree = CommentTree(comments, reddit=r, verbose=verbose)
+    submission_tree = CommentTree(comments, reddit=r, verbose=verbose)
     if fill_gaps:
-        thread_tree.fill_gaps()
-    return thread_tree
+        submission_tree.fill_gaps()
+    return submission_tree
 
 
 def fetch_thread(comment, verbose=True):

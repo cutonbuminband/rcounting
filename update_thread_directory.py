@@ -40,10 +40,10 @@ def rows2string(rows=[], show_archived=False, kind='directory'):
 
 
 class Row():
-    def __init__(self, name, first_thread, title, submission_id, comment_id, count):
+    def __init__(self, name, first_submission, title, submission_id, comment_id, count):
         self.archived = False
         self.name = name
-        self.first_thread = first_thread
+        self.first_submission = first_submission
         self.title = normalise_title(title)
         self.initial_submission_id = submission_id
         self.initial_comment_id = comment_id
@@ -51,10 +51,10 @@ class Row():
         self.count = parsing.find_count_in_text(self.count_string.replace("-", "0"))
         self.is_approximate = self.count_string[0] == "~"
         self.starred_count = self.count_string[-1] == "*"
-        self.thread_type = known_threads.get(self.first_thread, fallback='default')
+        self.thread_type = known_threads.get(self.first_submission, fallback='default')
 
     def __str__(self):
-        return (f"[{self.name}](/{self.first_thread}) | "
+        return (f"[{self.name}](/{self.first_submission}) | "
                 f"[{self.title}]({self.link}) | {self.count_string}")
 
     def __lt__(self, other):
@@ -77,7 +77,7 @@ class Row():
             return f"/comments/{self.submission_id}"
 
     def update_title(self):
-        if self.first_thread == self.submission.id:
+        if self.first_submission == self.submission.id:
             self.title = title_from_first_comment(self.submission)
             return
         else:
@@ -156,7 +156,7 @@ def get_counting_history(subreddit, time_limit, verbosity=1):
     submissions = subreddit.new(limit=1000)
     tree = {}
     submissions_dict = {}
-    new_threads = []
+    new_submissions = []
     for count, submission in enumerate(submissions):
         if verbosity > 1 and count % 20 == 0:
             print(f"Processing reddit submission {submission.id}")
@@ -169,14 +169,14 @@ def get_counting_history(subreddit, time_limit, verbosity=1):
                               parsing.find_urls_in_submission(submission)))
             tree[submission.id] = url[0]
         except StopIteration:
-            new_threads.append(submission)
+            new_submissions.append(submission)
         post_time = datetime.datetime.utcfromtimestamp(submission.created_utc)
         if now - post_time > time_limit:
             break
     else:  # no break
         print('Threads between {now - six_months} and {post_time} have not been collected')
 
-    return submissions_dict, tree, new_threads
+    return submissions_dict, tree, new_submissions
 
 
 def load_wiki_page(subreddit, location):
@@ -212,9 +212,9 @@ if __name__ == "__main__":
     time_limit = datetime.timedelta(days=187)
     if verbosity > 0:
         print("Getting history")
-    submissions, submission_tree, new_threads = get_counting_history(subreddit,
-                                                                     time_limit,
-                                                                     verbosity)
+    submissions, submission_tree, new_submissions = get_counting_history(subreddit,
+                                                                         time_limit,
+                                                                         verbosity)
     tree = models.SubmissionTree(submissions, submission_tree, reddit)
 
     if verbosity > 0:
@@ -245,7 +245,8 @@ if __name__ == "__main__":
         new_table = []
         document = document[:-1] + ['\n## New and Revived Threads', new_table] + document[-1:]
 
-    new_submission_ids = set(tree.walk_down_tree(thread)[-1].id for thread in new_threads)
+    new_submission_ids = set(tree.walk_down_tree(submission)[-1].id
+                             for submission in new_submissions)
     full_table = utils.flatten([x for x in document if not isinstance(x, str)])
     known_submissions = set([x.submission_id for x in full_table])
     new_submission_ids = new_submission_ids - known_submissions
