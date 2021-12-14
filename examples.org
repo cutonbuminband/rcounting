@@ -1,118 +1,232 @@
-#+PROPERTY: header-args:jupyter-python  :session py
+#+PROPERTY: header-args:jupyter-python  :session db :kernel reddit
 #+PROPERTY: header-args    :pandoc t
 
+* Imports and initialization
 We start with some imports
 #+begin_src jupyter-python
+  %load_ext dotenv
+  %dotenv
   from pathlib import Path
   import pandas as pd
   import numpy as np
-  import praw
   import os
-  from models import Submission as OfflineSubmission
-  from psaw import PushshiftAPI
-#+end_src
-
-Then we load some data
-#+begin_src jupyter-python
-  df = pd.read_csv(Path('~/Downloads/ALL_clean.csv'), usecols=[1, 2, 3, 4, 5])
-  df.head()
-#+end_src
-
-We can try plotting thread participation vs total counts
-#+begin_src jupyter-python
+  import re
+  import sqlite3
   import matplotlib.pyplot as plt
-  from aliases import apply_alias
-  print(len(df))
-  k_parts = df.groupby('username')['thread_id'].nunique()
-  hoc = df.groupby('username')['thread_id'].count()
-  combined = pd.merge(k_parts, hoc, left_index=True, right_index=True)
-  combined.columns = ["k_parts", "total_counts"]
-  combined = combined.query('k_parts >= 10')
+  plt.style.use("seaborn")
+  import parsing
+  import models
+  import thread_navigation as tn
+  from reddit_interface import reddit
+  import analysis
+  import aliases
 #+end_src
 
+* Loading Data
+Then we load some data, both the counts and the gets. We also add both a `date` column and a "replying to" column, since some of what we'll be doing later needs it.
+
 #+begin_src jupyter-python
-  linear_model=np.polyfit(np.log10(combined.k_parts), np.log10(combined.total_counts), 1)
+  db = sqlite3.connect(Path("results/counting.sqlite"))
+  counts = pd.read_sql("select submissions.basecount, comments.* "
+                       "from comments join submissions "
+                       "on comments.submission_id = submissions.submission_id "
+                       "where comments.position > 0 "
+                       "order by submissions.basecount, comments.position", db)
+  counts["canonical_username"] = counts["username"].apply(aliases.apply_alias)
+  counts["replying_to"] = counts["canonical_username"].shift(1)
+  counts['date'] = pd.to_datetime(counts['timestamp'], unit='s')
+  print(len(counts))
+  gets = counts.groupby("submission_id").last().sort_values("basecount").reset_index()
+#+end_src
+
+* Validation
+** Validating side threads
+The validate module a handy function to validate any thread. Here, we validate an old side thread
+#+begin_src jupyter-python
+  from validate import validate_thread
+  comment = reddit.comment("h1g6m3w")
+  validate_thread(comment, "slowestest")
+#+end_src
+
+** Finding errors in the data
+Some of comments must be errors. For example, there are some counts which were made before their predecessors. How can that make sense?
+#+begin_src jupyter-python
+weird_timestamps = counts.loc[(counts['timestamp'].diff() < 0)]
+weird_timestamps[["position", "canonical_username", "comment_id", "submission_id", "body", "date"]]
+#+end_src
+
+* Analysis
+** Progress over time
+A first bit of analysis is to visualize the progress of r/counting over time
+#+begin_src jupyter-python
+  data = gets.set_index('date')
+  resampled = data.resample('30d').mean()
+  resampled['basecount'] /= 1e6
+  ax = resampled[['basecount']].plot(ylabel='Current count [millions]', xlabel='Date')
+  h, l = ax.get_legend_handles_labels()
+  ax.legend(h[:1],['count'])
+  ax.set_title('Counting progress over time', fontsize=20)
+  ax.xaxis.label.set_size(18)
+  ax.yaxis.label.set_size(18)
+  plt.savefig('graphs/counts.png', bbox_inches='tight', dpi=300)
+#+end_src
+
+** Total counts vs k_parts
+We can try plotting thread participation vs total counts. The expectation is that generally, people who've made more total counts will also have counted in more threads. However, some users might have periods where they make a count every now and then but never do any runs, leading to comparatively more k_parts. On the other hand, some counters might only do runs, giving a counts/thread of up to 500.
+
+We'll start by extracting the number of counts and the threads participated in, using the groupby functionality of `pandas`
+#+begin_src jupyter-python
+  groups = counts.groupby("canonical_username")["submission_id"]
+  k_parts = groups.nunique()
+  hoc = groups.count()
+  combined = pd.concat([k_parts, hoc], axis=1)
+  combined.columns = ["k_parts", "total_counts"]
+  combined = combined.query("k_parts >= 10")
+#+end_src
+
+We can make a polynomial fit of this (well, a linear fit of the log-log quantities), and use matplotlib to plot that
+#+begin_src jupyter-python
+  linear_model = np.polyfit(np.log10(combined.k_parts), np.log10(combined.total_counts), 1)
   print(linear_model)
   axis = np.linspace(1, combined.k_parts.max(), endpoint=True)
   fig, ax = plt.subplots(1, figsize=(8,5))
   ax.scatter(combined.k_parts, combined.total_counts, alpha=0.7)
-  ax.plot(axis, 10**(np.poly1d(linear_model)(np.log10(axis))), linestyle='--', color='0.3',
+  ax.plot(axis, 10**(np.poly1d(linear_model)(np.log10(axis))), linestyle="--", color="0.3",
            lw=2)
-  ax.set_xlabel('Threads participated in ')
-  ax.set_ylabel('Total counts made')
-  ax.set_yscale('log')
-  ax.set_xscale('log')
+  ax.set_xlabel("Threads participated in ")
+  ax.set_ylabel("Total counts made")
+  ax.set_yscale("log")
+  ax.set_xscale("log")
   ax.set_xlim(left=10)
   ax.set_ylim(bottom=10)
-  plt.savefig('graphs/parts_vs_counts.png', dpi=300, bbox_inches='tight')
+  plt.savefig("graphs/parts_vs_counts.png", dpi=300, bbox_inches="tight")
 
 #+end_src
 
 #+begin_src jupyter-python
   for idx, row in combined.reset_index().iterrows():
-      print(row.username, row.k_parts, row.total_counts)
+      print(row.canonical_username, row.k_parts, row.total_counts)
 
 #+end_src
+** Number of partners and effective number of partners
+As with the number of counts vs threads participated in, we can expect that different counters might have qualitatively different behaviour when it comes to how many counting partners they have, and how often they've counted with each one. Some counters might count a little bit with everybody, while others might run with only a few partners, and drop a count with others every now and then.
 
-We can do some network analysis
+To quantify how uneven the counting distribution is we can look at the [[https://en.wikipedia.org/wiki/Effective_number_of_parties][effective number of partners]] of each counter, and compare with the actual number of partners.
+
 #+begin_src jupyter-python
-  from analysis import response_graph
-  n = 250
-  deleted_users = df['username'] == '[deleted]'
-  graph = response_graph(df.loc[!deleted_users], n)
-  graph.to_csv(f'graph_{n}.csv', index=False)
-
-#+end_src
-
-Or play with thread validation
-#+begin_src jupyter-python
-  import praw
-  from validation import validate_thread
-  r = praw.Reddit("stats_bot")
-  comment = r.comment('h1g6m3w')
-  validate_thread(comment, 'slowestest')
-#+end_src
-
-Let's try calculating the effective number of replies
-#+begin_src jupyter-python
-  df = df.loc[df.username != '[deleted]']
-  top = df.groupby('username')['timestamp'].count().sort_values(ascending=False).head(30)
-  def effective_number_of_counters(counters):
-      normalised_counters = counters / counters.sum()
-      return 1 / (normalised_counters ** 2).sum()
-
-  df['replying_to'] = df.username.shift(1)
-  counts = df.loc[df.username.isin(top.index)].groupby(['username', 'replying_to'])['timestamp'].count()
-  effective_partners = counts.groupby(level=0).apply(effective_number_of_counters).to_frame()
-  partners = counts.groupby(level=0).count()
-  updated_score = pd.merge(effective_partners, partners, right_index=True, left_index=True)
-  combined = pd.merge(top, updated_score, left_index=True, right_index=True)
-  combined['HOC rank'] = range(1, len(combined) + 1)
-  combined = combined.drop('timestamp', axis=1)
-  combined.columns = ["c_eff", "c", "rank"]
+  top = counts.groupby("canonical_username").size().sort_values(ascending=False).head(30)
+  df = counts.loc[counts["canonical_username"].isin(top.index)].groupby(["canonical_username", "replying_to"]).size()
+  effective_partners = df.groupby(level=0).apply(analysis.effective_number_of_counters).to_frame()
+  partners = df.groupby(level=0).count()
+  combined = pd.concat([top, effective_partners, partners], axis=1)
+  combined["HOC rank"] = range(1, len(combined) + 1)
+  combined.columns = ["counts", "c_eff", "c", "rank"]
   combined = combined[["rank", "c", "c_eff"]]
   combined.c_eff = combined.c_eff.round()
   combined.columns = ["HOC rank", "N", "N_(effective)"]
   combined.index.name = "Username"
   print(combined.to_markdown())
-
 #+end_src
 
-We can see who the oldest still-active counters are
+We can also get the replying-to and replied-by stats for a single user
 #+begin_src jupyter-python
-  df = df.loc[df.username != "[deleted]"]
-  active_counters = df.loc[pd.to_datetime(df['timestamp'], unit='s') > pd.to_datetime('2020-11-26 14:37:57')].groupby('username').groups.keys()
-  pd.to_datetime(df.loc[df.username.isin(active_counters)].groupby('username')['timestamp'].min().sort_values(), unit='s').head(30)
-#+end_src
+  counts["replied_by"] = counts["canonical_username"].shift(-1)
 
-Or get the replying-to and replied-by stats for a single user
-#+begin_src jupyter-python
-  df['replying_to'] = df.username.shift(1)
-  df['replied_by'] = df.username.shift(-1)
-
-  phils_counts = df.loc[df.username == 'thephilsblogbar2']
+  phils_counts = counts.loc[counts["canonical_username"] == "thephilsblogbar2"]
   print(phils_counts.replying_to.nunique())
   print(phils_counts.replied_by.nunique())
-  print(phils_counts.groupby('replying_to')['timestamp'].count().sort_values(ascending=False).head(10).to_markdown())
-  print(phils_counts.groupby('replied_by')['timestamp'].count().sort_values(ascending=False).head(10).to_markdown())
+  print(phils_counts.groupby("replying_to")["timestamp"].count().sort_values(ascending=False).head(10).to_markdown())
+  print(phils_counts.groupby("replied_by")["timestamp"].count().sort_values(ascending=False).head(10).to_markdown())
+#+end_src
+
+** Oldest counters
+We can see who the oldest still-active counters are
+#+begin_src jupyter-python
+  cutoff_date = pd.to_datetime('today') - pd.Timedelta('180d')
+  active_counters = counts.loc[pd.to_datetime(counts["timestamp"], unit="s") > cutoff_date].groupby("canonical_username").groups.keys()
+  pd.to_datetime(counts.loc[counts['canonical_username'].isin(active_counters)].groupby("canonical_username")["timestamp"].min().sort_values(), unit="s").head(30)
+#+end_src
+
+** Gets and streaks
+Similarly to the oldest counters, we can see what the longest difference between a counter's first and last get is:
+#+begin_src jupyter-python
+  gets.groupby('username').agg(lambda x: x.index[-1] - x.index[0])['body'].sort_values(ascending=False)
+#+end_src
+
+We can also calculate what the longest get streaks are. The core of the extraction is the line that says `groups = gets.groupby((y != y.shift()).cumsum())`. Let's unpack it:
+
+- `y != y.shift()` assigns a value of True to all threads with a username that's different from their predecessor
+- `.cumsum()` sums up all these True values. The net result is that each get streak is given its own unique number
+- `.groupby()` extracts these groups for later use
+
+The groups are then sorted according to size, and prepared for pretty printing.
+#+begin_src jupyter-python
+  y = gets['canonical_username']
+  groups = gets.groupby((y != y.shift()).cumsum())
+  columns = ['canonical_username', 'basecount', 'submission_id', 'comment_id']
+  length = 15
+  old = groups.first().loc[groups.size().sort_values(ascending=False)[:length].index][columns]
+  new = groups.last().loc[groups.size().sort_values(ascending=False)[:length].index][columns]
+  combined = old.join(new, rsuffix='_new').reset_index(drop=True)
+  combined['old_link'] = combined.apply(lambda x: f'[{int(x.basecount / 1000) + 1}K](https://reddit.com/comments/{x.submission_id}/_/{x.comment_id})', axis=1)
+  combined['new_link'] = combined.apply(lambda x: f'[{int(x.basecount_new / 1000) + 1}K](https://reddit.com/comments/{x.submission_id_new}/_/{x.comment_id_new})', axis=1)
+  combined['streak'] = 1 + (combined['basecount_new'] - combined['basecount']) // 1000
+  combined.index += 1
+  combined.index.name = "Rank"
+  print(combined[['canonical_username', 'old_link', 'new_link', 'streak']].to_markdown(headers=['**Rank**', '**username**', '**First Get**', '**Last Get**', '**Streak Length**']))
+#+end_src
+
+** Comment bodies
+We have access to the body of each comment, so it's possible to do a bit of analysis on those. For example, using regular expressions, we can determine whether a count is comma separated, space separated or has no separator.
+
+The rules are as follows:
+
+- Comma separated counts look like [digit]*{1-3}(,[digit]*3)*
+- Space separated counts are the same, with the comma replaced by a space
+- No separated counts are defined as one of
+  - Counts with only one digit
+  - Counts with no separators between their frist and last digit, with separators defined fairly broadly.
+
+#+begin_src jupyter-python
+  data = counts.set_index('date')
+
+  data['body'] = data['body'].apply(parsing.strip_markdown_links)
+  comma_regex = re.compile(r'\d{1,3}(?:,\d{3})+')
+  data['is_comma_separated'] = data['body'].apply(lambda x: bool(re.search(comma_regex, x)))
+  space_regex = re.compile(r'\d{1,3}(?: \d{3})+')
+  data['is_space_separated'] = data['body'].apply(lambda x: bool(re.search(space_regex, x)))
+  def no_separators(body):
+      body = body.split('\n')[0]
+      separators = re.escape("' , .*/")
+      regex = (rf"(?:^[^\d]*\d[^\d]*$)|"
+               rf"(?:^[^\d]*\d[^{separators}]*\d[^\d]*$)")
+      regex = re.compile(regex)
+      result = re.search(regex, body)
+      return bool(result)
+
+  data['no_separators'] = data['body'].apply(no_separators)
+  data.sort_index(inplace=True)
+#+end_src
+
+Once we have the data, we can get a 14-day rolling average, and resample the points to nice 6h intervals. The resampling makes plotting with pandas look nicer, since it can more easily deal with the x-axis.
+#+begin_src jupyter-python
+  resampled = (data[['is_comma_separated', 'is_space_separated', 'no_separators']].rolling('14d').mean().resample('6h').mean() * 100)
+  fig, ax = plt.subplots(1, figsize = (12, 8))
+  resampled.plot(ax=ax, ylabel='Percentage of counts', xlabel='Date', lw=2)
+  h, l = ax.get_legend_handles_labels()
+  ax.legend(h[:3],["commas", "spaces", "no separator"])
+  ax.set_ylim([0, 100])
+  ax.set_title('Separators used on r/counting over time', fontsize=20)
+  ax.xaxis.label.set_size(18)
+  ax.yaxis.label.set_size(18)
+
+  plt.savefig('graphs/separators.png', bbox_inches='tight', dpi=300)
+#+end_src
+
+** Network analysis
+We can do some network analysis. This snippet will generate the (comment, replying to, weight) graph for the top 250 counters. The heavy lifting is done by the [[file:analysis.py::def response_graph(df, n=250, username_column="username"):][response_graph]] function in analysis.py.
+#+begin_src jupyter-python
+  n = 250
+  graph = analysis.response_graph(counts, n, username_column="canonical_username")
+  graph.to_csv(f"graph_{n}.csv", index=False)
 #+end_src
