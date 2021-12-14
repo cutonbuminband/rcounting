@@ -36,12 +36,15 @@ def is_mod(username):
     return username in mods
 
 
-def response_graph(df, n=250):
-    user_counts = df.groupby('username')['timestamp'].count()
-    top = user_counts.sort_values().tail(n)
-    edges = df.username.isin(top.index) & df.username.shift(1).isin(top.index)
-    df['replying_to'] = df.username.shift(1)
-    graph = df.loc[edges].groupby(['username', 'replying_to'], as_index=False)['timestamp'].count()
+def response_graph(df, n=250, username_column="username"):
+    user_counts = df.groupby(username_column).size()
+    indices = user_counts.sort_values(ascending=False).head(n).index
+    edges = (df[username_column].isin(indices)
+             & df[username_column].shift(1).isin(indices))
+    top = pd.concat([df[username_column],
+                     df[username_column].shift()], axis=1).loc[edges]
+    top.columns = ['username', 'replying_to']
+    graph = top.groupby(['username', 'replying_to'], as_index=False).size()
     graph.columns = ["Source", "Target", "Weight"]
     return graph
 
