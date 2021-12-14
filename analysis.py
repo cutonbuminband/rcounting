@@ -36,7 +36,7 @@ def is_mod(username):
     return username in mods
 
 
-def response_graphf(df, n=250):
+def response_graph(df, n=250):
     user_counts = df.groupby('username')['timestamp'].count()
     top = user_counts.sort_values().tail(n)
     edges = df.username.isin(top.index) & df.username.shift(1).isin(top.index)
