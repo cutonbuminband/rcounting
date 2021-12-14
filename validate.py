@@ -1,8 +1,18 @@
+import pandas as pd
+from side_threads import get_side_thread
+from reddit_interface import reddit
+from thread_navigation import fetch_comments
+
+
+def validate_thread(comment, rule):
+    if not hasattr(comment, 'id'):
+        comment = reddit.comment(comment)
+    comments = pd.DataFrame(fetch_comments(comment, use_pushshift=False))
+    side_thread = get_side_thread(rule)
+    return side_thread.is_valid_thread(comments)
+
+
 if __name__ == "__main__":
-    import pandas as pd
-    from side_threads import get_side_thread
-    from reddit_interface import reddit
-    from thread_navigation import fetch_comments
     import argparse
 
     rule_dict = {'default': 'default',
@@ -25,10 +35,7 @@ if __name__ == "__main__":
                         help='Which rule to apply. Default is no double counting')
     args = parser.parse_args()
 
-    comments = fetch_comments(reddit.comment(args.comment_id))
-    comments = pd.DataFrame(comments)
-    side_thread = get_side_thread(rule_dict[args.rule])
-    result = side_thread.is_valid_thread(comments)
+    result = validate_thread(args.comment_id, rule_dict[args.rule])
     if result[0]:
         print('All counts were valid')
     else:
