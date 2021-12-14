@@ -19,7 +19,7 @@ We start with some imports
   import thread_navigation as tn
   from reddit_interface import reddit
   import analysis
-  import aliases
+  import counters
 #+end_src
 
 * Loading Data
@@ -164,10 +164,13 @@ The groups are then sorted according to size, and prepared for pretty printing.
   y = gets['canonical_username']
   groups = gets.groupby((y != y.shift()).cumsum())
   columns = ['canonical_username', 'basecount', 'submission_id', 'comment_id']
-  length = 15
-  old = groups.first().loc[groups.size().sort_values(ascending=False)[:length].index][columns]
-  new = groups.last().loc[groups.size().sort_values(ascending=False)[:length].index][columns]
-  combined = old.join(new, rsuffix='_new').reset_index(drop=True)
+  length = 10
+
+  indices = groups.size().sort_values(ascending=False).index
+  old = groups.first().loc[indices][columns]
+  new = groups.last().loc[indices][columns]
+  combined = old.join(new, rsuffix='_new')
+  combined = combined.loc[~combined['canonical_username'].apply(counters.is_ignored_counter)].head(length).reset_index(drop=True)
   combined['old_link'] = combined.apply(lambda x: f'[{int(x.basecount / 1000) + 1}K](https://reddit.com/comments/{x.submission_id}/_/{x.comment_id})', axis=1)
   combined['new_link'] = combined.apply(lambda x: f'[{int(x.basecount_new / 1000) + 1}K](https://reddit.com/comments/{x.submission_id_new}/_/{x.comment_id_new})', axis=1)
   combined['streak'] = 1 + (combined['basecount_new'] - combined['basecount']) // 1000

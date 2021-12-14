@@ -4,18 +4,7 @@ import numpy as np
 from numpy.fft import fftshift, rfft, irfft
 from numpy import pi
 from scipy.special import i0
-
-mods = ['Z3F',
-        '949paintball',
-        'zhige',
-        'atomicimploder',
-        'ekjp',
-        'TheNitromeFan',
-        'davidjl123',
-        'rschaosid',
-        'KingCaspianX',
-        'Urbul',
-        'Zaajdaeon']
+from counters import is_ignored_counter
 
 
 def combine_csvs(start, n):
@@ -32,13 +21,9 @@ def combine_csvs(start, n):
     return pd.concat(results)
 
 
-def is_mod(username):
-    return username in mods
-
-
 def response_graph(df, n=250, username_column="username"):
-    user_counts = df.groupby(username_column).size()
-    indices = user_counts.sort_values(ascending=False).head(n).index
+    users = df.groupby(username_column).size().sort_values(ascending=False).index
+    indices = users[np.logical_not(users.map(is_ignored_counter).to_numpy())][:n]
     edges = (df[username_column].isin(indices)
              & df[username_column].shift(1).isin(indices))
     top = pd.concat([df[username_column],

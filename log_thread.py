@@ -4,7 +4,7 @@ from pathlib import Path
 from parsing import post_to_count
 from thread_navigation import fetch_comments, find_previous_get
 import pandas as pd
-from aliases import apply_alias
+from counters import apply_alias
 from utils import format_timedelta
 
 
