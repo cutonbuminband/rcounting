@@ -14,25 +14,26 @@ We start with some imports
   import sqlite3
   import matplotlib.pyplot as plt
   plt.style.use("seaborn")
-  import parsing
-  import models
-  import thread_navigation as tn
-  from reddit_interface import reddit
-  import analysis
-  import counters
+  import counting_tools.parsing as parsing
+  import counting_tools.models as models
+  import counting_tools.thread_navigation as tn
+  from counting_tools.reddit_interface import reddit
+  import counting_tools.analysis as analysis
+  import counting_tools.counters as counters
+  import counting_tools.bin.validate as validate
 #+end_src
 
 * Loading Data
 Then we load some data, both the counts and the gets. We also add both a `date` column and a "replying to" column, since some of what we'll be doing later needs it.
 
 #+begin_src jupyter-python
-  db = sqlite3.connect(Path("results/counting.sqlite"))
+  db = sqlite3.connect(Path("../results/counting.sqlite"))
   counts = pd.read_sql("select submissions.basecount, comments.* "
                        "from comments join submissions "
                        "on comments.submission_id = submissions.submission_id "
                        "where comments.position > 0 "
                        "order by submissions.basecount, comments.position", db)
-  counts["canonical_username"] = counts["username"].apply(aliases.apply_alias)
+  counts["canonical_username"] = counts["username"].apply(counters.apply_alias)
   counts["replying_to"] = counts["canonical_username"].shift(1)
   counts['date'] = pd.to_datetime(counts['timestamp'], unit='s')
   print(len(counts))
@@ -43,9 +44,13 @@ Then we load some data, both the counts and the gets. We also add both a `date` 
 ** Validating side threads
 The validate module a handy function to validate any thread. Here, we validate an old side thread
 #+begin_src jupyter-python
-  from validate import validate_thread
   comment = reddit.comment("h1g6m3w")
-  validate_thread(comment, "slowestest")
+  validate.validate_thread(comment, "slowestest")
+#+end_src
+
+#+begin_src jupyter-python
+  import counting_tools
+  dir(counting_tools.validate)
 #+end_src
 
 ** Finding errors in the data
@@ -68,7 +73,7 @@ A first bit of analysis is to visualize the progress of r/counting over time
   ax.set_title('Counting progress over time', fontsize=20)
   ax.xaxis.label.set_size(18)
   ax.yaxis.label.set_size(18)
-  plt.savefig('graphs/counts.png', bbox_inches='tight', dpi=300)
+  plt.savefig('../graphs/counts.png', bbox_inches='tight', dpi=300)
 #+end_src
 
 ** Total counts vs k_parts
@@ -99,7 +104,7 @@ We can make a polynomial fit of this (well, a linear fit of the log-log quantiti
   ax.set_xscale("log")
   ax.set_xlim(left=10)
   ax.set_ylim(bottom=10)
-  plt.savefig("graphs/parts_vs_counts.png", dpi=300, bbox_inches="tight")
+  plt.savefig("../graphs/parts_vs_counts.png", dpi=300, bbox_inches="tight")
 
 #+end_src
 
@@ -114,7 +119,7 @@ As with the number of counts vs threads participated in, we can expect that diff
 To quantify how uneven the counting distribution is we can look at the [[https://en.wikipedia.org/wiki/Effective_number_of_parties][effective number of partners]] of each counter, and compare with the actual number of partners.
 
 #+begin_src jupyter-python
-  top = counts.groupby("canonical_username").size().sort_values(ascending=False).head(30)
+  top = counts.groupby("canonical_username").size().sort_values(ascending=False)
   df = counts.loc[counts["canonical_username"].isin(top.index)].groupby(["canonical_username", "replying_to"]).size()
   effective_partners = df.groupby(level=0).apply(analysis.effective_number_of_counters).to_frame()
   partners = df.groupby(level=0).count()
@@ -223,7 +228,7 @@ Once we have the data, we can get a 14-day rolling average, and resample the poi
   ax.xaxis.label.set_size(18)
   ax.yaxis.label.set_size(18)
 
-  plt.savefig('graphs/separators.png', bbox_inches='tight', dpi=300)
+  plt.savefig('../graphs/separators.png', bbox_inches='tight', dpi=300)
 #+end_src
 
 ** Network analysis

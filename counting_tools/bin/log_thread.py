@@ -1,11 +1,11 @@
 # encoding=utf8
 import os
 from pathlib import Path
-from parsing import post_to_count
-from thread_navigation import fetch_comments, find_previous_get
 import pandas as pd
-from counters import apply_alias
-from utils import format_timedelta
+from counting_tools.parsing import post_to_count
+from counting_tools.thread_navigation import fetch_comments, find_previous_get
+from counting_tools.counters import apply_alias
+from counting_tools.utils import format_timedelta
 
 
 def log_one_submission(leaf_comment):

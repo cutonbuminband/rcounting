@@ -1,5 +1,5 @@
 from collections import defaultdict, deque
-from utils import deleted_phrases
+from counting_tools.utils import deleted_phrases
 
 
 class RedditPost():

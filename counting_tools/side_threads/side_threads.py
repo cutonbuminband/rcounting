@@ -1,15 +1,17 @@
+import os
 import math
 import string
 import pandas as pd
 import re
+import configparser
 import scipy.sparse
 import numpy as np
 import functools
 import collections
-from models import comment_to_dict
-from thread_navigation import fetch_comment_tree
-import parsing
-from utils import is_leap_year, deleted_phrases
+from counting_tools.models import comment_to_dict
+from counting_tools.thread_navigation import fetch_comment_tree
+import counting_tools.parsing as parsing
+from counting_tools.utils import is_leap_year, deleted_phrases
 
 minute = 60
 hour = 60 * 60
@@ -548,3 +550,9 @@ def get_side_thread(thread_name, verbosity=1):
                   'Not validating comment contents. '
                   'Assuming n=1000 and no double counting.')
         return SideThread()
+
+
+module_dir = os.path.dirname(__file__)
+config = configparser.ConfigParser()
+config.read(os.path.join(module_dir, 'side_threads.ini'))
+known_thread_ids = config['threads']

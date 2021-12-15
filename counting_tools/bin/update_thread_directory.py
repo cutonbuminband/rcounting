@@ -1,16 +1,11 @@
 import copy
 import datetime
-import configparser
 import bisect
 import itertools
-import models
-import side_threads
-import parsing
-import utils
-
-config = configparser.ConfigParser()
-config.read('side_threads.ini')
-known_threads = config['threads']
+import counting_tools.models as models
+from counting_tools.side_threads import side_threads
+import counting_tools.parsing as parsing
+import counting_tools.utils as utils
 
 
 def normalise_title(title):
@@ -51,7 +46,7 @@ class Row():
         self.count = parsing.find_count_in_text(self.count_string.replace("-", "0"))
         self.is_approximate = self.count_string[0] == "~"
         self.starred_count = self.count_string[-1] == "*"
-        self.thread_type = known_threads.get(self.first_submission, fallback='default')
+        self.thread_type = known_thread_ids.get(self.first_submission, fallback='default')
 
     def __str__(self):
         return (f"[{self.name}](/{self.first_submission}) | "
@@ -187,7 +182,9 @@ def load_wiki_page(subreddit, location):
 
 if __name__ == "__main__":
     import argparse
-    from reddit_interface import reddit
+    from counting_tools.reddit_interface import reddit
+    known_thread_ids = side_threads.known_thread_ids
+
     parser = argparse.ArgumentParser(description='Update the thread directory located at'
                                      ' reddit.com/r/counting/wiki/directory')
     group = parser.add_mutually_exclusive_group()

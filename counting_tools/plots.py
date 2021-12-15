@@ -6,8 +6,8 @@ import matplotlib.colors as mcolors
 from datetime import timedelta
 from cycler import cycler
 from pandas.plotting import register_matplotlib_converters
-from parsing import find_count_in_text
-from analysis import fft_kde
+from counting_tools.parsing import find_count_in_text
+from counting_tools.analysis import fft_kde
 
 register_matplotlib_converters()
 

@@ -1,14 +1,14 @@
 import pandas as pd
-from side_threads import get_side_thread
-from reddit_interface import reddit
-from thread_navigation import fetch_comments
+from counting_tools.side_threads import side_threads
+from counting_tools.reddit_interface import reddit
+from counting_tools.thread_navigation import fetch_comments
 
 
 def validate_thread(comment, rule):
     if not hasattr(comment, 'id'):
         comment = reddit.comment(comment)
     comments = pd.DataFrame(fetch_comments(comment, use_pushshift=False))
-    side_thread = get_side_thread(rule)
+    side_thread = side_threads.get_side_thread(rule)
     return side_thread.is_valid_thread(comments)
 
 
@@ -24,7 +24,7 @@ if __name__ == "__main__":
                  'slow': 'slow',
                  'slower': 'slower',
                  'slowestest': 'slowestest',
-                 'only_double_counting': 'only_double_counting'}
+                 'only_double_counting': 'only double counting'}
 
     parser = argparse.ArgumentParser(description='Validate the reddit submission which'
                                      ' contains the comment with id `comment_id` according to rule')

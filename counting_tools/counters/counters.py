@@ -1,6 +1,9 @@
 from pathlib import Path
+import os
 
-alias_list = open(Path('input/prefs/aliases.txt'), 'r').readlines()
+module_dir = os.path.dirname(__file__)
+
+alias_list = open(module_dir / Path('aliases.txt'), 'r').readlines()
 alias_list = [x.strip().split(',') for x in alias_list]
 alias_dict = {}
 for aliases in alias_list:

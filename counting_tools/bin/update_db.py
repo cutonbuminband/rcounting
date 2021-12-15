@@ -1,10 +1,10 @@
 import pandas as pd
 import sqlite3
-import parsing
+import counting_tools.parsing as parsing
 from pathlib import Path
-from reddit_interface import reddit
-import thread_navigation as tn
-import models
+from counting_tools.reddit_interface import reddit
+import counting_tools.thread_navigation as tn
+import counting_tools.models as models
 
 db = sqlite3.connect(Path('results/counting.sqlite'))
 
