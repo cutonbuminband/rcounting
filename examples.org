@@ -166,7 +166,7 @@ The groups are then sorted according to size, and prepared for pretty printing.
   columns = ['canonical_username', 'basecount', 'submission_id', 'comment_id']
   length = 10
 
-  indices = groups.size().sort_values(ascending=False).index
+  indices = (-groups.size()).sort_values(kind='mergesort').index
   old = groups.first().loc[indices][columns]
   new = groups.last().loc[indices][columns]
   combined = old.join(new, rsuffix='_new')
