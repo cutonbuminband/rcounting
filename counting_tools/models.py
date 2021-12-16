@@ -1,5 +1,5 @@
 from collections import defaultdict, deque
-from counting_tools.utils import deleted_phrases
+from counting_tools import utils
 
 
 class RedditPost():
@@ -14,7 +14,7 @@ class RedditPost():
         else:
             self.post_type = 'comment' if hasattr(post, 'body') else 'submission'
         if not cached and api is not None:
-            if self.body in deleted_phrases or self.author in deleted_phrases:
+            if self.body in utils.deleted_phrases or self.author in utils.deleted_phrases:
                 if self.post_type == 'comment':
                     search = api.search_comments
                 elif self.post_type == 'submission':
@@ -254,7 +254,7 @@ class CommentTree(Tree):
                 print(f"Fetching replies to comment {comment.id}")
             children = self.add_missing_replies(comment)
         by_date = sorted(children, key=lambda x: x.created_utc)
-        return sorted(by_date, key=lambda x: x.body in deleted_phrases)
+        return sorted(by_date, key=lambda x: x.body in utils.deleted_phrases)
 
     def add_missing_replies(self, comment):
         if comment.id not in self.nodes:

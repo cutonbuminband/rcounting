@@ -1,2 +1,2 @@
-from counting_tools.side_threads import side_threads
-from counting_tools.counters import counters
+from .thread_navigation import fetch_comments
+from .reddit_interface import reddit
