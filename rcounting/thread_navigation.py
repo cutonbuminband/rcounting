@@ -1,6 +1,7 @@
 from psaw import PushshiftAPI
-from rcounting.parsing import find_urls_in_submission, post_to_count
-from rcounting.models import CommentTree, comment_to_dict
+import datetime
+import rcounting.parsing as parsing
+import rcounting.models as models
 
 api = PushshiftAPI()
 
@@ -9,7 +10,7 @@ def find_previous_get(comment):
     reddit = comment._reddit
     submission = comment.submission
     url = next(filter(lambda x: int(x[0], 36) < int(submission.id, 36),
-                      find_urls_in_submission(submission)))
+                      parsing.find_urls_in_submission(submission)))
 
     new_submission_id, new_get_id = url
     if not new_get_id:
@@ -26,7 +27,7 @@ def find_get_in_submission(submission, reddit):
     for comment_id in comment_ids[:-1]:
         comment = reddit.comment(comment_id)
         try:
-            count = post_to_count(comment, api)
+            count = parsing.post_to_count(comment, api)
             if count % 1000 == 0:
                 return comment.id
         except ValueError:
@@ -38,7 +39,7 @@ def search_up_from_gz(comment, max_retries=5):
     "Find a count up to max_retries above the linked_comment"
     for i in range(max_retries):
         try:
-            count = post_to_count(comment, api)
+            count = parsing.post_to_count(comment, api)
             return count, comment
         except ValueError:
             if i == max_retries:
@@ -54,7 +55,7 @@ def find_get_from_comment(comment):
     replies.replace_more(limit=None)
     while count % 1000 != 0:
         comment = comment.replies[0]
-        count = post_to_count(comment, api)
+        count = parsing.post_to_count(comment, api)
     return comment
 
 
@@ -65,7 +66,7 @@ def extract_gets_and_assists(comment, n_submissions=1000):
     for n in range(n_submissions):
         rows = []
         for i in range(3):
-            rows.append(comment_to_dict(comment))
+            rows.append(models.comment_to_dict(comment))
             comment = comment.parent()
         gets.append({**rows[0], 'timedelta': rows[0]['timestamp'] - rows[1]['timestamp']})
         assists.append({**rows[1], 'timedelta': rows[1]['timestamp'] - rows[2]['timestamp']})
@@ -81,7 +82,7 @@ def fetch_comment_tree(submission, root_id=None, verbose=True, use_pushshift=Tru
     else:
         comment_ids = []
     if not comment_ids:
-        return CommentTree([], reddit=r, verbose=verbose)
+        return models.CommentTree([], reddit=r, verbose=verbose)
 
     comment_ids.sort(key=lambda x: int(x, 36))
     if root_id is not None:
@@ -90,7 +91,7 @@ def fetch_comment_tree(submission, root_id=None, verbose=True, use_pushshift=Tru
                 break
         comment_ids = comment_ids[max(0, idx - history):]
     comments = [comment for comment in r.info(['t1_' + x for x in comment_ids])]
-    submission_tree = CommentTree(comments, reddit=r, verbose=verbose)
+    submission_tree = models.CommentTree(comments, reddit=r, verbose=verbose)
     if fill_gaps:
         submission_tree.fill_gaps()
     return submission_tree
@@ -100,3 +101,31 @@ def fetch_comments(comment, verbose=True, use_pushshift=True):
     tree = fetch_comment_tree(comment.submission, verbose=verbose, use_pushshift=use_pushshift)
     comments = tree.comment(comment.id).walk_up_tree()[::-1]
     return [x.to_dict() for x in comments]
+
+
+def get_counting_history(subreddit, time_limit, verbosity=1):
+    now = datetime.datetime.utcnow()
+    submissions = subreddit.new(limit=1000)
+    tree = {}
+    submissions_dict = {}
+    new_submissions = []
+    for count, submission in enumerate(submissions):
+        if verbosity > 1 and count % 20 == 0:
+            print(f"Processing reddit submission {submission.id}")
+        title = submission.title.lower()
+        if "tidbits" in title or "free talk friday" in title:
+            continue
+        submissions_dict[submission.id] = submission
+        try:
+            url = next(filter(lambda x: int(x[0], 36) < int(submission.id, 36),
+                              parsing.find_urls_in_submission(submission)))
+            tree[submission.id] = url[0]
+        except StopIteration:
+            new_submissions.append(submission)
+        post_time = datetime.datetime.utcfromtimestamp(submission.created_utc)
+        if now - post_time > time_limit:
+            break
+    else:  # no break
+        print('Threads between {now - six_months} and {post_time} have not been collected')
+
+    return models.SubmissionTree(submissions_dict, tree, subreddit._reddit), new_submissions

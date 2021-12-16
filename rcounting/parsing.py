@@ -104,3 +104,12 @@ def is_revived(title):
 def name_sort(name):
     title = name.translate(str.maketrans('', '', '\'"()^/*')).lower()
     return tuple(int(c) if c.isdigit() else c for c in re.split(r'(\d+)', title))
+
+
+def normalise_title(title):
+    title = title.translate(str.maketrans('[]', '()'))
+    title = title.replace('|', '&#124;')
+    if revived := is_revived(title):
+        start, end = revived.span()
+        return title[:start] + '(Revival)' + title[end:]
+    return title
