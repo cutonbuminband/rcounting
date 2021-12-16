@@ -1,6 +1,6 @@
 from psaw import PushshiftAPI
-from counting_tools.parsing import find_urls_in_submission, post_to_count
-from counting_tools.models import CommentTree, comment_to_dict
+from rcounting.parsing import find_urls_in_submission, post_to_count
+from rcounting.models import CommentTree, comment_to_dict
 
 api = PushshiftAPI()
 

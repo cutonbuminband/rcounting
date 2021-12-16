@@ -14,8 +14,8 @@ We start with some imports
   import sqlite3
   import matplotlib.pyplot as plt
   plt.style.use("seaborn")
-  import counting_tools as ct
-  from counting_tools import side_threads, counters
+  import rcounting as rct
+  from rcounting import side_threads, counters, analysis
 #+end_src
 
 * Loading Data
@@ -39,8 +39,8 @@ Then we load some data, both the counts and the gets. We also add both a `date` 
 ** Validating side threads
 Using various pieces of functionality, we can validate side threads. Here, we confirm that an old side thread is valid:
 #+begin_src jupyter-python
-  comment = ct.reddit.comment("h1g6m3w")
-  comments = pd.DataFrame(ct.fetch_comments(comment, use_pushshift=False))
+  comment = rct.reddit.comment("h1g6m3w")
+  comments = pd.DataFrame(rct.fetch_comments(comment, use_pushshift=False))
   side_thread = side_threads.get_side_thread('slowestest')
   side_thread.is_valid_thread(comments)
 #+end_src
@@ -190,7 +190,7 @@ The rules are as follows:
 #+begin_src jupyter-python
   data = counts.set_index('date')
 
-  data['body'] = data['body'].apply(ct.parsing.strip_markdown_links)
+  data['body'] = data['body'].apply(rct.parsing.strip_markdown_links)
   comma_regex = re.compile(r'\d{1,3}(?:,\d{3})+')
   data['is_comma_separated'] = data['body'].apply(lambda x: bool(re.search(comma_regex, x)))
   space_regex = re.compile(r'\d{1,3}(?: \d{3})+')

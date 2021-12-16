@@ -4,7 +4,7 @@ import numpy as np
 from numpy.fft import fftshift, rfft, irfft
 from numpy import pi
 from scipy.special import i0
-from counting_tools.counters import is_banned_counter
+from rcounting.counters import is_banned_counter
 
 
 def combine_csvs(start, n):

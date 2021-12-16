@@ -1,8 +1,8 @@
 #! /usr/bin/python3
 import pandas as pd
-from counting_tools.side_threads import side_threads
-from counting_tools.reddit_interface import reddit
-from counting_tools.thread_navigation import fetch_comments
+import rcounting.side_threads as st
+import rcounting.thread_navigation as tn
+from rcounting.reddit_interface import reddit
 
 
 if __name__ == "__main__":

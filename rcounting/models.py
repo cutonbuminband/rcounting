@@ -1,5 +1,5 @@
 from collections import defaultdict, deque
-from counting_tools import utils
+from rcounting import utils
 
 
 class RedditPost():

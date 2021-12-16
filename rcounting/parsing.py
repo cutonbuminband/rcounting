@@ -1,5 +1,5 @@
 import re
-from counting_tools.models import RedditPost
+from rcounting.models import RedditPost
 
 
 def find_count_in_text(body, base=10, raise_exceptions=True):

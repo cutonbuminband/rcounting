@@ -8,11 +8,11 @@ import scipy.sparse
 import numpy as np
 import functools
 import collections
-from counting_tools.models import comment_to_dict
-from counting_tools.thread_navigation import fetch_comment_tree
-import counting_tools.parsing as parsing
-from counting_tools.utils import is_leap_year, deleted_phrases
-from counting_tools.counters import is_ignored_counter
+from rcounting.models import comment_to_dict
+from rcounting.thread_navigation import fetch_comment_tree
+import rcounting.parsing as parsing
+from rcounting.utils import is_leap_year, deleted_phrases
+from rcounting.counters import is_ignored_counter
 
 minute = 60
 hour = 60 * 60
