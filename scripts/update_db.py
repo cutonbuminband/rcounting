@@ -1,3 +1,4 @@
+#! /usr/bin/python3
 import pandas as pd
 import sqlite3
 import counting_tools.parsing as parsing
