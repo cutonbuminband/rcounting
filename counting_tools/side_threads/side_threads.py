@@ -12,14 +12,13 @@ from counting_tools.models import comment_to_dict
 from counting_tools.thread_navigation import fetch_comment_tree
 import counting_tools.parsing as parsing
 from counting_tools.utils import is_leap_year, deleted_phrases
+from counting_tools.counters import is_ignored_counter
 
 minute = 60
 hour = 60 * 60
 day = 60 * 60 * 24
 
 
-ignored_users = ["LuckyNumber-Bot", "CountingStatsBot", "CountingHelper", "WikiSummarizerBot"]
-ignored_users = [x.lower() for x in ignored_users]
 alphanumeric = string.digits + string.ascii_uppercase
 
 
@@ -291,7 +290,7 @@ class SideThread():
         history = history.append(comment_to_dict(comment), ignore_index=True)
         valid_history = self.is_valid_thread(history)[0]
         valid_count = self.looks_like_count(comment)
-        valid_user = str(comment.author).lower() not in ignored_users
+        valid_user = not is_ignored_counter(str(comment.author))
         return valid_history and valid_count and valid_user, history
 
     def get_history(self, comment):
