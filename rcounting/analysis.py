@@ -4,7 +4,6 @@ import numpy as np
 from numpy.fft import fftshift, rfft, irfft
 from numpy import pi
 from scipy.special import i0
-from rcounting.counters import is_banned_counter
 
 
 def combine_csvs(start, n):
@@ -22,8 +21,7 @@ def combine_csvs(start, n):
 
 
 def response_graph(df, n=250, username_column="username"):
-    users = df.groupby(username_column).size().sort_values(ascending=False).index
-    indices = users[np.logical_not(users.map(is_banned_counter).to_numpy())][:n]
+    indices = df.groupby(username_column).size().sort_values(ascending=False).index[:n]
     edges = (df[username_column].isin(indices)
              & df[username_column].shift(1).isin(indices))
     top = pd.concat([df[username_column],

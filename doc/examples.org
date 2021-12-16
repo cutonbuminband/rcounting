@@ -30,8 +30,11 @@ Then we load some data, both the counts and the gets. We also add both a `date` 
                        "order by submissions.basecount, comments.position", db)
   counts["canonical_username"] = counts["username"].apply(counters.apply_alias)
   counts["replying_to"] = counts["canonical_username"].shift(1)
+  counts["replied_by"] = counts["canonical_username"].shift(-1)
   counts['date'] = pd.to_datetime(counts['timestamp'], unit='s')
   print(len(counts))
+  valid = counts.loc[~counts["canonical_username"].apply(counters.is_banned_counter)]
+  print(len(valid))
   gets = counts.groupby("submission_id").last().sort_values("basecount").reset_index()
 #+end_src
 
@@ -111,8 +114,8 @@ As with the number of counts vs threads participated in, we can expect that diff
 To quantify how uneven the counting distribution is we can look at the [[https://en.wikipedia.org/wiki/Effective_number_of_parties][effective number of partners]] of each counter, and compare with the actual number of partners.
 
 #+begin_src jupyter-python
-  top = counts.groupby("canonical_username").size().sort_values(ascending=False)
-  df = counts.loc[counts["canonical_username"].isin(top.index)].groupby(["canonical_username", "replying_to"]).size()
+  top = valid.groupby("canonical_username").size().sort_values(ascending=False)[:30]
+  df = valid.loc[valid["canonical_username"].isin(top.index)].groupby(["canonical_username", "replying_to"]).size()
   effective_partners = df.groupby(level=0).apply(analysis.effective_number_of_counters).to_frame()
   partners = df.groupby(level=0).count()
   combined = pd.concat([top, effective_partners, partners], axis=1)
@@ -127,9 +130,7 @@ To quantify how uneven the counting distribution is we can look at the [[https:/
 
 We can also get the replying-to and replied-by stats for a single user
 #+begin_src jupyter-python
-  counts["replied_by"] = counts["canonical_username"].shift(-1)
-
-  phils_counts = counts.loc[counts["canonical_username"] == "thephilsblogbar2"]
+  phils_counts = valid.loc[counts["canonical_username"] == "thephilsblogbar2"]
   print(phils_counts.replying_to.nunique())
   print(phils_counts.replied_by.nunique())
   print(phils_counts.groupby("replying_to")["timestamp"].count().sort_values(ascending=False).head(10).to_markdown())
