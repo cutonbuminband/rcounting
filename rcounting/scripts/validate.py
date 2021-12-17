@@ -1,6 +1,5 @@
 #! /usr/bin/python3
 import pandas as pd
-import argparse
 
 import rcounting.side_threads as st
 import rcounting.thread_navigation as tn
@@ -18,16 +17,7 @@ rule_dict = {'default': 'default',
              'only_double_counting': 'only double counting'}
 
 
-def main():
-    parser = argparse.ArgumentParser(description='Validate the reddit submission which'
-                                     ' contains the comment with id `comment_id` according to rule')
-    parser.add_argument('comment_id',
-                        help='The id of the comment to start logging from')
-    parser.add_argument('--rule', choices=rule_dict.keys(),
-                        default='default',
-                        help='Which rule to apply. Default is no double counting')
-    args = parser.parse_args()
-
+def main(args):
     comment = reddit.comment(args.comment_id)
     print(f"Validating thread: '{comment.submission.title}' according to rule {args.rule}")
     comments = pd.DataFrame(tn.fetch_comments(comment, use_pushshift=False))
@@ -37,7 +27,3 @@ def main():
         print('All counts were valid')
     else:
         print(f'Invalid count found at reddit.com{reddit.comment(result[1]).permalink}!')
-
-
-if __name__ == "__main__":
-    main()

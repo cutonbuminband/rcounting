@@ -3,7 +3,6 @@ import copy
 import datetime
 import bisect
 import itertools
-import argparse
 
 import rcounting.parsing as parsing
 import rcounting.utils as utils
@@ -12,23 +11,7 @@ import rcounting.thread_navigation as tn
 from rcounting.reddit_interface import reddit
 
 
-def main():
-    parser = argparse.ArgumentParser(description='Update the thread directory located at'
-                                     ' reddit.com/r/counting/wiki/directory')
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--verbose', '-v', action='store_true',
-                       help='Print more output during directory updates')
-
-    group.add_argument('--quiet', '-q', action='store_true',
-                       help='Print less output during directory updates')
-
-    parser.add_argument('--pushshift', '-p', action='store_true',
-                        help=('Use an online archive fetch older comments.'))
-
-    parser.add_argument('--dry-run', action='store_true',
-                        help=('Write results to files instead of updating the wiki pages'))
-
-    args = parser.parse_args()
+def main(args):
     verbosity = 1 - args.quiet + args.verbose
     start = datetime.datetime.now()
     subreddit = reddit.subreddit('counting')
@@ -154,7 +137,3 @@ def main():
 
     end = datetime.datetime.now()
     print(end - start)
-
-
-if __name__ == "__main__":
-    main()

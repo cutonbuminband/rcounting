@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 import pandas as pd
 from datetime import datetime
-import argparse
 import sqlite3
 
 import rcounting.parsing as parsing
@@ -34,29 +33,7 @@ def hoc_string(df, title):
     return '\n'.join([header, data, footer])
 
 
-def main():
-
-    parser = argparse.ArgumentParser(description='Log the reddit submission which'
-                                     ' contains the comment with id `get_id`')
-    parser.add_argument('--get_id', default='',
-                        help=('The id of the leaf comment (get) to start logging from. '
-                              'If no id is supplied, the script uses the get of '
-                              'the last completed thread'))
-    parser.add_argument('-n', type=int, default=1,
-                        help='The number of submissions to log. Default 1')
-    parser.add_argument('-o', '--output_directory', default='.',
-                        help=('The directory to use for output. '
-                              'Default is the current working directory'))
-
-    parser.add_argument('--sql', action='store_true',
-                        help='Store output in a sql database instead of using csv files')
-
-    parser.add_argument('-a', '--all_counts', action='store_true',
-                        help=('Log threads as far back in time as possible. '
-                              'Warning: will take a while!'))
-
-    args = parser.parse_args()
-
+def main(args):
     t_start = datetime.now()
     output_directory = Path(args.output_directory)
     if not os.path.exists(output_directory):
@@ -83,8 +60,10 @@ def main():
     if args.sql:
         db = sqlite3.connect(output_directory / Path('counting.sqlite'))
         try:
-            known_submissions = pd.read_sql("select * from submissions", db)['submission_id'].tolist()
-            last_submission_id = pd.read_sql("select submission_id from last_submission", db).iat[-1, 0]
+            submissions = pd.read_sql("select * from submissions", db)
+            known_submissions = submissions['submission_id'].tolist()
+            checkpoints = pd.read_sql("select submission_id from last_submission", db)
+            last_submission_id = checkpoints.iat[-1, 0]
         except pd.io.sql.DatabaseError:
             pass
     completed = 0
@@ -133,7 +112,3 @@ def main():
         new_submission_id.to_sql('last_submisison', db, index=False)
 
     print(f'Running the script took {datetime.now() - t_start}')
-
-
-if __name__ == "__main__":
-    main()
