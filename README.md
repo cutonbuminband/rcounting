@@ -27,16 +27,16 @@ Alternatively, take a look at the instructions in `reddit_interface.py`.
 
 If you only intend to scrape public posts, and don't want to comment or access private posts, the `username` and `password` lines are unnecessary.
 
-The main command line interfaces are `log_thread.py`, `validate.py` and `update_thread_directory.py` which will be described below. All scripts accept a `-h` or  `--help` parameter to explain the usage.
+The command line interface for the package is all under the command `rcounting`. Type `rcounting -h` to see what options there are -- the main ones are described below
 
 
 ### Thread Logging
 
-The package has a script for logging threads which can be invoked just by typing `log_thread.py`. The default behaviour is to log the latest complete thread (as found in the [directory](http://reddit.com/r/counting/wiki/directory), saving the output to csv files. You can specify that you want to log a different threads, want to log a while chain of threads, or want to store the output in a database instead. Try typing `log_thread.py -h` to see a more detailed usage explanation.
+The package has functionality for logging threads which can be invoked by typing `rcounting log_thread`. The default behaviour is to log the latest complete thread (as found in the [directory](http://reddit.com/r/counting/wiki/directory), saving the output to csv files. You can specify that you want to log a different threads, want to log a while chain of threads, or want to store the output in a database instead. Try typing `rcounting log_thread -h` to see a more detailed usage explanation.
 
 
 ### Validation
-The `validate.py` script works in the same way, except that it takes an additional `--rule` parameter specifying which rule should be checked. The following options are available:
+The package can also validate threads according to specific rules. This is done by typing `rcounting validate`, and the program takes an additional `--rule` parameter specifying which rule should be checked. The following options are available:
 
 - default: No counter can reply to themselves
 - wait2: Counters can only count once two others have counted
@@ -47,13 +47,13 @@ The `validate.py` script works in the same way, except that it takes an addition
 - slowestest: One hour must elapse between each count, and counters must wait 24h between each of their counts
 - only\_double\_counting: Counters must reply to themselves exactly once before it's somebody else's turn.
 
-If no rule is supplied, the script will only check that nobody double counted.
+If no rule is supplied, the program will only check that nobody double counted.
 
 After you run it, it'll print out whether all the counts in the chain were valid, and if there was an invalid count, which one it was.
 
 ### Updating the thread directory
 
-The script `update_thread_directory.py` will try and update the [directory of side threads](www.reddit.com/r/counting/wiki/directory). It roughly follows the following steps
+Finally, there's a program to update the [directory of side threads](www.reddit.com/r/counting/wiki/directory). It's invoked by calling `rcounting update_directory`, and roughly follows the following steps
 
 1. It gets all submissions to r/counting made within the last six months
 2. It tries to find a link to the parent submission of each submission
