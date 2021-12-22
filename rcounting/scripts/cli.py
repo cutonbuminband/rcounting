@@ -40,6 +40,11 @@ def main():
                            'the last completed thread'))
     log.add_argument('-n', type=int, default=1,
                      help='The number of submissions to log. Default 1')
+
+    log.add_argument('--filename', '-f', type=str, default='counting.sqlite',
+                     help=('What file to store the sql database in. Only valid for sql mode'))
+
+
     log.add_argument('-o', '--output_directory', default='.',
                      help=('The directory to use for output. '
                            'Default is the current working directory'))

@@ -58,7 +58,8 @@ def main(args):
     last_submission_id = ''
     known_submissions = []
     if args.sql:
-        db = sqlite3.connect(output_directory / Path('counting.sqlite'))
+        db_file = output_directory / Path(args.filename)
+        db = sqlite3.connect(db_file)
         try:
             submissions = pd.read_sql("select * from submissions", db)
             known_submissions = submissions['submission_id'].tolist()
