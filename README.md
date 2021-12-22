@@ -10,30 +10,19 @@ This repository has tools for interacting with the reddit api through the [Pytho
 Currently, the main non-trivial functions get statistics for a single reddit thread, or for the "999" and "000" counts for many threads.
 
 ## Installation and usage
-The package is available on `pypi` as a package, so installation is as easy as `pip3 install rcounting`. Otherwise, you can clone the repository by: typing `git clone https://github.com/cutonbuminband/counting_stats.git` in a terminal.
+The package is available on `pypi` as a package, so installation is as easy as `pip3 install rcounting`. If you want the very latest commit, you can install by typing `pip3 install git+https://github.com/cutonbuminband/rcounting.git`.
 
-To get everything to work, you'll need to get [oauth credentials for the reddit api](https://github.com/reddit-archive/reddit/wiki/OAuth2), and store them somewhere where the program knows about it. The easiest way is to create a file in called `praw.ini` in the directory with the following contents
+The command line interface for the package is all under the command `rcounting`. The command line interface for the package is all under the command `rcounting`. Type `rcounting -h` to see what options there are -- the main ones are described below.
 
-```
-[stats_bot]
-client_id = 14CHARACTER_ID
-client_secret = 30CHARACTER_SECRET
-user_agent= PICK_SOMETHING_SENSIBLE
-username = USERNAME
-password = PASSWORD
-```
+The first time you run the program you will be asked to authorize it to interact with reddit on your behalf. Specifically, it needs to be able to
 
-Alternatively, take a look at the instructions in `reddit_interface.py`.
-
-If you only intend to scrape public posts, and don't want to comment or access private posts, the `username` and `password` lines are unnecessary.
-
-The command line interface for the package is all under the command `rcounting`. Type `rcounting -h` to see what options there are -- the main ones are described below
-
+- Read posts on reddit
+- Read wiki pages on reddit
+- Edit wiki pages (for updating the thread directory)
 
 ### Thread Logging
 
 The package has functionality for logging threads which can be invoked by typing `rcounting log_thread`. The default behaviour is to log the latest complete thread (as found in the [directory](http://reddit.com/r/counting/wiki/directory), saving the output to csv files. You can specify that you want to log a different threads, want to log a while chain of threads, or want to store the output in a database instead. Try typing `rcounting log_thread -h` to see a more detailed usage explanation.
-
 
 ### Validation
 The package can also validate threads according to specific rules. This is done by typing `rcounting validate`, and the program takes an additional `--rule` parameter specifying which rule should be checked. The following options are available:
@@ -76,7 +65,7 @@ Some of the threads from the last six months might not be in the directory (yet)
 If you run the script with no parameters it takes around 15 minutes to run, depending on how out of date the directory pages are. That's an unavoidable consequence of the rate-limiting that reddit does.
 
 ## Data analysis
-Using the scripts here (and an archive supplied by members of r/counting, I've scraped every comment in the main counting chain, including the comment bodies. There are a number of interesting plots and tables that can be made using this data; here's a list of [examples](doc/examples.org) of working with the data.
+Using the scripts here (and an archive supplied by members of r/counting), I've scraped every comment in the main counting chain, including the comment bodies. There are a number of interesting plots and tables that can be made using this data; here's a list of [examples](doc/examples.org) of working with the data.
 
 ## Contributing and Future Ideas
 This is a loosely organised list of things which could be done in the future. If you have any suggestions, don't hesitate to write, or to send a pull request.
@@ -95,7 +84,7 @@ The program makes use of the [Python Reddit API Wrapper](https://praw.readthedoc
 
 The program also uses the [Pushshift API Wrapper](https://psaw.readthedocs.io/en/latest/#)
 
-The program uses the `pandas` package to work with tabular data
+The program uses `pandas` to work with tabular data
 
 ## Get in touch
 
