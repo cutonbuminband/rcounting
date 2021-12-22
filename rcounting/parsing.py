@@ -7,7 +7,7 @@ def find_count_in_text(body, base=10, raise_exceptions=True):
     separators = "' , .*/"
     try:
         regex = (f"^[^{characters}]*"    # We strip characters from the start
-                 rf"([{characters}{re.escape(separators)}]*)")  # And then we take all base n digits and separators
+                 rf"([{characters}{re.escape(separators)}]*)")  # We then take digits and separators
         count = re.findall(regex, body.lower())[0]
         # We remove any separators, and try to convert the remainder to an int.
         stripped_count = count.translate(str.maketrans("", "", separators))
