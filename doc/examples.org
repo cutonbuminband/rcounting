@@ -18,11 +18,15 @@ We start with some imports
   from rcounting import side_threads, counters, analysis
 #+end_src
 
+And connect to the sqlite database
+#+begin_src jupyter-python
+  db = sqlite3.connect(Path("../results/counting.sqlite"))
+#+end_src
+
 * Loading Data
 Then we load some data, both the counts and the gets. We also add both a `date` column and a "replying to" column, since some of what we'll be doing later needs it.
 
 #+begin_src jupyter-python
-  db = sqlite3.connect(Path("../results/counting.sqlite"))
   counts = pd.read_sql("select submissions.basecount, comments.* "
                        "from comments join submissions "
                        "on comments.submission_id = submissions.submission_id "
