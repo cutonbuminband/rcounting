@@ -1,4 +1,3 @@
-#! /usr/bin/python3
 import pandas as pd
 
 import rcounting.side_threads as st

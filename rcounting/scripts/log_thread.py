@@ -1,4 +1,3 @@
-#! /usr/bin/python3
 # encoding=utf8
 import os
 from pathlib import Path
