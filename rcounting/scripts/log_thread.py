@@ -106,9 +106,11 @@ def main(args):
                         print(hoc_string(df, title), file=f)
         comment = tn.find_previous_get(comment)
 
-    if is_updated and args.sql and (comment.submission.id == last_submission_id):
+    first_submission = "uuikz"  # The very first thread on r/counting
+    if is_updated and args.sql and (comment.submission.id in [last_submission_id, first_submission]):
         new_submission_id = pd.read_sql("select submission_id "
                                         "from submissions order by basecount", db).iloc[-1]
-        new_submission_id.to_sql('last_submisison', db, index=False)
+        new_submission_id.name = "submission_id"
+        new_submission_id.to_sql('last_submission', db, index=False, if_exists='append')
 
     print(f'Running the script took {datetime.now() - t_start}')
