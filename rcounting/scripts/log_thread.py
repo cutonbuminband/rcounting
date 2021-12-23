@@ -51,7 +51,7 @@ def main(args):
         comment = reddit.comment(get_id)
 
     print(f'Logging {"all" if args.all_counts else args.n} '
-          f'reddit submission{"s" if args.n > 1 else ""} '
+          f'reddit submission{"s" if (args.n > 1) or args.all_counts else ""} '
           f'starting at {get_id} and moving backwards')
 
     last_submission_id = ''
@@ -114,4 +114,6 @@ def main(args):
         new_submission_id.name = "submission_id"
         new_submission_id.to_sql('last_submission', db, index=False, if_exists='append')
 
+    if not is_updated:
+        print('The database is already up to date!')
     print(f'Running the script took {datetime.now() - t_start}')
