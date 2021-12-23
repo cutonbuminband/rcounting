@@ -78,7 +78,8 @@ def main(args):
             return os.path.isfile(hoc_path)
 
     is_updated = False
-    while (completed < args.n) or (args.all_counts and comment.submission.id != last_submission_id):
+    while ((not args.all_counts and (completed < args.n))
+           or (args.all_counts and comment.submission.id != last_submission_id)):
         is_updated = True
         completed += 1
         if not is_already_logged(comment):
