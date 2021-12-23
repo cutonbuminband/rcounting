@@ -169,7 +169,8 @@ class Tree():
         max_depth = 0
         result = None
         for leaf in self.leaves:
-            if depth := self.find_depth(leaf) > max_depth:
+            depth = self.find_depth(leaf)
+            if depth > max_depth:
                 max_depth = depth
                 result = leaf
         return result

@@ -109,7 +109,8 @@ def name_sort(name):
 def normalise_title(title):
     title = title.translate(str.maketrans('[]', '()'))
     title = title.replace('|', '&#124;')
-    if revived := is_revived(title):
+    revived = is_revived(title)
+    if revived:
         start, end = revived.span()
         return title[:start] + '(Revival)' + title[end:]
     return title
