@@ -9,11 +9,18 @@ api = PushshiftAPI()
 def find_previous_get(comment, validate_get=True, verbosity=0):
     reddit = comment._reddit
     submission = comment.submission
-    url = next(filter(lambda x: int(x[0], 36) < int(submission.id, 36),
-                      parsing.find_urls_in_submission(submission)))
+    urls = filter(lambda x: int(x[0], 36) < int(submission.id, 36),
+                  parsing.find_urls_in_submission(submission))
+    url = next(urls)
 
     new_submission_id, new_get_id = url
-    if not new_get_id:
+    while not new_get_id:
+        try:
+            url = next(urls)
+            new_submission_id, new_get_id = url
+        except StopIteration:
+            break
+    if not new_get_id and validate_get:
         new_get_id = find_get_in_submission(new_submission_id, reddit)
     comment = reddit.comment(new_get_id)
     if validate_get:
