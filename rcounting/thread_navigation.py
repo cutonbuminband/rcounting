@@ -26,9 +26,9 @@ def find_previous_get(comment, validate_get=True, verbosity=0):
     return new_get
 
 
-def find_get_in_submission(submission, reddit):
+def find_get_in_submission(submission_id, reddit):
     "Find the get based on submission id"
-    comment_ids = api._get_submission_comment_ids(submission.id)[::-1]
+    comment_ids = api._get_submission_comment_ids(submission_id)[::-1]
     for comment_id in comment_ids[:-1]:
         comment = reddit.comment(comment_id)
         try:
@@ -37,7 +37,7 @@ def find_get_in_submission(submission, reddit):
                 return comment.id
         except ValueError:
             continue
-    raise ValueError(f"Unable to locate get in submission {submission.id}")
+    raise ValueError(f"Unable to locate get in submission {submission_id}")
 
 
 def search_up_from_gz(comment, max_retries=5):
