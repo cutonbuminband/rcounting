@@ -1,4 +1,5 @@
 import pandas as pd
+import click
 
 import rcounting.side_threads as st
 import rcounting.thread_navigation as tn
@@ -16,13 +17,24 @@ rule_dict = {'default': 'default',
              'only_double_counting': 'only double counting'}
 
 
-def main(args):
-    comment = reddit.comment(args.comment_id)
-    print(f"Validating thread: '{comment.submission.title}' according to rule {args.rule}")
+@click.command(no_args_is_help=True)
+@click.option('--rule',
+              help='Which rule to apply. Default is no double counting',
+              default='default',
+              type=click.Choice(rule_dict.keys(), case_sensitive=False))
+@click.argument('comment_id')
+def validate(comment_id, rule):
+    """Validate the thread ending at COMMENT_ID according to the specified rule."""
+    comment = reddit.comment(comment_id)
+    print(f"Validating thread: '{comment.submission.title}' according to rule {rule}")
     comments = pd.DataFrame(tn.fetch_comments(comment, use_pushshift=False))
-    side_thread = st.get_side_thread(rule_dict[args.rule])
+    side_thread = st.get_side_thread(rule_dict[rule])
     result = side_thread.is_valid_thread(comments)
     if result[0]:
         print('All counts were valid')
     else:
-        print(f'Invalid count found at reddit.com{reddit.comment(result[1]).permalink}!')
+        print(f'Invalid count found at http://reddit.com{reddit.comment(result[1]).permalink}!')
+
+
+if __name__ == "__main__":
+    validate()

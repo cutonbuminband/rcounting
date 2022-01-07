@@ -2,6 +2,7 @@ import copy
 import datetime
 import bisect
 import itertools
+import click
 
 import rcounting.parsing as parsing
 import rcounting.utils as utils
@@ -10,8 +11,16 @@ import rcounting.thread_navigation as tn
 from rcounting.reddit_interface import reddit
 
 
-def main(args):
-    verbosity = 1 - args.quiet + args.verbose
+@click.command(no_args_is_help=True)
+@click.option('--dry-run', is_flag=True,
+              help='Write results to files instead of updating the wiki pages')
+@click.option('-v', '--verbose', count=True)
+@click.option('-q', '--quiet', is_flag=True)
+def update_directory(quiet, verbose, dry_run):
+    """
+    Update the thread directory located at reddit.com/r/counting/wiki/directory.
+    """
+    verbosity = (1 + verbose) * (1 - quiet)
     start = datetime.datetime.now()
     subreddit = reddit.subreddit('counting')
     wiki_page, document = td.load_wiki_page(subreddit, 'directory')
@@ -104,7 +113,7 @@ def main(args):
 
     new_table.sort(key=lambda x: parsing.name_sort(x.name))
     new_page = '\n\n'.join([x if isinstance(x, str) else td.rows2string(x) for x in document])
-    if not args.dry_run:
+    if not dry_run:
         wiki_page.edit(new_page, reason="Ran the update script")
     else:
         with open('directory.md', 'w') as f:
@@ -128,7 +137,7 @@ def main(args):
         parts = [td.rows2string(x, show_archived=True, kind='archive') for x in parts]
         archive = list(itertools.chain.from_iterable(zip(titles, parts)))
         new_archive = '\n\n'.join(archive)
-        if not args.dry_run:
+        if not dry_run:
             archive_wiki.edit(new_archive, reason="Ran the update script")
         else:
             with open('archive.md', 'w') as f:
@@ -136,3 +145,7 @@ def main(args):
 
     end = datetime.datetime.now()
     print(end - start)
+
+
+if __name__ == "__main__":
+    update_directory()

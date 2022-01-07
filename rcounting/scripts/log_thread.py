@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 from datetime import datetime
 import sqlite3
+import click
 
 import rcounting.parsing as parsing
 import rcounting.thread_navigation as tn
@@ -32,32 +33,45 @@ def hoc_string(df, title):
     return '\n'.join([header, data, footer])
 
 
-def main(args):
+@click.command()
+@click.argument('leaf_comment_id', default='')
+@click.option('--all', '-a', 'all_counts', is_flag=True)
+@click.option('-n', '--n-threads', default=1, help='The number of submissions to log.')
+@click.option('--filename', '-f', default='counting.sqlite',
+              type=click.Path(path_type=Path),
+              help=('What file to store the sql database in. Only valid for sql mode'))
+@click.option('-o', '--output-directory', default='.',
+              type=click.Path(path_type=Path),
+              help='The directory to use for output. Default is the current working directory')
+@click.option('--sql/--csv', default=False)
+def log(leaf_comment_id, all_counts, n_threads, filename, output_directory, sql):
+    """
+    Log the tread which ends in LEAF_COMMENT_ID.
+    If no comment id is provided, use the latest completed thread found in the thread directory.
+    """
     t_start = datetime.now()
-    output_directory = Path(args.output_directory)
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
 
-    if not args.get_id:
+    if not leaf_comment_id:
         subreddit = reddit.subreddit('counting')
         wiki_page = subreddit.wiki['directory']
         document = wiki_page.content_md.replace("\r\n", "\n")
         result = parsing.parse_directory_page(document)
         comment_id = result[1][1][0][4]
         comment = tn.find_previous_get(reddit.comment(comment_id))
-        get_id = comment.id
+        leaf_comment_id = comment.id
     else:
-        get_id = args.get_id
-        comment = reddit.comment(get_id)
+        comment = reddit.comment(leaf_comment_id)
 
-    print(f'Logging {"all" if args.all_counts else args.n} '
-          f'reddit submission{"s" if (args.n > 1) or args.all_counts else ""} '
-          f'starting at {get_id} and moving backwards')
+    print(f'Logging {"all" if all_counts else n_threads} '
+          f'reddit submission{"s" if (n_threads > 1) or all_counts else ""} '
+          f'starting at {leaf_comment_id} and moving backwards')
 
     last_submission_id = ''
     known_submissions = []
-    if args.sql:
-        db_file = output_directory / Path(args.filename)
+    if sql:
+        db_file = output_directory / filename
         db = sqlite3.connect(db_file)
         try:
             submissions = pd.read_sql("select * from submissions", db)
@@ -69,7 +83,7 @@ def main(args):
     completed = 0
 
     def is_already_logged(comment):
-        if args.sql:
+        if sql:
             return comment.submission.id in known_submissions
         else:
             body = parsing.strip_markdown_links(comment.body)
@@ -78,8 +92,8 @@ def main(args):
             return os.path.isfile(hoc_path)
 
     is_updated = False
-    while ((not args.all_counts and (completed < args.n))
-           or (args.all_counts and comment.submission.id != last_submission_id)):
+    while ((not all_counts and (completed < n_threads))
+           or (all_counts and comment.submission.id != last_submission_id)):
         is_updated = True
         completed += 1
         if not is_already_logged(comment):
@@ -88,7 +102,7 @@ def main(args):
             n = (df['body'].apply(lambda x: parsing.find_count_in_text(x, raise_exceptions=False))
                  - df.index).median()
             basecount = int(n - (n % 1000))
-            if args.sql:
+            if sql:
                 submission = pd.DataFrame([models.Submission(comment.submission).to_dict()])
                 submission = submission[['submission_id', 'username', 'timestamp', 'title', 'body']]
                 submission['basecount'] = basecount
@@ -108,7 +122,7 @@ def main(args):
         comment = tn.find_previous_get(comment)
 
     first_submission = "uuikz"  # The very first thread on r/counting
-    if is_updated and args.sql and (comment.submission.id in [last_submission_id, first_submission]):
+    if is_updated and sql and (comment.submission.id in [last_submission_id, first_submission]):
         new_submission_id = pd.read_sql("select submission_id "
                                         "from submissions order by basecount", db).iloc[-1]
         new_submission_id.name = "submission_id"
@@ -117,3 +131,7 @@ def main(args):
     if not is_updated:
         print('The database is already up to date!')
     print(f'Running the script took {datetime.now() - t_start}')
+
+
+if __name__ == "__main__":
+    log()
