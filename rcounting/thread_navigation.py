@@ -6,7 +6,7 @@ import rcounting.models as models
 api = PushshiftAPI()
 
 
-def find_previous_get(comment):
+def find_previous_get(comment, validate_get=True, verbose=False):
     reddit = comment._reddit
     submission = comment.submission
     url = next(filter(lambda x: int(x[0], 36) < int(submission.id, 36),
@@ -16,8 +16,12 @@ def find_previous_get(comment):
     if not new_get_id:
         new_get_id = find_get_in_submission(new_submission_id, reddit)
     comment = reddit.comment(new_get_id)
-    new_get = find_get_from_comment(comment)
-    print(new_get.submission, new_get.id)
+    if validate_get:
+        new_get = find_get_from_comment(comment)
+    else:
+        new_get = reddit.comment(new_get_id)
+    if verbose:
+        print(new_get.submission, new_get.id)
     return new_get
 
 

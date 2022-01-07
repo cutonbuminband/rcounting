@@ -3,13 +3,15 @@ import os
 from pathlib import Path
 import pandas as pd
 from datetime import datetime
+import functools
 import sqlite3
 import click
 
 import rcounting.parsing as parsing
 import rcounting.thread_navigation as tn
+import rcounting.thread_directory as td
 from rcounting.counters import apply_alias
-from rcounting.utils import format_timedelta
+import rcounting.utils
 from rcounting.reddit_interface import reddit
 import rcounting.models as models
 
@@ -27,8 +29,8 @@ def hoc_string(df, title):
     data = table.set_index(table.index + 1).to_csv(None, sep='|', header=0)
 
     header = (f'Thread Participation Chart for {title}\n\nRank|Username|Counts\n---|---|---')
-    footer = (f'It took {len(table)} counters {format_timedelta(dt)} to complete this thread. '
-              f'Bold is the user with the get\n'
+    footer = (f'It took {len(table)} counters {rcounting.utils.format_timedelta(dt)} '
+              'to complete this thread. Bold is the user with the get\n'
               f'total counts in this chain logged: {len(df) - 1}')
     return '\n'.join([header, data, footer])
 
@@ -44,21 +46,36 @@ def hoc_string(df, title):
               type=click.Path(path_type=Path),
               help='The directory to use for output. Default is the current working directory')
 @click.option('--sql/--csv', default=False)
-def log(leaf_comment_id, all_counts, n_threads, filename, output_directory, sql):
+@click.option('--side-thread/--main', '-s/-m', default=False,
+              help=('Log the main thread or a side thread. Get validation is '
+                    'switched off for side threads, and only sqlite output is supported'))
+def log(leaf_comment_id,
+        all_counts,
+        n_threads,
+        filename,
+        output_directory,
+        sql,
+        side_thread):
     """
     Log the tread which ends in LEAF_COMMENT_ID.
     If no comment id is provided, use the latest completed thread found in the thread directory.
+    By default, assumes that this is part of the main chain, and will attempt to
+    find the true get if the gz or the assist are linked instead.
     """
     t_start = datetime.now()
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
 
+    if side_thread:
+        sql = True
+
+    subreddit = reddit.subreddit('counting')
+    _, document = td.load_wiki_page(subreddit, 'directory')
+    threads = rcounting.utils.flatten([x[1] for x in document if x[0] == 'table'])
+    first_submissions = [x[1] for x in threads]
+
     if not leaf_comment_id:
-        subreddit = reddit.subreddit('counting')
-        wiki_page = subreddit.wiki['directory']
-        document = wiki_page.content_md.replace("\r\n", "\n")
-        result = parsing.parse_directory_page(document)
-        comment_id = result[1][1][0][4]
+        comment_id = threads[0][4]
         comment = tn.find_previous_get(reddit.comment(comment_id))
         leaf_comment_id = comment.id
     else:
@@ -99,15 +116,20 @@ def log(leaf_comment_id, all_counts, n_threads, filename, output_directory, sql)
         if not is_already_logged(comment):
             df = pd.DataFrame(tn.fetch_comments(comment, use_pushshift=False))
             df = df[['comment_id', 'username', 'timestamp', 'submission_id', 'body']]
-            n = (df['body'].apply(lambda x: parsing.find_count_in_text(x, raise_exceptions=False))
-                 - df.index).median()
-            basecount = int(n - (n % 1000))
+            if not side_thread:
+                extract_count = functools.partial(parsing.find_count_in_text,
+                                                  raise_exceptions=False)
+                n = (df['body'].apply(extract_count) - df.index).median()
+                basecount = int(n - (n % 1000))
             if sql:
-                submission = pd.DataFrame([models.Submission(comment.submission).to_dict()])
+                submission = pd.Series(models.Submission(comment.submission).to_dict())
                 submission = submission[['submission_id', 'username', 'timestamp', 'title', 'body']]
-                submission['basecount'] = basecount
+                if not side_thread:
+                    submission['basecount'] = basecount
+                else:
+                    submission['integer_id'] = int(submission['submission_id'], 36)
                 df.to_sql('comments', db, index_label='position', if_exists='append')
-                submission.to_sql('submissions', db, index=False, if_exists='append')
+                submission.to_frame().T.to_sql('submissions', db, index=False, if_exists='append')
             else:
                 hoc_path = output_directory / Path(f'TABLE_{basecount}to{basecount+1000}.csv')
                 hog_path = output_directory / Path(f'LOG_{basecount}to{basecount+1000}.csv')
@@ -119,12 +141,16 @@ def log(leaf_comment_id, all_counts, n_threads, filename, output_directory, sql)
                     output_df.to_csv(hog_path, header=None)
                     with open(hoc_path, 'w') as f:
                         print(hoc_string(df, title), file=f)
-        comment = tn.find_previous_get(comment)
 
-    first_submission = "uuikz"  # The very first thread on r/counting
-    if is_updated and sql and (comment.submission.id in [last_submission_id, first_submission]):
-        new_submission_id = pd.read_sql("select submission_id "
-                                        "from submissions order by basecount", db).iloc[-1]
+        if comment.submission.id in first_submissions:
+            break
+
+        comment = tn.find_previous_get(comment, validate_get=not side_thread)
+
+    if is_updated and sql and (comment.submission.id in first_submissions + [last_submission_id]):
+        query = (f"select submission_id from submissions order by "
+                 f"{'integer_id' if side_thread else 'basecount'}")
+        new_submission_id = pd.read_sql(query, db).iloc[-1]
         new_submission_id.name = "submission_id"
         new_submission_id.to_sql('last_submission', db, index=False, if_exists='append')
 
