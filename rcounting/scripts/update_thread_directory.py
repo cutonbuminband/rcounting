@@ -14,7 +14,7 @@ from rcounting.reddit_interface import reddit
 @click.command(no_args_is_help=True)
 @click.option('--dry-run', is_flag=True,
               help='Write results to files instead of updating the wiki pages')
-@click.option('-v', '--verbose', count=True)
+@click.option('-v', '--verbose', count=True, help='Print more output')
 @click.option('-q', '--quiet', is_flag=True)
 def update_directory(quiet, verbose, dry_run):
     """
@@ -123,9 +123,8 @@ def update_directory(quiet, verbose, dry_run):
     new_archived_threads = [x for x in full_table if x.archived]
     if new_archived_threads or updated_archive:
         n = len(new_archived_threads)
-        if verbosity > 0:
-            print(f'Moving {n} archived thread{"s" if n != 1 else ""}'
-                  ' to /r/counting/wiki/directory/archive')
+        print(f'Moving {n} archived thread{"s" if n != 1 else ""}'
+              ' to /r/counting/wiki/directory/archive')
         archived_rows += new_archived_threads
         archived_rows.sort(key=lambda x: parsing.name_sort(x.name))
         splits = ['A', 'D', 'I', 'P', 'T', '[']

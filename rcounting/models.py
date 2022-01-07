@@ -196,13 +196,15 @@ class Tree():
 
 
 class CommentTree(Tree):
-    def __init__(self, comments=[], reddit=None, get_missing_replies=True, verbose=True):
+    def __init__(self, comments=[], reddit=None, get_missing_replies=True, verbosity=3):
         tree = {x.id: x.parent_id[3:] for x in comments if not is_root(x)}
         comments = {x.id: x for x in comments}
         super().__init__(comments, tree)
         self.reddit = reddit
         self.get_missing_replies = get_missing_replies
-        self.verbose = verbose
+        self.verbosity = verbosity
+        self.refresh_counter = [None, 5, 2, 1][self.verbosity]
+        self._parent_counter, self._child_counter = 0, 0
         self.comment = self.node
 
     def node(self, comment_id):
@@ -228,8 +230,12 @@ class CommentTree(Tree):
         praw_comment = self.reddit.comment(comment_id)
         try:
             praw_comment.refresh()
-            if self.verbose:
-                print(f"Fetching ancestors of comment {praw_comment.id}")
+            if self.verbosity:
+                if self._parent_counter == 0:
+                    print(f"Fetching ancestors of comment {praw_comment.id}")
+                    self._parent_counter = self.refresh_counter
+                else:
+                    self._parent_counter -= 1
         except Exception as e:
             print(e)
             pass
@@ -251,8 +257,12 @@ class CommentTree(Tree):
     def find_children(self, comment):
         children = [self.comment(x) for x in self.reversed_tree[comment.id]]
         if not children and self.get_missing_replies:
-            if self.verbose:
-                print(f"Fetching replies to comment {comment.id}")
+            if self.verbosity:
+                if self._child_counter == 0:
+                    self._child_counter = self.refresh_counter
+                    print(f"Fetching replies to comment {comment.id}")
+                else:
+                    self._child_counter -= 1
             children = self.add_missing_replies(comment)
         by_date = sorted(children, key=lambda x: x.created_utc)
         return sorted(by_date, key=lambda x: x.body in utils.deleted_phrases)

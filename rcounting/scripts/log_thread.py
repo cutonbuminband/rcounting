@@ -49,15 +49,19 @@ def hoc_string(df, title):
 @click.option('--side-thread/--main', '-s/-m', default=False,
               help=('Log the main thread or a side thread. Get validation is '
                     'switched off for side threads, and only sqlite output is supported'))
+@click.option('--verbose', '-v', count=True, help='Print more output')
+@click.option('--quiet', '-q', is_flag=True, default=False, help='Suppress output')
 def log(leaf_comment_id,
         all_counts,
         n_threads,
         filename,
         output_directory,
         sql,
-        side_thread):
+        side_thread,
+        verbose,
+        quiet):
     """
-    Log the tread which ends in LEAF_COMMENT_ID.
+    Log the reddit submission which ends in LEAF_COMMENT_ID.
     If no comment id is provided, use the latest completed thread found in the thread directory.
     By default, assumes that this is part of the main chain, and will attempt to
     find the true get if the gz or the assist are linked instead.
@@ -69,6 +73,8 @@ def log(leaf_comment_id,
     if side_thread:
         sql = True
 
+    verbosity = (1 - quiet) * (1 + verbose)
+
     subreddit = reddit.subreddit('counting')
     _, document = td.load_wiki_page(subreddit, 'directory')
     threads = rcounting.utils.flatten([x[1] for x in document if x[0] == 'table'])
@@ -76,19 +82,20 @@ def log(leaf_comment_id,
 
     if not leaf_comment_id:
         comment_id = threads[0][4]
-        comment = tn.find_previous_get(reddit.comment(comment_id))
+        comment = tn.find_previous_get(reddit.comment(comment_id), verbosity=verbosity)
         leaf_comment_id = comment.id
     else:
         comment = reddit.comment(leaf_comment_id)
 
     print(f'Logging {"all" if all_counts else n_threads} '
           f'reddit submission{"s" if (n_threads > 1) or all_counts else ""} '
-          f'starting at {leaf_comment_id} and moving backwards')
+          f'starting at comment id {leaf_comment_id} and moving backwards')
 
     last_submission_id = ''
     known_submissions = []
     if sql:
         db_file = output_directory / filename
+        print(f"Writing submissions to sql database at {db_file}")
         db = sqlite3.connect(db_file)
         try:
             submissions = pd.read_sql("select * from submissions", db)
@@ -111,10 +118,12 @@ def log(leaf_comment_id,
     is_updated = False
     while ((not all_counts and (completed < n_threads))
            or (all_counts and comment.submission.id != last_submission_id)):
+        if verbosity > 0:
+            print(f"Logging reddit submission {comment.submission.id}")
         is_updated = True
         completed += 1
         if not is_already_logged(comment):
-            df = pd.DataFrame(tn.fetch_comments(comment, use_pushshift=False))
+            df = pd.DataFrame(tn.fetch_comments(comment, use_pushshift=False, verbosity=verbosity))
             df = df[['comment_id', 'username', 'timestamp', 'submission_id', 'body']]
             if not side_thread:
                 extract_count = functools.partial(parsing.find_count_in_text,
@@ -138,14 +147,22 @@ def log(leaf_comment_id,
 
                     hog_columns = ['username', 'timestamp', 'comment_id', 'submission_id']
                     output_df = df.set_index(df.index + basecount)[hog_columns].iloc[1:]
+                    if verbosity > 0:
+                        print(f'Writing submission log to {hog_path}')
                     output_df.to_csv(hog_path, header=None)
+                    if verbosity > 0:
+                        print(f'Writing participation table to {hoc_path}')
                     with open(hoc_path, 'w') as f:
                         print(hoc_string(df, title), file=f)
-
+        else:
+            if verbosity > 0:
+                print(f"Thread {comment.submission.id} has already been logged!")
         if comment.submission.id in first_submissions:
             break
 
-        comment = tn.find_previous_get(comment, validate_get=not side_thread)
+        comment = tn.find_previous_get(comment,
+                                       validate_get=not side_thread,
+                                       verbosity=verbosity)
 
     if is_updated and sql and (comment.submission.id in first_submissions + [last_submission_id]):
         query = (f"select submission_id from submissions order by "
