@@ -20,7 +20,7 @@ We start with some imports
 
 And connect to the sqlite database
 #+begin_src jupyter-python
-  db = sqlite3.connect(Path("../results/counting.sqlite"))
+  db = sqlite3.connect("counting.sqlite"))
 #+end_src
 
 * Loading Data
