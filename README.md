@@ -12,7 +12,7 @@ Currently, the main non-trivial functions get statistics for a single reddit thr
 ## Installation and usage
 The package is available on `pypi` as a package, so installation is as easy as `pip3 install rcounting`. If you want the very latest commit, you can install by typing `pip3 install git+https://github.com/cutonbuminband/rcounting.git`.
 
-The command line interface for the package is all under the command `rcounting`. The command line interface for the package is all under the command `rcounting`. Type `rcounting -h` to see what options there are -- the main ones are described below.
+The command line interface for the package is all under the command `rcounting`. Type `rcounting --help` to see what options there are -- the main ones are described below.
 
 The first time you run the program you will be asked to authorize it to interact with reddit on your behalf. Specifically, it needs to be able to
 
@@ -22,7 +22,7 @@ The first time you run the program you will be asked to authorize it to interact
 
 ### Thread Logging
 
-The package has functionality for logging threads which can be invoked by typing `rcounting log_thread`. The default behaviour is to log the latest complete thread (as found in the [directory](http://reddit.com/r/counting/wiki/directory), saving the output to csv files. You can specify that you want to log a different threads, want to log a while chain of threads, or want to store the output in a database instead. Try typing `rcounting log_thread -h` to see a more detailed usage explanation.
+The package has functionality for logging threads which can be invoked by typing `rcounting log`. The default behaviour is to log the latest complete thread (as found in the [directory](http://reddit.com/r/counting/wiki/directory), saving the output to csv files. You can specify that you want to log a different threads, want to log a while chain of threads, or want to store the output in a database instead. Try typing `rcounting log_thread --help` to see a more detailed usage explanation.
 
 ### Validation
 The package can also validate threads according to specific rules. This is done by typing `rcounting validate`, and the program takes an additional `--rule` parameter specifying which rule should be checked. The following options are available:
@@ -42,7 +42,7 @@ After you run it, it'll print out whether all the counts in the chain were valid
 
 ### Updating the thread directory
 
-Finally, there's a program to update the [directory of side threads](www.reddit.com/r/counting/wiki/directory). It's invoked by calling `rcounting update_directory`, and roughly follows the following steps
+Finally, there's a program to update the [directory of side threads](www.reddit.com/r/counting/wiki/directory). It's invoked by calling `rcounting update-directory`, and roughly follows the following steps
 
 1. It gets all submissions to r/counting made within the last six months
 2. It tries to find a link to the parent submission of each submission
