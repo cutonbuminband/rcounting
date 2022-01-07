@@ -6,7 +6,7 @@ import rcounting.models as models
 api = PushshiftAPI()
 
 
-def find_previous_get(comment):
+def find_previous_get(comment, validate_get=True, verbosity=0):
     reddit = comment._reddit
     submission = comment.submission
     url = next(filter(lambda x: int(x[0], 36) < int(submission.id, 36),
@@ -16,8 +16,13 @@ def find_previous_get(comment):
     if not new_get_id:
         new_get_id = find_get_in_submission(new_submission_id, reddit)
     comment = reddit.comment(new_get_id)
-    new_get = find_get_from_comment(comment)
-    print(new_get.submission, new_get.id)
+    if validate_get:
+        new_get = find_get_from_comment(comment)
+    else:
+        new_get = reddit.comment(new_get_id)
+    if verbosity > 1:
+        print(f"Found previous get at: "
+              f"http://reddit.com/comments/{new_get.submission}/_/{new_get.id}")
     return new_get
 
 
@@ -74,7 +79,7 @@ def extract_gets_and_assists(comment, n_submissions=1000):
     return gets, assists
 
 
-def fetch_comment_tree(submission, root_id=None, verbose=True, use_pushshift=True, history=1,
+def fetch_comment_tree(submission, root_id=None, verbosity=1, use_pushshift=True, history=1,
                        fill_gaps=False):
     r = submission._reddit
     if use_pushshift:
@@ -82,7 +87,7 @@ def fetch_comment_tree(submission, root_id=None, verbose=True, use_pushshift=Tru
     else:
         comment_ids = []
     if not comment_ids:
-        return models.CommentTree([], reddit=r, verbose=verbose)
+        return models.CommentTree([], reddit=r, verbosity=verbosity)
 
     comment_ids.sort(key=lambda x: int(x, 36))
     if root_id is not None:
@@ -91,14 +96,14 @@ def fetch_comment_tree(submission, root_id=None, verbose=True, use_pushshift=Tru
                 break
         comment_ids = comment_ids[max(0, idx - history):]
     comments = [comment for comment in r.info(['t1_' + x for x in comment_ids])]
-    submission_tree = models.CommentTree(comments, reddit=r, verbose=verbose)
+    submission_tree = models.CommentTree(comments, reddit=r, verbosity=verbosity)
     if fill_gaps:
         submission_tree.fill_gaps()
     return submission_tree
 
 
-def fetch_comments(comment, verbose=True, use_pushshift=True):
-    tree = fetch_comment_tree(comment.submission, verbose=verbose, use_pushshift=use_pushshift)
+def fetch_comments(comment, verbosity=1, use_pushshift=True):
+    tree = fetch_comment_tree(comment.submission, verbosity=verbosity, use_pushshift=use_pushshift)
     comments = tree.comment(comment.id).walk_up_tree()[::-1]
     return [x.to_dict() for x in comments]
 
