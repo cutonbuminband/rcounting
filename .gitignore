@@ -1,8 +1,6 @@
 praw.ini
 .env
 .venv
-*.png
-*.csv
 *.sqlite
 __pycache__/
 *.py[cod]
