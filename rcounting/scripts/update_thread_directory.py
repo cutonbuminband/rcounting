@@ -11,7 +11,7 @@ import rcounting.thread_navigation as tn
 from rcounting.reddit_interface import reddit
 
 
-@click.command(no_args_is_help=True)
+@click.command()
 @click.option('--dry-run', is_flag=True,
               help='Write results to files instead of updating the wiki pages')
 @click.option('-v', '--verbose', count=True, help='Print more output')
