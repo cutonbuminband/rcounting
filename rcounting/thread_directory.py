@@ -99,7 +99,8 @@ class Row():
 
         a < b if a is an ancestor of b
         a < b if a and b have the same parent and a was posted before b
-        a < b if parent(a) < parent(b) otherwise
+        a < b if π(a) < π(b), where π(a) is the oldest ancestor of a which is
+        not an ancestor of b, and similarly for b.
 
         This is used for new threads, where non-count comments are frequently
         posted either as early top-level comments, or as replies to a top level
