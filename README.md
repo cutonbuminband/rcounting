@@ -67,18 +67,9 @@ If you run the script with no parameters it takes around 15 minutes to run, depe
 ## Data analysis
 Using the scripts here (and an archive supplied by members of r/counting), I've scraped every comment in the main counting chain, including the comment bodies. There are a number of interesting plots and tables that can be made using this data; here's a list of [examples](doc/examples.org) of working with the data.
 
-## Contributing and Future Ideas
-This is a loosely organised list of things which could be done in the future. If you have any suggestions, don't hesitate to write, or to send a pull request.
-
-* ~~Recovering gracefully if a linked comment is inaccessible because it's been deleted or removed~~ This has been done more or less, in that the code tries to see if the reddit object is accessible on pushshift. If it isn't, it still crashes, but there's no simple way of recovering gently if e.g. the body of a submission is missing so that the previous get can't be found.
-* Making the comment and url extraction less brittle
-## License
-
-This project is licensed under the terms of the GNU General Public License v3.0, or, at your discretion, any later version. You can read the license terms in [LICENSE.md](https://github.com/cutonbuminband/counting_stats/blob/master/LICENSE.md)
-
 ## Dependencies
 
-The program has only been tested on python 3.8
+The program has been tested on python 3.7, 3.8 and 3.10, on Windows and on Linux.
 
 The program makes use of the [Python Reddit API Wrapper](https://praw.readthedocs.io/en/latest/) to interact with reddit.
 
@@ -86,6 +77,16 @@ The program also uses the [Pushshift API Wrapper](https://psaw.readthedocs.io/en
 
 The program uses `pandas` to work with tabular data
 
+## License
+
+This project is licensed under the terms of the GNU General Public License v3.0, or, at your discretion, any later version. You can read the license terms in [LICENSE.md](https://github.com/cutonbuminband/counting_stats/blob/master/LICENSE.md)
+
+## Contributing and Future Ideas
+This is a loosely organised list of things which could be done in the future. If you have any suggestions, don't hesitate to write, or to send a pull request. As a heads up, when you submit a pull request, you are also agreeing to license your code under the GPL (see github's [terms of service](https://docs.github.com/en/github/site-policy/github-terms-of-service#6-contributions-under-repository-license)
+
+* ~~Recovering gracefully if a linked comment is inaccessible because it's been deleted or removed~~ This has been done more or less, in that the code tries to see if the reddit object is accessible on pushshift. If it isn't, it still crashes, but there's no simple way of recovering gently if e.g. the body of a submission is missing so that the previous get can't be found.
+* Making the comment and url extraction less brittle
+
 ## Get in touch
 
-If you have any questions, suggestions or comments about this repository, you can contact the maintainer at cutonbuminband@gmail.com, or visit the [counting subreddit](www.reddit.com/r/counting) and post in the weekly Free Talk Friday thread
+If you have any questions, suggestions or comments about this project, you can contact the maintainer at cutonbuminband@gmail.com, or visit the [counting subreddit](www.reddit.com/r/counting) and post in the weekly Free Talk Friday thread.
