@@ -78,6 +78,34 @@ class Row():
         return f"{count:,d}"
 
     def update(self, submission_tree, from_archive=False, verbosity=1, deepest_comment=False):
+        """Find the latest comment in the latest submission of the side thread
+        represented by this row.
+
+        Parameters:
+
+        submission_tree: A models.Tree object representing which
+        submissions are linked to which. If no mistakes have been made, this
+        should just be a series of straight line chains
+
+        from_archive: Whether the current side thread originally comes from the
+        archive. If it does, a bit of care is needed when updating the total
+        number of counts
+
+        verbosity: How much output to print. Higher verbosity=more output
+
+        deepest_comment: A flag used to say that the function should find the
+        deepest comment overall, rather than the deepest comment in the
+        earliest valid chain. Earliest is defined according to the order
+
+        a < b if a is an ancestor of b
+        a < b if a and b have the same parent and a was posted before b
+        a < b if parent(a) < parent(b) otherwise
+
+        This is used for new threads, where non-count comments are frequently
+        posted either as early top-level comments, or as replies to a top level
+        comment.
+
+        """
         side_thread = st.get_side_thread(self.thread_type, verbosity)
         if verbosity > 1:
             print(f"Updating side thread: {self.thread_type}")
