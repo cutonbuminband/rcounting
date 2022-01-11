@@ -20,7 +20,7 @@ We start with some imports
 
 And connect to the sqlite database
 #+begin_src jupyter-python
-  db = sqlite3.connect("counting.sqlite"))
+  db = sqlite3.connect("counting.sqlite")
 #+end_src
 
 * Loading Data
@@ -182,7 +182,21 @@ The groups are then sorted according to size, and prepared for pretty printing.
 #+end_src
 
 ** Comment bodies
-We have access to the body of each comment, so it's possible to do a bit of analysis on those. For example, using regular expressions, we can determine whether a count is comma separated, space separated or has no separator.
+We have access to the body of each comment, so it's possible to do a bit of analysis on those.
+
+To start with, we can just try and find the longest comment bodies in the data. Now, this is possible do do in pure sql, so we don't actually need to load all the millions of rows into memory if we are only interested in the top few:
+
+#+begin_src jupyter-python
+  df = pd.read_sql_query('select submission_id, comment_id, body from comments '
+                         'order by LENGTH(body) desc limit 6', db)
+  df['length'] = df['body'].apply(len)
+  df.sort_values('length', ascending=False, inplace=True)
+  for row in df.itertuples():
+      print(f'https://www.reddit.com/comments/{row.submission_id}/_/{row.comment_id}')
+#+end_src
+
+
+In a more advanced example, we can determine whether a count is comma separated, space separated or has no separator by using regular expressions.
 
 The rules are as follows:
 
@@ -191,6 +205,8 @@ The rules are as follows:
 - No separated counts are defined as one of
   - Counts with only one digit
   - Counts with no separators between their frist and last digit, with separators defined fairly broadly.
+
+Now in this case, we do need access to every comment (since we are determining the type of every comment), and so we'll just proceed with the counts dataframe defined earlier. This gets fairly memory intensive, so care should be used.
 
 #+begin_src jupyter-python
   data = counts.set_index('date')
