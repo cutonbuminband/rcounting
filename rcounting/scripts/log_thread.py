@@ -39,9 +39,10 @@ def hoc_string(df, title):
 @click.argument('leaf_comment_id', default='')
 @click.option('--all', '-a', 'all_counts', is_flag=True)
 @click.option('-n', '--n-threads', default=1, help='The number of submissions to log.')
-@click.option('--filename', '-f', default='counting.sqlite',
+@click.option('--filename', '-f',
               type=click.Path(path_type=Path),
-              help=('What file to store the sql database in. Only valid for sql mode'))
+              help=('What file to store the sql database in. Only valid for sql mode. '
+                    'If none is specified, counting.sqlite is used as default.'))
 @click.option('-o', '--output-directory', default='.',
               type=click.Path(path_type=Path),
               help='The directory to use for output. Default is the current working directory')
@@ -70,7 +71,7 @@ def log(leaf_comment_id,
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
 
-    if side_thread:
+    if side_thread or (filename is not None and (n_threads != 1 or all_counts)):
         sql = True
 
     verbosity = (1 - quiet) * (1 + verbose)
@@ -94,6 +95,8 @@ def log(leaf_comment_id,
     last_submission_id = ''
     known_submissions = []
     if sql:
+        if filename is None:
+            filename = Path('counting.sqlite')
         db_file = output_directory / filename
         print(f"Writing submissions to sql database at {db_file}")
         db = sqlite3.connect(db_file)
