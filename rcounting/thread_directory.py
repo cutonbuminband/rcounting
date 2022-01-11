@@ -52,6 +52,10 @@ class Row():
         else:
             return f"/comments/{self.submission_id}"
 
+    def set_submission(self, submission):
+        submission.comment_sort = 'old'
+        self.submission = submission
+
     def update_title(self):
         if self.first_submission == self.submission.id:
             self.title = title_from_first_comment(self.submission)
@@ -83,7 +87,7 @@ class Row():
                   'Assuming n=1000 and no double counting.')
 
         chain = submission_tree.walk_down_tree(submission_tree.node(self.submission_id))
-        self.submission = chain[-1]
+        self.set_submission(chain[-1])
         if submission_tree.is_archived(self.submission):
             self.archived = True
             return

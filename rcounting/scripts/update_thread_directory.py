@@ -96,7 +96,6 @@ def update_directory(quiet, verbose, dry_run):
     for thread in revived_threads:
         chain = tree.walk_up_tree(thread)
         for submission in chain:
-            submission.comment_sort = 'old'
             if submission.id in archived_dict:
                 row = copy.copy(archived_dict[submission.id])
                 try:
