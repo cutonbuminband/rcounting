@@ -2,73 +2,77 @@ from collections import defaultdict, deque
 from rcounting import utils
 
 
-class RedditPost():
+class RedditPost:
     def __init__(self, post, cached=False, api=None):
         self.id = post.id
         self.created_utc = post.created_utc
         self.author = str(post.author)
-        self.body = post.body if hasattr(post, 'body') else post.selftext
-        cached = cached or hasattr(post, 'cached')
-        if hasattr(post, 'post_type'):
+        self.body = post.body if hasattr(post, "body") else post.selftext
+        cached = cached or hasattr(post, "cached")
+        if hasattr(post, "post_type"):
             self.post_type = post.post_type
         else:
-            self.post_type = 'comment' if hasattr(post, 'body') else 'submission'
+            self.post_type = "comment" if hasattr(post, "body") else "submission"
         if not cached and api is not None:
             if self.body in utils.deleted_phrases or self.author in utils.deleted_phrases:
-                if self.post_type == 'comment':
+                if self.post_type == "comment":
                     search = api.search_comments
-                elif self.post_type == 'submission':
+                elif self.post_type == "submission":
                     search = api.search_submissions
                 self.body, self.author = self.find_missing_content(search)
         self.cached = True
 
     def find_missing_content(self, search):
         try:
-            post = next(search(ids=[self.id], metadata='true', limit=0))
+            post = next(search(ids=[self.id], metadata="true", limit=0))
         except StopIteration:
             return self.body, self.author
         author = post.author
-        body = post.body if hasattr(post, 'body') else post.selftext
+        body = post.body if hasattr(post, "body") else post.selftext
         return body, author
 
     def to_dict(self):
-        return {'username': self.author,
-                'timestamp': self.created_utc,
-                'comment_id': self.id,
-                'submission_id': self.submission_id[3:],
-                'body': self.body}
+        return {
+            "username": self.author,
+            "timestamp": self.created_utc,
+            "comment_id": self.id,
+            "submission_id": self.submission_id[3:],
+            "body": self.body,
+        }
 
 
 class Submission(RedditPost):
     def __init__(self, s):
         super().__init__(s)
         self.title = s.title
-        self.submission_id = s.submission_id if hasattr(s, 'submission_id') else s.name
+        self.submission_id = s.submission_id if hasattr(s, "submission_id") else s.name
 
     def to_dict(self):
-        return {'username': self.author,
-                'timestamp': self.created_utc,
-                'comment_id': self.id,
-                'submission_id': self.submission_id[3:],
-                'body': self.body,
-                'title': self.title}
+        return {
+            "username": self.author,
+            "timestamp": self.created_utc,
+            "comment_id": self.id,
+            "submission_id": self.submission_id[3:],
+            "body": self.body,
+            "title": self.title,
+        }
 
     def __repr__(self):
-        return f'offline_submission(id={self.id})'
+        return f"offline_submission(id={self.id})"
 
 
 class Comment(RedditPost):
     def __init__(self, comment, tree=None):
         RedditPost.__init__(self, comment)
-        self.submission_id = (comment.submission_id
-                              if hasattr(comment, 'submission_id')
-                              else comment.link_id)
+        self.submission_id = (
+            comment.submission_id if hasattr(comment, "submission_id") else comment.link_id
+        )
         self.parent_id = comment.parent_id
-        self.is_root = (self.parent_id == self.submission_id)
+        self.is_root = self.parent_id == self.submission_id
         self.tree = tree
 
     def __repr__(self):
-        return f'offline_comment(id={self.id})'
+        return f"offline_comment(id={self.id})"
 
     def refresh(self):
         pass
@@ -92,7 +96,7 @@ class Comment(RedditPost):
         return self.tree.find_depth(self)
 
 
-class Tree():
+class Tree:
     def __init__(self, nodes, tree):
         self.tree = tree
         self.nodes = nodes
@@ -119,7 +123,7 @@ class Tree():
             return None
         nodes = [node]
         counter = 1
-        while node.id in self.tree and not getattr(node, 'is_root', False):
+        while node.id in self.tree and not getattr(node, "is_root", False):
             if limit is not None and counter >= limit:
                 break
             node = self.parent(node)
@@ -338,6 +342,7 @@ def is_root(comment):
     try:
         return comment.is_root
     except AttributeError:
-        submission_id = (comment.submission_id
-                         if hasattr(comment, 'submission_id') else comment.link_id)
+        submission_id = (
+            comment.submission_id if hasattr(comment, "submission_id") else comment.link_id
+        )
         return comment.parent_id == submission_id

@@ -11,11 +11,11 @@ def load_wiki_page(subreddit, location):
 
 def title_from_first_comment(submission):
     comment = sorted(list(submission.comments), key=lambda x: x.created_utc)[0]
-    body = comment.body.split('\n')[0]
+    body = comment.body.split("\n")[0]
     return parsing.normalise_title(parsing.strip_markdown_links(body))
 
 
-class Row():
+class Row:
     def __init__(self, name, first_submission, title, submission_id, comment_id, count):
         self.archived = False
         self.name = name
@@ -27,23 +27,27 @@ class Row():
         self.count = parsing.find_count_in_text(self.count_string.replace("-", "0"))
         self.is_approximate = self.count_string[0] == "~"
         self.starred_count = self.count_string[-1] == "*"
-        self.thread_type = st.known_thread_ids.get(self.first_submission, fallback='default')
+        self.thread_type = st.known_thread_ids.get(self.first_submission, fallback="default")
 
     def __str__(self):
-        return (f"[{self.name}](/{self.first_submission}) | "
-                f"[{self.title}]({self.link}) | {self.count_string}")
+        return (
+            f"[{self.name}](/{self.first_submission}) | "
+            f"[{self.title}]({self.link}) | {self.count_string}"
+        )
+
+    def order_tuple(self):
+        return (self.count, self.starred_count, self.is_approximate)
 
     def __lt__(self, other):
-        return ((self.count, self.starred_count, self.is_approximate)
-                < (other.count, other.starred_count, other.is_approximate))
+        return self.order_tuple() < other.order_tuple()
 
     @property
     def submission_id(self):
-        return self.submission.id if hasattr(self, 'submission') else self.initial_submission_id
+        return self.submission.id if hasattr(self, "submission") else self.initial_submission_id
 
     @property
     def comment_id(self):
-        return self.comment.id if hasattr(self, 'comment') else self.initial_comment_id
+        return self.comment.id if hasattr(self, "comment") else self.initial_comment_id
 
     @property
     def link(self):
@@ -59,7 +63,7 @@ class Row():
         else:
             sections = self.submission.title.split("|")
             if len(sections) > 1:
-                title = '|'.join(sections[1:]).strip()
+                title = "|".join(sections[1:]).strip()
             else:
                 title = title_from_first_comment(self.submission)
         self.title = parsing.normalise_title(title)
@@ -107,9 +111,10 @@ class Row():
         if verbosity > 1:
             print(f"Updating side thread: {self.thread_type}")
         if verbosity > 0 and self.thread_type == "default":
-            print(f'No rule found for {self.name}. '
-                  'Not validating comment contents. '
-                  'Assuming n=1000 and no double counting.')
+            print(
+                f"No rule found for {self.name}. Not validating comment contents. Assuming n=1000"
+                " and no double counting."
+            )
 
         chain = submission_tree.walk_down_tree(submission_tree.node(self.submission_id))
         self.submission = chain[-1]
@@ -155,12 +160,14 @@ class Row():
             self.update_title()
 
 
-def rows2string(rows=[], show_archived=False, kind='directory'):
-    labels = {'directory': 'Current', 'archive': 'Last'}
-    header = ['⠀' * 10 + 'Name &amp; Initial Thread' + '⠀' * 10,
-              '⠀' * 10 + f'{labels[kind]} Thread' + '⠀' * 10,
-              '⠀' * 3 + '# of Counts' + '⠀' * 3]
-    header = [' | '.join(header), ':--:|:--:|--:']
+def rows2string(rows=[], show_archived=False, kind="directory"):
+    labels = {"directory": "Current", "archive": "Last"}
+    header = [
+        "⠀" * 10 + "Name &amp; Initial Thread" + "⠀" * 10,
+        "⠀" * 10 + f"{labels[kind]} Thread" + "⠀" * 10,
+        "⠀" * 3 + "# of Counts" + "⠀" * 3,
+    ]
+    header = [" | ".join(header), ":--:|:--:|--:"]
     if not show_archived:
         rows = [x for x in rows if not x.archived]
     return "\n".join(header + [str(x) for x in rows])

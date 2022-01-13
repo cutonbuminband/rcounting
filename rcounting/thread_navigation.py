@@ -9,8 +9,10 @@ api = PushshiftAPI()
 def find_previous_get(comment, validate_get=True, verbosity=0):
     reddit = comment._reddit
     submission = comment.submission
-    urls = filter(lambda x: int(x[0], 36) < int(submission.id, 36),
-                  parsing.find_urls_in_submission(submission))
+    urls = filter(
+        lambda x: int(x[0], 36) < int(submission.id, 36),
+        parsing.find_urls_in_submission(submission),
+    )
     url = next(urls)
 
     new_submission_id, new_get_id = url
@@ -28,8 +30,10 @@ def find_previous_get(comment, validate_get=True, verbosity=0):
     else:
         new_get = reddit.comment(new_get_id)
     if verbosity > 1:
-        print(f"Found previous get at: "
-              f"http://reddit.com/comments/{new_get.submission}/_/{new_get.id}")
+        print(
+            "Found previous get at: "
+            f"http://reddit.com/comments/{new_get.submission}/_/{new_get.id}"
+        )
     return new_get
 
 
@@ -80,14 +84,15 @@ def extract_gets_and_assists(comment, n_submissions=1000):
         for i in range(3):
             rows.append(models.comment_to_dict(comment))
             comment = comment.parent()
-        gets.append({**rows[0], 'timedelta': rows[0]['timestamp'] - rows[1]['timestamp']})
-        assists.append({**rows[1], 'timedelta': rows[1]['timestamp'] - rows[2]['timestamp']})
+        gets.append({**rows[0], "timedelta": rows[0]["timestamp"] - rows[1]["timestamp"]})
+        assists.append({**rows[1], "timedelta": rows[1]["timestamp"] - rows[2]["timestamp"]})
         comment = find_previous_get(comment)
     return gets, assists
 
 
-def fetch_comment_tree(submission, root_id=None, verbosity=1, use_pushshift=True, history=1,
-                       fill_gaps=False):
+def fetch_comment_tree(
+    submission, root_id=None, verbosity=1, use_pushshift=True, history=1, fill_gaps=False
+):
     r = submission._reddit
     if use_pushshift:
         comment_ids = [x for x in api._get_submission_comment_ids(submission.id)]
@@ -101,8 +106,8 @@ def fetch_comment_tree(submission, root_id=None, verbosity=1, use_pushshift=True
         for idx, comment_id in enumerate(comment_ids):
             if int(comment_id, 36) >= int(root_id, 36):
                 break
-        comment_ids = comment_ids[max(0, idx - history):]
-    comments = [comment for comment in r.info(['t1_' + x for x in comment_ids])]
+        comment_ids = comment_ids[max(0, idx - history) :]
+    comments = [comment for comment in r.info(["t1_" + x for x in comment_ids])]
     submission_tree = models.CommentTree(comments, reddit=r, verbosity=verbosity)
     if fill_gaps:
         submission_tree.fill_gaps()
@@ -122,7 +127,7 @@ def get_counting_history(subreddit, time_limit, verbosity=1):
     submissions_dict = {}
     new_submissions = []
     for count, submission in enumerate(submissions):
-        submission.comment_sort = 'old'
+        submission.comment_sort = "old"
         if verbosity > 1 and count % 20 == 0:
             print(f"Processing reddit submission {submission.id}")
         title = submission.title.lower()
@@ -130,8 +135,12 @@ def get_counting_history(subreddit, time_limit, verbosity=1):
             continue
         submissions_dict[submission.id] = submission
         try:
-            url = next(filter(lambda x: int(x[0], 36) < int(submission.id, 36),
-                              parsing.find_urls_in_submission(submission)))
+            url = next(
+                filter(
+                    lambda x: int(x[0], 36) < int(submission.id, 36),
+                    parsing.find_urls_in_submission(submission),
+                )
+            )
             tree[submission.id] = url[0]
         except StopIteration:
             new_submissions.append(submission)
@@ -139,6 +148,6 @@ def get_counting_history(subreddit, time_limit, verbosity=1):
         if now - post_time > time_limit:
             break
     else:  # no break
-        print('Threads between {now - six_months} and {post_time} have not been collected')
+        print("Threads between {now - six_months} and {post_time} have not been collected")
 
     return models.SubmissionTree(submissions_dict, tree, subreddit._reddit), new_submissions

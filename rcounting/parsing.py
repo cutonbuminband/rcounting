@@ -6,8 +6,9 @@ def find_count_in_text(body, base=10, raise_exceptions=True):
     characters = "0123456789abcdefghijklmnopqrstuvwxyz"[:base]
     separators = "' , .*/"
     try:
-        regex = (f"^[^{characters}]*"    # We strip characters from the start
-                 rf"([{characters}{re.escape(separators)}]*)")  # We then take digits and separators
+        regex = (  # We strip characters from the start and then take digits and separators
+            rf"^[^{characters}]*([{characters}{re.escape(separators)}]*)"
+        )
         count = re.findall(regex, body.lower())[0]
         # We remove any separators, and try to convert the remainder to an int.
         stripped_count = count.translate(str.maketrans("", "", separators))
@@ -38,14 +39,14 @@ def post_to_urls(reddit_post, api=None):
 
 
 def parse_markdown_links(body):
-    regex = r'\[(.*?)\]\((.+?(?<!\\))\)'
+    regex = r"\[(.*?)\]\((.+?(?<!\\))\)"
     links = re.findall(regex, body)
     return links
 
 
 def strip_markdown_links(body):
-    regex = r'\[(.+?)\]\((.+?(?<!\\))\)'
-    replacement = r'\1'
+    regex = r"\[(.+?)\]\((.+?(?<!\\))\)"
+    replacement = r"\1"
     return re.sub(regex, replacement, body)
 
 
@@ -60,12 +61,12 @@ def parse_directory_page(directory_page):
         if not mask:
             text.append(paragraph)
         else:
-            tagged_results.append(['text', '\n\n'.join(text)])
+            tagged_results.append(["text", "\n\n".join(text)])
             text = []
             rows = [parse_row(row) for row in lines[2:]]
-            tagged_results.append(['table', rows])
+            tagged_results.append(["table", rows])
     if text:
-        tagged_results.append(['text', '\n\n'.join(text)])
+        tagged_results.append(["text", "\n\n".join(text)])
     return tagged_results
 
 
@@ -97,20 +98,20 @@ def find_urls_in_submission(submission):
 
 
 def is_revived(title):
-    regex = r'\(*reviv\w*\)*'
+    regex = r"\(*reviv\w*\)*"
     return re.search(regex, title.lower())
 
 
 def name_sort(name):
-    title = name.translate(str.maketrans('', '', '\'"()^/*')).lower()
-    return tuple(int(c) if c.isdigit() else c for c in re.split(r'(\d+)', title))
+    title = name.translate(str.maketrans("", "", "'\"()^/*")).lower()
+    return tuple(int(c) if c.isdigit() else c for c in re.split(r"(\d+)", title))
 
 
 def normalise_title(title):
-    title = title.translate(str.maketrans('[]', '()'))
-    title = title.replace('|', '&#124;')
+    title = title.translate(str.maketrans("[]", "()"))
+    title = title.replace("|", "&#124;")
     revived = is_revived(title)
     if revived:
         start, end = revived.span()
-        return title[:start] + '(Revival)' + title[end:]
+        return title[:start] + "(Revival)" + title[end:]
     return title
