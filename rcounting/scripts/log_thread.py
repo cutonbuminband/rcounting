@@ -7,12 +7,10 @@ import functools
 import sqlite3
 import click
 
-import rcounting.parsing as parsing
+import rcounting as rct
 import rcounting.thread_navigation as tn
 import rcounting.thread_directory as td
-import rcounting.utils
 from rcounting.reddit_interface import reddit
-import rcounting.models as models
 
 
 @click.command()
@@ -58,7 +56,7 @@ def log(leaf_comment_id,
 
     subreddit = reddit.subreddit('counting')
     _, document = td.load_wiki_page(subreddit, 'directory')
-    threads = rcounting.utils.flatten([x[1] for x in document if x[0] == 'table'])
+    threads = rct.utils.flatten([x[1] for x in document if x[0] == 'table'])
     first_submissions = [x[1] for x in threads]
 
     if not leaf_comment_id:
@@ -93,8 +91,8 @@ def log(leaf_comment_id,
         if sql:
             return comment.submission.id in known_submissions
         else:
-            body = parsing.strip_markdown_links(comment.body)
-            basecount = parsing.find_count_in_text(body) - 1000
+            body = rct.parsing.strip_markdown_links(comment.body)
+            basecount = rct.parsing.find_count_in_text(body) - 1000
             hoc_path = output_directory / Path(f'{basecount}to{basecount+1000}.csv')
             return os.path.isfile(hoc_path)
 
@@ -109,12 +107,12 @@ def log(leaf_comment_id,
             df = pd.DataFrame(tn.fetch_comments(comment, use_pushshift=False, verbosity=verbosity))
             df = df[['comment_id', 'username', 'timestamp', 'submission_id', 'body']]
             if not side_thread:
-                extract_count = functools.partial(parsing.find_count_in_text,
+                extract_count = functools.partial(rct.parsing.find_count_in_text,
                                                   raise_exceptions=False)
                 n = (df['body'].apply(extract_count) - df.index).median()
                 basecount = int(n - (n % 1000))
             if sql:
-                submission = pd.Series(models.Submission(comment.submission).to_dict())
+                submission = pd.Series(rct.models.Submission(comment.submission).to_dict())
                 submission = submission[['submission_id', 'username', 'timestamp', 'title', 'body']]
                 if not side_thread:
                     submission['basecount'] = basecount

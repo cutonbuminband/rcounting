@@ -4,8 +4,7 @@ import bisect
 import itertools
 import click
 
-import rcounting.parsing as parsing
-import rcounting.utils as utils
+import rcounting as rct
 import rcounting.thread_directory as td
 import rcounting.thread_navigation as tn
 from rcounting.reddit_interface import reddit
@@ -60,7 +59,7 @@ def update_directory(quiet, verbose, dry_run):
 
     new_submission_ids = set(tree.walk_down_tree(submission)[-1].id
                              for submission in new_submissions)
-    full_table = utils.flatten([x for x in document if not isinstance(x, str)])
+    full_table = rct.utils.flatten([x for x in document if not isinstance(x, str)])
     known_submissions = set([x.submission_id for x in full_table])
     new_submission_ids = new_submission_ids - known_submissions
     if new_submission_ids:
@@ -87,7 +86,7 @@ def update_directory(quiet, verbose, dry_run):
     archive_wiki, archive = td.load_wiki_page(subreddit, 'directory/archive')
     archive_header = archive[0][1]
     archived_rows = [entry[1][:] for entry in archive if entry[0] == 'table']
-    archived_rows = [td.Row(*x) for x in utils.flatten(archived_rows)]
+    archived_rows = [td.Row(*x) for x in rct.utils.flatten(archived_rows)]
     archived_dict = {x.submission_id: x for x in archived_rows}
 
     revived_threads = set([x.id for x in tree.leaves]) - new_submission_ids - known_submissions
@@ -110,7 +109,7 @@ def update_directory(quiet, verbose, dry_run):
                     del archived_dict[submission.id]
                 break
 
-    new_table.sort(key=lambda x: parsing.name_sort(x.name))
+    new_table.sort(key=lambda x: rct.parsing.name_sort(x.name))
     new_page = '\n\n'.join([x if isinstance(x, str) else td.rows2string(x) for x in document])
     if not dry_run:
         wiki_page.edit(new_page, reason="Ran the update script")
@@ -125,13 +124,13 @@ def update_directory(quiet, verbose, dry_run):
         print(f'Moving {n} archived thread{"s" if n != 1 else ""}'
               ' to /r/counting/wiki/directory/archive')
         archived_rows += new_archived_threads
-        archived_rows.sort(key=lambda x: parsing.name_sort(x.name))
+        archived_rows.sort(key=lambda x: rct.parsing.name_sort(x.name))
         splits = ['A', 'D', 'I', 'P', 'T', '[']
         titles = [f'\n### {splits[idx]}-{chr(ord(x) - 1)}' for idx, x in enumerate(splits[1:])]
         titles[0] = archive_header
-        keys = [parsing.name_sort(x.name) for x in archived_rows]
+        keys = [rct.parsing.name_sort(x.name) for x in archived_rows]
         indices = [bisect.bisect_left(keys, (split.lower(),)) for split in splits[1:-1]]
-        parts = utils.partition(archived_rows, indices)
+        parts = rct.utils.partition(archived_rows, indices)
         parts = [td.rows2string(x, show_archived=True, kind='archive') for x in parts]
         archive = list(itertools.chain.from_iterable(zip(titles, parts)))
         new_archive = '\n\n'.join(archive)
