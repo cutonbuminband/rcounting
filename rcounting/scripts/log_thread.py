@@ -10,29 +10,9 @@ import click
 import rcounting.parsing as parsing
 import rcounting.thread_navigation as tn
 import rcounting.thread_directory as td
-from rcounting.counters import apply_alias
 import rcounting.utils
 from rcounting.reddit_interface import reddit
 import rcounting.models as models
-
-
-def hoc_string(df, title):
-    getter = apply_alias(df.iloc[-1]['username'])
-
-    def hoc_format(username):
-        username = apply_alias(username)
-        return f'**/u/{username}**' if username == getter else f'/u/{username}'
-
-    df['hoc_username'] = df['username'].apply(hoc_format)
-    dt = pd.to_timedelta(df.iloc[-1].timestamp - df.iloc[0].timestamp, unit='s')
-    table = df.iloc[1:]['hoc_username'].value_counts().to_frame().reset_index()
-    data = table.set_index(table.index + 1).to_csv(None, sep='|', header=0)
-
-    header = (f'Thread Participation Chart for {title}\n\nRank|Username|Counts\n---|---|---')
-    footer = (f'It took {len(table)} counters {rcounting.utils.format_timedelta(dt)} '
-              'to complete this thread. Bold is the user with the get\n'
-              f'total counts in this chain logged: {len(df) - 1}')
-    return '\n'.join([header, data, footer])
 
 
 @click.command()
@@ -115,7 +95,7 @@ def log(leaf_comment_id,
         else:
             body = parsing.strip_markdown_links(comment.body)
             basecount = parsing.find_count_in_text(body) - 1000
-            hoc_path = output_directory / Path(f'TABLE_{basecount}to{basecount+1000}.csv')
+            hoc_path = output_directory / Path(f'{basecount}to{basecount+1000}.csv')
             return os.path.isfile(hoc_path)
 
     is_updated = False
@@ -143,20 +123,13 @@ def log(leaf_comment_id,
                 df.to_sql('comments', db, index_label='position', if_exists='append')
                 submission.to_frame().T.to_sql('submissions', db, index=False, if_exists='append')
             else:
-                hoc_path = output_directory / Path(f'TABLE_{basecount}to{basecount+1000}.csv')
-                hog_path = output_directory / Path(f'LOG_{basecount}to{basecount+1000}.csv')
-                if not os.path.isfile(hoc_path):
-                    title = comment.submission.title
+                path = output_directory / Path(f'{basecount}to{basecount+1000}.csv')
 
-                    hog_columns = ['username', 'timestamp', 'comment_id', 'submission_id']
-                    output_df = df.set_index(df.index + basecount)[hog_columns].iloc[1:]
-                    if verbosity > 0:
-                        print(f'Writing submission log to {hog_path}')
-                    output_df.to_csv(hog_path, header=None)
-                    if verbosity > 0:
-                        print(f'Writing participation table to {hoc_path}')
-                    with open(hoc_path, 'w') as f:
-                        print(hoc_string(df, title), file=f)
+                columns = ['username', 'timestamp', 'comment_id', 'submission_id']
+                output_df = df.set_index(df.index + basecount)[columns].iloc[1:]
+                if verbosity > 0:
+                    print(f'Writing submission log to {path}')
+                output_df.to_csv(path, header=None)
         else:
             if verbosity > 0:
                 print(f"Thread {comment.submission.id} has already been logged!")

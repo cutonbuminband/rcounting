@@ -5,6 +5,8 @@ from numpy.fft import fftshift, rfft, irfft
 from numpy import pi
 from scipy.special import i0
 
+import rcounting as rct
+
 
 def combine_csvs(start, n):
     results = [''] * n
@@ -18,6 +20,25 @@ def combine_csvs(start, n):
         results[i] = df
         start += 1000
     return pd.concat(results)
+
+
+def hoc_string(df, title):
+    getter = rct.counters.apply_alias(df.iloc[-1]['username'])
+
+    def hoc_format(username):
+        username = rct.counters.apply_alias(username)
+        return f'**/u/{username}**' if username == getter else f'/u/{username}'
+
+    df['hoc_username'] = df['username'].apply(hoc_format)
+    dt = pd.to_timedelta(df.iloc[-1].timestamp - df.iloc[0].timestamp, unit='s')
+    table = df.iloc[1:]['hoc_username'].value_counts().to_frame().reset_index()
+    data = table.set_index(table.index + 1).to_csv(None, sep='|', header=0)
+
+    header = (f'Thread Participation Chart for {title}\n\nRank|Username|Counts\n---|---|---')
+    footer = (f'It took {len(table)} counters {rct.utils.format_timedelta(dt)} '
+              'to complete this thread. Bold is the user with the get\n'
+              f'total counts in this chain logged: {len(df) - 1}')
+    return '\n'.join([header, data, footer])
 
 
 def response_graph(df, n=250, username_column="username"):
