@@ -4,8 +4,6 @@
 * Imports and initialization
 We start with some imports
 #+begin_src jupyter-python
-  %load_ext dotenv
-  %dotenv
   from pathlib import Path
   import pandas as pd
   import numpy as np
