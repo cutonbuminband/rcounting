@@ -7,8 +7,6 @@ As well as counting, we also make stats on who's made how many counts, how fast 
 
 This repository has tools for interacting with the reddit api through the [Python Reddit API Wrapper](https://praw.readthedocs.io/en/latest/), to help gathering these statistics.
 
-Currently, the main non-trivial functions get statistics for a single reddit thread, or for the "999" and "000" counts for many threads.
-
 ## Installation and usage
 The package is available on `pypi` as a package, so installation is as easy as `pip3 install rcounting`. If you want the very latest commit, you can install by typing `pip3 install git+https://github.com/cutonbuminband/rcounting.git`.
 
