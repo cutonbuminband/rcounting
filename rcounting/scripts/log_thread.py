@@ -127,7 +127,11 @@ def log(leaf_comment_id,
                 output_df = df.set_index(df.index + basecount)[columns].iloc[1:]
                 if verbosity > 0:
                     print(f'Writing submission log to {path}')
-                output_df.to_csv(path, header=None)
+                title = comment.submission.title
+                header = ["username", "timestamp", "comment_id", "submission_id"]
+                with open(path, 'w') as f:
+                    print(f"# {title}", output_df.to_csv(index_label="count", header=header),
+                          file=f, sep="\n", end="")
         else:
             if verbosity > 0:
                 print(f"Thread {comment.submission.id} has already been logged!")
