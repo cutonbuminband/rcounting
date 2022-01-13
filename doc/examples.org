@@ -197,9 +197,9 @@ We have access to the body of each comment, so it's possible to do a bit of anal
 To start with, we can just try and find the longest comment bodies in the data. Now, this is possible do do in pure sql, so we don't actually need to load all the millions of rows into memory if we are only interested in the top few:
 
 #+begin_src jupyter-python
-  df = pd.read_sql_query('select submission_id, comment_id, LENGTH(body) from comments '
+  df = pd.read_sql_query('select submission_id, comment_id, LENGTH(body) as length from comments '
                          'order by LENGTH(body) desc limit 6', db)
-  df.sort_values('LENGTH(body)', ascending=False, inplace=True)
+  df.sort_values('length', ascending=False, inplace=True)
   for row in df.itertuples():
       print(f'https://www.reddit.com/comments/{row.submission_id}/_/{row.comment_id}')
 #+end_src
