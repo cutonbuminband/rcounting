@@ -4,7 +4,8 @@ from .validate import validate
 from .update_thread_directory import update_directory
 
 
-@click.group(commands=[log, validate, update_directory])
+@click.group(commands=[log, validate, update_directory],
+             context_settings=dict(help_option_names=["-h", "--help"]))
 def cli():
     pass
 
