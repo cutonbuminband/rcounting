@@ -18,6 +18,7 @@ We start with some imports
 
   plt.style.use("seaborn")
   plot_directory = Path('../../plots')
+  data_directory = Path('../../data')
 #+end_src
 
 And connect to the sqlite database
@@ -78,6 +79,12 @@ A first bit of analysis is to visualize the progress of r/counting over time
   plt.savefig(plot_directory / 'counts.png', bbox_inches='tight', dpi=300)
 #+end_src
 
+The plot looks as follows
+
+[[assets/img/counts.png]]
+
+You can see that the counting rate varies quite a bit over time, with signifcant peaks and lulls in activity. Whether or not there are active runners really changes how fast the count is progressing!
+
 ** Total counts vs k_parts
 We can try plotting thread participation vs total counts. The expectation is that generally, people who've made more total counts will also have counted in more threads. However, some users might have periods where they make a count every now and then but never do any runs, leading to comparatively more k_parts. On the other hand, some counters might only do runs, giving a counts/thread of up to 500.
 
@@ -110,11 +117,11 @@ We can make a polynomial fit of this (well, a linear fit of the log-log quantiti
 
 #+end_src
 
-#+begin_src jupyter-python
-  for idx, row in combined.reset_index().iterrows():
-      print(row.username, row.k_parts, row.total_counts)
+The plot looks as follows:
 
-#+end_src
+[[assets/img/parts_vs_counts.png]]
+
+The dashed line is a linear fit on the log-log plot, and it has a slope of 1.3. In this model, that means that if you double the total number of threads participated in by a user, you would expect to multiply their total counts by 2.5
 
 ** Number of partners and effective number of partners
 As with the number of counts vs threads participated in, we can expect that different counters might have qualitatively different behaviour when it comes to how many counting partners they have, and how often they've counted with each one. Some counters might count a little bit with everybody, while others might run with only a few partners, and drop a count with others every now and then.
@@ -147,7 +154,7 @@ We can also get the replying-to and replied-by stats for a single user
   replied_by.index -= 1
   subset['replied_by'] = replied_by
   result = pd.concat([subset.groupby("replied_by").count().iloc[:, 0].sort_values(ascending=False),
-                      subset.groupby("replying_to").count().iloc[:, 0].sort_values(ascending=False)], axis=1)
+                      subset.groupby("replying_to").count().iloc[:, 0].sort_values(ascending=False)], axis=1).head(10)
   print(result.to_markdown(headers=['Counting partner', f'No. of replies by {nick}', f'No. of replies to {nick}']))
 #+end_src
 
@@ -212,7 +219,7 @@ The rules are as follows:
 - Space separated counts are the same, with the comma replaced by a space
 - No separated counts are defined as one of
   - Counts with only one digit
-  - Counts with no separators between their frist and last digit, with separators defined fairly broadly.
+  - Counts with no separators between their first and last digit, with separators defined fairly broadly.
 
 Now in this case, we do need access to every comment (since we are determining the type of every comment), and so we'll just proceed with the counts dataframe defined earlier. This gets fairly memory intensive, so care should be used.
 
@@ -254,10 +261,16 @@ Once we have the data, we can get a 14-day rolling average, and resample the poi
   plt.savefig(plot_directory / 'separators.png', bbox_inches='tight', dpi=300)
 #+end_src
 
+That gives the following graph:
+
+[[assets/img/separators.png]]
+
+Notice you can clearly see when the count crossed 100k: that's when the red 'no separators' line drops from being the majority to being a clear minority of counts. That was followed by the era of commas, when the default format was clearly just to use commas as separators. The last two years have been significantly more noisy and muddy, with spaces as separators sometimes overtaking commas. Pretty neat!
+
 ** Network analysis
 We can do some network analysis. This snippet will generate the (comment, replying to, weight) graph for the top 250 counters. The heavy lifting is done by the [[file:analysis.py::def response_graph(df, n=250, username_column="username"):][response_graph]] function in analysis.py.
 #+begin_src jupyter-python
   n = 250
   graph = analysis.response_graph(counts, n, username_column="username")
-  graph.to_csv(f"graph_{n}.csv", index=False)
+  graph.to_csv(data_directory / f"graph_{n}.csv", index=False)
 #+end_src
