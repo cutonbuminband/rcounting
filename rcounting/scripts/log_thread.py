@@ -93,7 +93,7 @@ def log(leaf_comment_id,
         else:
             body = rct.parsing.strip_markdown_links(comment.body)
             basecount = rct.parsing.find_count_in_text(body) - 1000
-            hoc_path = output_directory / Path(f'{basecount}to{basecount+1000}.csv')
+            hoc_path = output_directory / Path(f'{basecount}.csv')
             return os.path.isfile(hoc_path)
 
     is_updated = False
@@ -121,7 +121,7 @@ def log(leaf_comment_id,
                 df.to_sql('comments', db, index_label='position', if_exists='append')
                 submission.to_frame().T.to_sql('submissions', db, index=False, if_exists='append')
             else:
-                path = output_directory / Path(f'{basecount}to{basecount+1000}.csv')
+                path = output_directory / Path(f'{basecount}.csv')
 
                 columns = ['username', 'timestamp', 'comment_id', 'submission_id']
                 output_df = df.set_index(df.index + basecount)[columns].iloc[1:]
