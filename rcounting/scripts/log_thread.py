@@ -11,9 +11,9 @@ import pandas as pd
 import rcounting as rct
 import rcounting.thread_directory as td
 import rcounting.thread_navigation as tn
-from rcounting.reddit_interface import reddit
+from rcounting.reddit_interface import reddit, subreddit
 
-_, document = td.load_wiki_page(reddit.subreddit("counting"), "directory")
+document = td.load_wiki_page(subreddit, "directory")
 threads = rct.utils.flatten([x[1] for x in document if x[0] == "table"])
 first_submissions = [x[1] for x in threads]
 

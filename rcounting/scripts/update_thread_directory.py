@@ -1,3 +1,4 @@
+"""A script to update the thread directory"""
 import bisect
 import copy
 import datetime
@@ -8,7 +9,135 @@ import click
 import rcounting as rct
 import rcounting.thread_directory as td
 import rcounting.thread_navigation as tn
-from rcounting.reddit_interface import reddit
+from rcounting.reddit_interface import subreddit
+
+
+def document_to_string(document):
+    """
+    Convert a list of paragraphs to a single string.
+
+    The paragraphs can be either strings or a list of Row objects.
+    """
+    return "\n\n".join([x if isinstance(x, str) else td.rows2string(x) for x in document])
+
+
+def document_to_dict(document):
+    """
+    Generate a dictionary of all the rows present in the document, indexed by their original id
+    """
+
+    rows = [entry[1][:] for entry in document if entry[0] == "table"]
+    rows = [td.Row(*x) for x in rct.utils.flatten(rows)]
+    return {x.submission_id: x for x in rows}
+
+
+def update_main_document(document, tree, verbosity):
+    """Update every row in the main directory page and sort the second table"""
+    table_counter = 0
+    for idx, paragraph in enumerate(document):
+        if paragraph[0] == "text":
+            document[idx] = paragraph[1]
+        elif paragraph[0] == "table":
+            table_counter += 1
+            rows = [td.Row(*x) for x in paragraph[1]]
+            for row_idx, row in enumerate(rows):
+                try:
+                    backup_row = copy.copy(row)
+                    row.update(tree, verbosity=verbosity)
+                except Exception as e:  # pylint: disable=broad-except
+                    print(f"Unable to update new thread {row.title}")
+                    print(e)
+                    rows[row_idx] = backup_row
+            if table_counter == 2:
+                rows.sort(reverse=True)
+            document[idx] = rows
+    return document
+
+
+def find_new_submissions(new_submission_ids, tree, threads):
+    """
+    Make a list of update rows corresponding to new submissions
+
+    If a row cannot be updated or, don't include it.
+    The same goes for new submissions with only a few comments on them.
+    """
+    known_submissions = {x.submission_id for x in threads}
+    result = []
+    for submission_id in new_submission_ids - known_submissions:
+        first_submission = tree.walk_up_tree(submission_id)[-1]
+        name = f'**{first_submission.title.split("|")[0].strip()}**'
+        try:
+            title = td.title_from_first_comment(first_submission)
+        except IndexError:
+            continue
+        row = td.Row(name, first_submission.id, title, first_submission.id, None, "-")
+        try:
+            row.update(tree, deepest_comment=True)
+        except Exception as e:  # pylint: disable=broad-except
+            print(f"Unable to update new thread {row.title}")
+            print(e)
+            continue
+        n_authors = len(set(x.author for x in row.comment.walk_up_tree()))
+        is_long_chain = row.comment.depth >= 50 and n_authors >= 5
+        if is_long_chain or row.submission_id != first_submission.id:
+            result.append(row)
+    return result
+
+
+def find_revived_submissions(new_submission_ids, tree, threads, archive_dict):
+    """
+    Make a list of updated rows corresponding to revived threads.
+    If a row is included here, delete it from the archive.
+
+    If a row cannot be updated or, don't include it.
+    The same goes for new submissions with only a few comments on them.
+    """
+    revivals = []
+    known_submissions = {x.submission_id for x in threads}
+    revived_threads = {x.id for x in tree.leaves} - new_submission_ids - known_submissions
+    for thread in revived_threads:
+        chain = tree.walk_up_tree(thread)
+        for submission in chain:
+            if submission.id in archive_dict:
+                row = copy.copy(archive_dict[submission.id])
+                try:
+                    row.update(tree, from_archive=True, deepest_comment=True)
+                except Exception as e:  # pylint: disable=broad-except
+                    print(f"Unable to update new thread {row.title}")
+                    print(e)
+                    continue
+                if row.comment.depth >= 20 or len(chain) > 2:
+                    revivals.append(row)
+                    del archive_dict[submission.id]
+                break
+    return revivals, archive_dict
+
+
+def update_archive(threads, archive_dict, dry_run):
+    """Update the archive located at http://reddit.com/r/counting/wiki/directory/archive"""
+    archive_wiki = subreddit.wiki["directory/archive"]
+    archive = td.load_wiki_page(subreddit, "directory/archive")
+    newly_archived_threads = [x for x in threads if x.archived]
+    archived_rows = list(archive_dict.values()) + newly_archived_threads
+    n = len(newly_archived_threads)
+    print(
+        f"Moving {n} archived thread{'s' if n != 1 else ''} to /r/counting/wiki/directory/archive"
+    )
+    archived_rows.sort(key=lambda x: rct.parsing.name_sort(x.name))
+    splits = ["A", "D", "I", "P", "T", "["]
+    titles = [f"\n### {splits[idx]}-{chr(ord(x) - 1)}" for idx, x in enumerate(splits[1:])]
+    titles[0] = archive[0][1]
+    keys = [rct.parsing.name_sort(x.name) for x in archived_rows]
+    indices = [bisect.bisect_left(keys, (split.lower(),)) for split in splits[1:-1]]
+    parts = rct.utils.partition(archived_rows, indices)
+    parts = [td.rows2string(x, show_archived=True, kind="archive") for x in parts]
+    archive = list(itertools.chain.from_iterable(zip(titles, parts)))
+    new_archive = "\n\n".join(archive)
+    if not dry_run:
+        archive_wiki.edit(new_archive, reason="Ran the update script")
+    else:
+        with open("archive.md", "w") as f:
+            print(new_archive, file=f)
 
 
 @click.command()
@@ -23,131 +152,52 @@ def update_directory(quiet, verbose, dry_run):
     """
     verbosity = (1 + verbose) * (1 - quiet)
     start = datetime.datetime.now()
-    subreddit = reddit.subreddit("counting")
-    wiki_page, document = td.load_wiki_page(subreddit, "directory")
-
-    time_limit = datetime.timedelta(days=187)
+    document = td.load_wiki_page(subreddit, "directory")
     if verbosity > 0:
         print("Getting history")
-    tree, new_submissions = tn.get_counting_history(subreddit, time_limit, verbosity)
 
+    tree, new_submissions = tn.get_counting_history(
+        subreddit, datetime.timedelta(days=187), verbosity
+    )
+
+    new_submissions = {tree.walk_down_tree(submission)[-1].id for submission in new_submissions}
     if verbosity > 0:
         print("Updating tables")
-    table_counter = 0
-    for idx, paragraph in enumerate(document):
-        if paragraph[0] == "text":
-            document[idx] = paragraph[1]
-        elif paragraph[0] == "table":
-            table_counter += 1
-            rows = [td.Row(*x) for x in paragraph[1]]
-            for row_idx, row in enumerate(rows):
-                try:
-                    backup_row = copy.copy(row)
-                    row.update(tree, verbosity=verbosity)
-                except Exception as e:
-                    print(f"Unable to update new thread {row.title}")
-                    print(e)
-                    rows[row_idx] = backup_row
-            if table_counter == 2:
-                rows.sort(reverse=True)
-            document[idx] = rows
+    document = update_main_document(document, tree, verbosity)
 
-    second_last_header = document[-3].lower()
-    if "new" in second_last_header and "revived" in second_last_header:
+    if "new" in document[-3].lower() and "revived" in document[-3].lower():
         new_table = document[-2]
     else:
         new_table = []
         document = document[:-1] + ["\n## New and Revived Threads", new_table] + document[-1:]
 
-    new_submission_ids = set(
-        tree.walk_down_tree(submission)[-1].id for submission in new_submissions
-    )
-    full_table = rct.utils.flatten([x for x in document if not isinstance(x, str)])
-    known_submissions = set([x.submission_id for x in full_table])
-    new_submission_ids = new_submission_ids - known_submissions
-    if new_submission_ids:
-        print("Finding new threads")
-        for submission_id in new_submission_ids:
-            first_submission = tree.walk_up_tree(submission_id)[-1]
-            name = f'**{first_submission.title.split("|")[0].strip()}**'
-            try:
-                title = td.title_from_first_comment(first_submission)
-            except IndexError:
-                continue
-            row = td.Row(name, first_submission.id, title, first_submission.id, None, "-")
-            try:
-                row.update(tree, deepest_comment=True)
-            except Exception as e:
-                print(f"Unable to update new thread {row.title}")
-                print(e)
-                continue
-            n_authors = len(set(x.author for x in row.comment.walk_up_tree()))
-            is_long_chain = row.comment.depth >= 50 and n_authors >= 5
-            if is_long_chain or row.submission_id != first_submission.id:
-                new_table.append(row)
+    threads = rct.utils.flatten([x for x in document if not isinstance(x, str)])
 
-    archive_wiki, archive = td.load_wiki_page(subreddit, "directory/archive")
-    archive_header = archive[0][1]
-    archived_rows = [entry[1][:] for entry in archive if entry[0] == "table"]
-    archived_rows = [td.Row(*x) for x in rct.utils.flatten(archived_rows)]
-    archived_dict = {x.submission_id: x for x in archived_rows}
+    new_table += find_new_submissions(new_submissions, tree, threads)
 
-    revived_threads = set([x.id for x in tree.leaves]) - new_submission_ids - known_submissions
+    archive_dict = document_to_dict(td.load_wiki_page(subreddit, "directory/archive"))
+
     print("Finding revived threads")
-    updated_archive = False
-    for thread in revived_threads:
-        chain = tree.walk_up_tree(thread)
-        for submission in chain:
-            if submission.id in archived_dict:
-                row = copy.copy(archived_dict[submission.id])
-                try:
-                    row.update(tree, from_archive=True, deepest_comment=True)
-                except Exception as e:
-                    print(f"Unable to update new thread {row.title}")
-                    print(e)
-                    continue
-                if row.comment.depth >= 20 or len(chain) > 2:
-                    updated_archive = True
-                    new_table.append(row)
-                    del archived_dict[submission.id]
-                break
+    revived_submissions, archived_dict = find_revived_submissions(
+        new_submissions, tree, threads, archive_dict
+    )
+    new_table += revived_submissions
 
     new_table.sort(key=lambda x: rct.parsing.name_sort(x.name))
-    new_page = "\n\n".join([x if isinstance(x, str) else td.rows2string(x) for x in document])
+    document[-2] = new_table
     if not dry_run:
-        wiki_page.edit(new_page, reason="Ran the update script")
+        subreddit.wiki["directory"].edit(
+            document_to_string(document), reason="Ran the update script"
+        )
     else:
         with open("directory.md", "w") as f:
-            print(new_page, file=f)
+            print(document_to_string(document), file=f)
 
-    archived_rows = list(archived_dict.values())
-    new_archived_threads = [x for x in full_table if x.archived]
-    if new_archived_threads or updated_archive:
-        n = len(new_archived_threads)
-        print(
-            f'Moving {n} archived thread{"s" if n != 1 else ""}'
-            " to /r/counting/wiki/directory/archive"
-        )
-        archived_rows += new_archived_threads
-        archived_rows.sort(key=lambda x: rct.parsing.name_sort(x.name))
-        splits = ["A", "D", "I", "P", "T", "["]
-        titles = [f"\n### {splits[idx]}-{chr(ord(x) - 1)}" for idx, x in enumerate(splits[1:])]
-        titles[0] = archive_header
-        keys = [rct.parsing.name_sort(x.name) for x in archived_rows]
-        indices = [bisect.bisect_left(keys, (split.lower(),)) for split in splits[1:-1]]
-        parts = rct.utils.partition(archived_rows, indices)
-        parts = [td.rows2string(x, show_archived=True, kind="archive") for x in parts]
-        archive = list(itertools.chain.from_iterable(zip(titles, parts)))
-        new_archive = "\n\n".join(archive)
-        if not dry_run:
-            archive_wiki.edit(new_archive, reason="Ran the update script")
-        else:
-            with open("archive.md", "w") as f:
-                print(new_archive, file=f)
-
+    if [x for x in threads if x.archived] or bool(revived_submissions):
+        update_archive(threads, archived_dict, dry_run)
     end = datetime.datetime.now()
     print(end - start)
 
 
 if __name__ == "__main__":
-    update_directory()
+    update_directory()  # pylint: disable=no-value-for-parameter

@@ -6,7 +6,7 @@ import rcounting.side_threads as st
 def load_wiki_page(subreddit, location):
     wiki_page = subreddit.wiki[location]
     document = wiki_page.content_md.replace("\r\n", "\n")
-    return wiki_page, parsing.parse_directory_page(document)
+    return parsing.parse_directory_page(document)
 
 
 def title_from_first_comment(submission):

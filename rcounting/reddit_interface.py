@@ -100,3 +100,5 @@ if refresh_token is None:
 reddit = praw.Reddit(
     client_id=_CLIENT_ID, user_agent=_USER_AGENT, client_secret=None, refresh_token=refresh_token
 )
+
+subreddit = reddit.subreddit("counting")
