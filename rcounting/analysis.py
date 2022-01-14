@@ -1,3 +1,8 @@
+"""
+A collection of functions for analysing counting data.
+See also https://github.com/cutonbuminband/rcounting/blob/main/doc/examples.org
+for examples of working with the data.
+"""
 from pathlib import Path
 
 import numpy as np
@@ -9,22 +14,25 @@ from scipy.special import i0
 import rcounting as rct
 
 
-def combine_csvs(start, n):
-    results = [""] * n
-    for i in range(n):
-        hog_path = Path(f"results/LOG_{start}to{start+1000}.csv")
-        df = pd.read_csv(
-            hog_path, names=["count", "username", "timestamp", "comment_id", "submission_id"]
-        )
+def load_csvs(start, n, directory="."):
+    """Load n csv files into a single dataframe"""
+    results = []
+    for _ in range(n):
+        path = Path(directory) / Path(f"{start}.csv")
+        df = pd.read_csv(path, comment="#")
         if len(df) % 1000 != 0:
-            print(hog_path)
+            print(path)
         df = df.set_index("comment_id")
-        results[i] = df
+        results.append(df)
         start += 1000
     return pd.concat(results)
 
 
 def hoc_string(df, title):
+    """
+    Calculate the thread participation table of a data frame.
+    Return a string representation of it.
+    """
     getter = rct.counters.apply_alias(df.iloc[-1]["username"])
 
     def hoc_format(username):
@@ -45,6 +53,11 @@ def hoc_string(df, title):
 
 
 def response_graph(df, n=250, username_column="username"):
+    """
+    Calculate the network graph of the top n counters.
+    Create a directed edge a->b in the graph if a has ever replied to b.
+    Weight each edge by the number of replies
+    """
     indices = df.groupby(username_column).size().sort_values(ascending=False).index[:n]
     edges = df[username_column].isin(indices) & df[username_column].shift(1).isin(indices)
     top = pd.concat([df[username_column], df[username_column].shift()], axis=1).loc[edges]
@@ -55,29 +68,27 @@ def response_graph(df, n=250, username_column="username"):
 
 
 def effective_number_of_counters(counters):
+    """
+    Calculate the effective number of parties for a given reply distribution.
+    See also https://en.wikipedia.org/wiki/Effective_number_of_parties
+    """
     normalised_counters = counters / counters.sum()
     return 1 / (normalised_counters ** 2).sum()
 
 
 def capture_the_flag_score(submission):
+    """Calculate how long each user has had the latest count"""
     submission["score"] = submission["timestamp"].diff().shift(-1)
     return submission.groupby("username")["score"].sum()
 
 
-def k_core(graph):
-    old_score = 0
-    new_score = min([node.degree() for node in graph])
-    while new_score > old_score:
-        graph = graph.delete_least_connected_nodes()
-        new_score = min([node.degree() for node in graph])
-    return graph
-
-
 def vonmises_distribution(x, mu=0, kappa=1):
+    """Calculate the von mises distribution; the gaussian on a circle"""
     return np.exp(kappa * np.cos(x - mu)) / (2.0 * np.pi * i0(kappa))
 
 
 def normal_distribution(x, mu=0, sigma=1):
+    """Calculate the gaussian distribution with mean mu and standard deviation sigma"""
     return np.exp(-0.5 * ((x - mu) / sigma) ** 2) / (sigma * np.sqrt(np.pi * 2))
 
 
@@ -115,6 +126,7 @@ def fft_kde_on_unit_circle(data, n_bins, kernel=vonmises_distribution, **params)
 
 
 def fft_kde(data, n_bins, kernel=vonmises_distribution, **params):
+    """Prepare time data for use with `fft_kde_on_unit_circle`"""
     minval = 0
     maxval = 24 * 3600
     if kernel == "vonmises_distribution":
