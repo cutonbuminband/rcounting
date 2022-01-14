@@ -1,3 +1,6 @@
+import os
+
+
 def flatten(mylist):
     return [element for sublist in mylist for element in sublist]
 
@@ -24,6 +27,11 @@ def format_timedelta(timedelta):
     units = ["day", "hour", "minute", "second"]
     formatted = [format_one_interval(n, unit) for n, unit in zip(amounts, units)]
     return ", ".join([x for x in formatted if x])
+
+
+def ensure_directory(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
 
 deleted_phrases = ["[deleted]", "[removed]", "[banned]"]
