@@ -1,18 +1,20 @@
-import os
-import math
-import string
-import pandas as pd
-import re
-import configparser
-import scipy.sparse
-import numpy as np
-import functools
 import collections
+import configparser
+import functools
+import math
+import os
+import re
+import string
+
+import numpy as np
+import pandas as pd
+import scipy.sparse
+
+import rcounting.parsing as parsing
+from rcounting.counters import is_ignored_counter
 from rcounting.models import comment_to_dict
 from rcounting.thread_navigation import fetch_comment_tree
-import rcounting.parsing as parsing
-from rcounting.utils import is_leap_year, deleted_phrases
-from rcounting.counters import is_ignored_counter
+from rcounting.utils import deleted_phrases, is_leap_year
 
 minute = 60
 hour = 60 * 60

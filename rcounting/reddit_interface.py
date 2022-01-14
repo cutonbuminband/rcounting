@@ -1,7 +1,8 @@
-import os
-import socket
-import random
 import configparser
+import os
+import random
+import socket
+
 import praw
 
 # The script works with OAuth access and refresh tokens, so you need to grant

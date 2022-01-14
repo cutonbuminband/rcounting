@@ -1,15 +1,16 @@
 # encoding=utf8
-import os
-from pathlib import Path
-import pandas as pd
-from datetime import datetime
 import functools
+import os
 import sqlite3
+from datetime import datetime
+from pathlib import Path
+
 import click
+import pandas as pd
 
 import rcounting as rct
-import rcounting.thread_navigation as tn
 import rcounting.thread_directory as td
+import rcounting.thread_navigation as tn
 from rcounting.reddit_interface import reddit
 
 

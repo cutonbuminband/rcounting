@@ -1,7 +1,8 @@
 import click
+
 from .log_thread import log
-from .validate import validate
 from .update_thread_directory import update_directory
+from .validate import validate
 
 
 @click.group(

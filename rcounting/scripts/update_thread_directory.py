@@ -1,7 +1,8 @@
+import bisect
 import copy
 import datetime
-import bisect
 import itertools
+
 import click
 
 import rcounting as rct

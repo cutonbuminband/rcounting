@@ -1,11 +1,13 @@
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import matplotlib.colors as mcolors
 from datetime import timedelta
+
+import matplotlib.colors as mcolors
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from cycler import cycler
 from pandas.plotting import register_matplotlib_converters
+
 from rcounting.analysis import fft_kde
 
 register_matplotlib_converters()

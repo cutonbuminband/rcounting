@@ -1,5 +1,5 @@
-import pandas as pd
 import click
+import pandas as pd
 
 import rcounting.side_threads as st
 import rcounting.thread_navigation as tn

@@ -1,5 +1,5 @@
-from pathlib import Path
 import os
+from pathlib import Path
 
 module_dir = os.path.dirname(__file__)
 

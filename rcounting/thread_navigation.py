@@ -1,7 +1,9 @@
-from psaw import PushshiftAPI
 import datetime
-import rcounting.parsing as parsing
+
+from psaw import PushshiftAPI
+
 import rcounting.models as models
+import rcounting.parsing as parsing
 
 api = PushshiftAPI()
 

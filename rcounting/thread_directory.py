@@ -1,6 +1,6 @@
+import rcounting.models as models
 import rcounting.parsing as parsing
 import rcounting.side_threads as st
-import rcounting.models as models
 
 
 def load_wiki_page(subreddit, location):
