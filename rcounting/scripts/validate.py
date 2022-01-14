@@ -1,3 +1,4 @@
+"""Validate the thread ending at COMMENT_ID according to the specified rule."""
 import click
 import pandas as pd
 
@@ -41,4 +42,4 @@ def validate(comment_id, rule):
 
 
 if __name__ == "__main__":
-    validate()
+    validate()  # pylint: disable=no-value-for-parameter
