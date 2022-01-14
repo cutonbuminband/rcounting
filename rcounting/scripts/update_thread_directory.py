@@ -156,7 +156,7 @@ def update_directory(quiet, verbose, dry_run):
     if verbosity > 0:
         print("Getting history")
 
-    tree, new_submissions = tn.get_counting_history(
+    tree, new_submissions = tn.fetch_counting_history(
         subreddit, datetime.timedelta(days=187), verbosity
     )
 
