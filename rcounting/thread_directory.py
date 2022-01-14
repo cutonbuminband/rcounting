@@ -1,33 +1,64 @@
-import rcounting.models as models
-import rcounting.parsing as parsing
+import rcounting as rct
 import rcounting.side_threads as st
 
 
 def load_wiki_page(subreddit, location):
+    """
+    Load the wiki page at reddit.com/r/subreddit/wiki/location
+
+    Normalise the newlines, and parse it into a list of paragraphs.
+    """
     wiki_page = subreddit.wiki[location]
     document = wiki_page.content_md.replace("\r\n", "\n")
-    return parsing.parse_directory_page(document)
+    return rct.parsing.parse_directory_page(document)
 
 
 def title_from_first_comment(submission):
+    """
+    Return the body of the first comment of the submission, appropriately normalised:
+
+    - Markdown links are stripped.
+    - Only the first line is considered.
+    """
     comment = sorted(list(submission.comments), key=lambda x: x.created_utc)[0]
     body = comment.body.split("\n")[0]
-    return parsing.normalise_title(parsing.strip_markdown_links(body))
+    return rct.parsing.normalise_title(rct.parsing.strip_markdown_links(body))
 
 
 class Row:
+    """
+    A class corresponding to a row in a markdown table in the directory.
+
+    A row has the following information associated with it:
+      - The human-readable name of the thread. E.g. 'No repeating digits'
+      - The submission id of the first submission, used to identify the side thread
+      - The title of the current submission in the thread
+      - The id of the current submission in the thread
+      - The id of the latest comment in the current submission
+      - The total number of counts made in the thread
+
+    The core of this class is the `update` method, which updates
+    the last four pieces of information listed.
+    """
+
     def __init__(self, name, first_submission, title, submission_id, comment_id, count):
+        """
+        Initialise a new row with all the necessary information. Associate a side
+        thread object with the row.
+        """
         self.archived = False
         self.name = name
         self.first_submission = first_submission
-        self.title = parsing.normalise_title(title)
+        self.title = rct.parsing.normalise_title(title)
         self.initial_submission_id = submission_id
         self.initial_comment_id = comment_id
         self.count_string = count
-        self.count = parsing.find_count_in_text(self.count_string.replace("-", "0"))
+        self.count = rct.parsing.find_count_in_text(self.count_string.replace("-", "0"))
         self.is_approximate = self.count_string[0] == "~"
         self.starred_count = self.count_string[-1] == "*"
         self.thread_type = st.known_thread_ids.get(self.first_submission, fallback="default")
+        self.submission = None
+        self.comment = None
 
     def __str__(self):
         return (
@@ -36,39 +67,70 @@ class Row:
         )
 
     def order_tuple(self):
+        """
+        The order in which total counts should be compared.
+
+        Tuple comparison works in the dictionary order, so a < b means that one
+        of the following is true
+          - a[0] < b[0]
+          - a[0] == b[0] and a[1:] < b[1:]
+        """
         return (self.count, self.starred_count, self.is_approximate)
 
     def __lt__(self, other):
         return self.order_tuple() < other.order_tuple()
 
     @property
-    def submission_id(self):
-        return self.submission.id if hasattr(self, "submission") else self.initial_submission_id
+    def submission_id(self):  # pylint: disable=missing-function-docstring
+        return self.submission.id if self.submission is not None else self.initial_submission_id
 
     @property
-    def comment_id(self):
-        return self.comment.id if hasattr(self, "comment") else self.initial_comment_id
+    def comment_id(self):  # pylint: disable=missing-function-docstring
+        return self.comment.id if self.comment is not None else self.initial_comment_id
 
     @property
     def link(self):
+        """Set the full link if we have it, otherwise just link the submission."""
         if self.comment_id is not None:
             return f"/comments/{self.submission_id}/_/{self.comment_id}?context=3"
-        else:
-            return f"/comments/{self.submission_id}"
+        return f"/comments/{self.submission_id}"
 
     def update_title(self):
+        """
+        Set the title of the current submission.
+
+        If it's the first submission, set the title from the first comment.
+        Otherwise, treat the submission title as a | delimited list and use all
+        but the first section.
+
+        Then normalise the title before setting it
+        """
         if self.first_submission == self.submission.id:
             self.title = title_from_first_comment(self.submission)
             return
+        sections = self.submission.title.split("|")
+        if len(sections) > 1:
+            title = "|".join(sections[1:]).strip()
         else:
-            sections = self.submission.title.split("|")
-            if len(sections) > 1:
-                title = "|".join(sections[1:]).strip()
-            else:
-                title = title_from_first_comment(self.submission)
-        self.title = parsing.normalise_title(title)
+            title = title_from_first_comment(self.submission)
+        self.title = rct.parsing.normalise_title(title)
+
+    def update_count(self, chain, was_revival, side_thread):
+        """
+        Use the side thread get an updated tally of how many counts have been
+        made in the thread, taking the revival status of each submission into account."""
+        try:
+            count = side_thread.update_count(self.count, chain, was_revival)
+        except Exception:  # pylint: disable=broad-except
+            count = None
+        self.count_string = self.format_count(count)
+        if count is not None:
+            self.count = count
+        else:
+            self.starred_count = True
 
     def format_count(self, count):
+        """Add asterisks and tildes to erroneous and approximate counts"""
         if count is None:
             return self.count_string + "*"
         if count == 0:
@@ -125,15 +187,15 @@ class Row:
         if len(chain) > 1:
             self.initial_comment_id = None
 
-        comments = models.CommentTree(reddit=submission_tree.reddit, verbosity=verbosity)
+        comments = rct.models.CommentTree(reddit=submission_tree.reddit, verbosity=verbosity)
         if deepest_comment:
             for comment in self.submission.comments:
                 comments.add_missing_replies(comment)
+        elif self.comment_id is None:
+            comment = next(filter(side_thread.looks_like_count, self.submission.comments))
+            comments.add_missing_replies(comment)
         else:
-            if self.comment_id is None:
-                comment = next(filter(side_thread.looks_like_count, self.submission.comments))
-            else:
-                comment = submission_tree.reddit.comment(self.comment_id)
+            comment = submission_tree.reddit.comment(self.comment_id)
             comments.add_missing_replies(comment)
         comments.get_missing_replies = False
         comments.prune(side_thread)
@@ -144,23 +206,19 @@ class Row:
             comment = comment_chain[-3 if len(comment_chain) >= 3 else 0]
 
         self.comment = comment
-        was_revival = [parsing.is_revived(x.title) for x in chain]
+        was_revival = [rct.parsing.is_revived(x.title) for x in chain]
         if from_archive:
             was_revival[1] = True
         if not all(was_revival[1:]):
-            try:
-                count = side_thread.update_count(self.count, chain, was_revival)
-            except Exception:
-                count = None
-            self.count_string = self.format_count(count)
-            if count is not None:
-                self.count = count
-            else:
-                self.starred_count = True
+            # If there's really a new thread, the title & count need updating
+            self.update_count(chain, was_revival, side_thread)
             self.update_title()
 
 
-def rows2string(rows=[], show_archived=False, kind="directory"):
+def rows2string(rows=None, show_archived=False, kind="directory"):
+    """Convert a list of rows to a markdown table."""
+    if rows is None:
+        rows = []
     labels = {"directory": "Current", "archive": "Last"}
     header = [
         "⠀" * 10 + "Name &amp; Initial Thread" + "⠀" * 10,

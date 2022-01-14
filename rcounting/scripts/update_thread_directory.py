@@ -136,7 +136,7 @@ def update_archive(threads, archive_dict, dry_run):
     if not dry_run:
         archive_wiki.edit(new_archive, reason="Ran the update script")
     else:
-        with open("archive.md", "w") as f:
+        with open("archive.md", "w", encoding="utf8") as f:
             print(new_archive, file=f)
 
 
@@ -190,7 +190,7 @@ def update_directory(quiet, verbose, dry_run):
             document_to_string(document), reason="Ran the update script"
         )
     else:
-        with open("directory.md", "w") as f:
+        with open("directory.md", "w", encoding="utf8") as f:
             print(document_to_string(document), file=f)
 
     if [x for x in threads if x.archived] or bool(revived_submissions):
