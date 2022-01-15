@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import scipy.sparse
 
-import rcounting.parsing as parsing
+from rcounting import parsing
 from rcounting.counters import is_ignored_counter
 from rcounting.models import comment_to_dict
 from rcounting.thread_navigation import fetch_comment_tree
@@ -25,6 +25,18 @@ alphanumeric = string.digits + string.ascii_uppercase
 
 
 class CountingRule:
+    """
+    A rules class. It knows how to do two things:
+
+    - Get enough history to see whether a given comment is valid
+    - Determine whether all counts in a history of counts are valid.
+
+    Examples of things it's intended to validate are:
+      - That users waited enough time since their own last comment before commenting again
+      - That users waited enough time since the global last comment
+      - That users let enough other counters go before them
+    """
+
     def __init__(self, wait_n=1, thread_time=0, user_time=0):
         self.n = wait_n
         self.thread_time = thread_time
@@ -69,6 +81,12 @@ class CountingRule:
 
 
 class OnlyDoubleCounting:
+    """
+    Only double counting is sufficiently strange that it gets its own class.
+
+    A thread is valid if every user in the chain counts exactly twice in a row.
+    """
+
     def is_valid(self, history):
         history = history.set_index("comment_id")
         history["mask"] = True
@@ -92,7 +110,7 @@ def validate_from_character_list(valid_characters, strip_links=True):
         body = comment_body.upper()
         if strip_links:
             body = parsing.strip_markdown_links(body)
-        return any([character in body for character in valid_characters])
+        return any(character in body for character in valid_characters)
 
     return looks_like_count
 
@@ -190,12 +208,11 @@ collatz_dict = {}
 def collatz(n):
     if n == 1:
         return 1
-    elif n in collatz_dict:
+    if n in collatz_dict:
         return collatz_dict[n]
-    elif n % 2 == 0:
+    if n % 2 == 0:
         return 1 + collatz(n // 2)
-    else:
-        return 1 + collatz(3 * n + 1)
+    return 1 + collatz(3 * n + 1)
 
 
 @update_from_title
@@ -260,7 +277,9 @@ def update_from_traversal(old_count, chain, was_revival):
     new_thread = chain[-1]
     count = old_count
     for thread in chain[:-1][::-1]:
-        urls = filter(lambda x: x[0] == thread.id, parsing.find_urls_in_text(new_thread.selftext))
+        urls = filter(
+            lambda x, t=thread: x[0] == t.id, parsing.find_urls_in_text(new_thread.selftext)
+        )
         submission_id, comment_id = next(urls)
         tree = fetch_comment_tree(thread, use_pushshift=False)
         count += len(tree.comment(comment_id).walk_up_tree())
@@ -269,6 +288,16 @@ def update_from_traversal(old_count, chain, was_revival):
 
 
 class SideThread:
+    """
+    A side thread class, which consists of a validation part and an update part
+    In addition to checking whether a collection of counts is valid according
+    to the side thread rule, the class can determine how many total counts have
+    been made in a given side thread using one of:
+      - A standard thread length
+      - A way of parsing titles to determine the current count
+      - Walking back through all the comments since the last checkpoint and adding them up
+    """
+
     def __init__(self, rule=default_rule, form=permissive, length=1000, update_function=None):
         self.form = form
         self.rule = rule
@@ -282,15 +311,13 @@ class SideThread:
         chain = ignore_revivals(chain, was_revival)[1:]
         if self.length is not None:
             return old_count + self.length * (len(chain))
-        else:
-            return None
+        return None
 
     def is_valid_thread(self, history):
         mask = self.rule.is_valid(history)
         if mask.all():
             return (True, "")
-        else:
-            return (False, history.loc[~mask, "comment_id"].iloc[0])
+        return (False, history.loc[~mask, "comment_id"].iloc[0])
 
     def is_valid_count(self, comment, history):
         history = history.append(comment_to_dict(comment), ignore_index=True)
@@ -310,6 +337,24 @@ class SideThread:
 
 
 class OnlyRepeatingDigits(SideThread):
+    """
+    A class that describes the only repeating digits side thread.
+
+    The rule and form attributes of the side thread are the same as for base n;
+    no validation that each digit actually occurs twice is currently done.
+
+    The main aspect of this class is the update function, which is mathematically
+    quite heavy. To count the number of possible only repeating digits strings,
+    we build a transition matrix where the states for each digits are
+      - Seen 0 times
+      - Seen 1 time
+      - Seen 2 or more times
+    The success states are 0 and 2.
+
+    For strings of length n, we count the success states by looking at the
+    nth power of the transition matrix.
+    """
+
     def __init__(self, n=10, rule=default_rule):
         form = base_n(n)
         self.n = n
@@ -602,18 +647,17 @@ def get_side_thread(thread_name, verbosity=1):
     """Return the properties of the side thread with first post thread_id"""
     if thread_name in known_threads:
         return known_threads[thread_name]
-    elif thread_name in default_thread_unknown_length:
+    if thread_name in default_thread_unknown_length:
         return SideThread(length=None, form=base_10)
-    elif thread_name in default_thread_varying_length:
+    if thread_name in default_thread_varying_length:
         return SideThread(update_function=update_from_traversal, form=base_10)
-    else:
-        if verbosity > 0 and thread_name != "default":
-            print(
-                f"No rule found for {thread_name}. "
-                "Not validating comment contents. "
-                "Assuming n=1000 and no double counting."
-            )
-        return SideThread()
+    if verbosity > 0 and thread_name != "default":
+        print(
+            f"No rule found for {thread_name}. "
+            "Not validating comment contents. "
+            "Assuming n=1000 and no double counting."
+        )
+    return SideThread()
 
 
 module_dir = os.path.dirname(__file__)
