@@ -17,8 +17,7 @@ def format_timedelta(timedelta):
     def format_one_interval(n, unit):
         if n == 0:
             return ""
-        else:
-            return f"{n} {unit}{'s' if n > 1 else ''}"
+        return f"{n} {unit}{'s' if n > 1 else ''}"
 
     days = timedelta.days
     hours, rem = divmod(timedelta.seconds, 3600)
