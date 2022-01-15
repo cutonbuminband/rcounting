@@ -158,5 +158,6 @@ def plot_get_time(df, ax, **kwargs):
 
 
 def simulate_alpha(color, alpha):
+    """Find the average of the current color and pure white, weighted by alpha"""
     white = np.array((1, 1, 1))
     return tuple(np.array(mcolors.to_rgb(color)) * alpha + (1 - alpha) * white)
