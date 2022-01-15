@@ -1,9 +1,12 @@
 import datetime
+import logging
 
 import rcounting as rct
 
+printer = logging.getLogger(__name__)
 
-def find_previous_get(comment, validate_get=True, verbosity=0):
+
+def find_previous_get(comment, validate_get=True):
     """
     Find the get of the previous reddit submission in the chain of counts.
 
@@ -39,28 +42,28 @@ def find_previous_get(comment, validate_get=True, verbosity=0):
         except StopIteration:
             break
     if not new_get_id:
-        new_get_id = find_deepest_comment(new_submission_id, reddit, verbosity)
+        new_get_id = find_deepest_comment(new_submission_id, reddit)
     comment = reddit.comment(new_get_id)
     if validate_get:
         new_get = find_get_from_comment(comment)
     else:
         new_get = reddit.comment(new_get_id)
-    if verbosity > 1:
-        print(
-            "Found previous get at: "
-            f"http://reddit.com/comments/{new_get.submission}/_/{new_get.id}"
-        )
+    printer.debug(
+        "Found previous get at: http://reddit.com/comments/%s/_/%s/",
+        new_get.submission,
+        new_get.id,
+    )
     return new_get
 
 
-def find_deepest_comment(submission, reddit, verbosity=0):
+def find_deepest_comment(submission, reddit):
     """
     Find the deepest comment on a submission
     """
     if not hasattr(submission, "id"):
         submission = reddit.submission(submission)
         submission.comment_sort = "old"
-    comments = rct.models.CommentTree(reddit=reddit, verbosity=verbosity)
+    comments = rct.models.CommentTree(reddit=reddit)
     for comment in submission.comments:
         comments.add_missing_replies(comment)
     return comments.deepest_node.id
@@ -91,18 +94,18 @@ def find_get_from_comment(comment):
     return comment
 
 
-def fetch_comments(comment, verbosity=1):
+def fetch_comments(comment):
     """
     Fetch a chain of comments from root to the supplied leaf comment.
     """
     reddit = rct.reddit_interface.reddit
-    tree = rct.models.CommentTree([], reddit=reddit, verbosity=verbosity)
+    tree = rct.models.CommentTree([], reddit=reddit)
     comment_id = getattr(comment, "id", comment)
     comments = tree.comment(comment_id).walk_up_tree()[::-1]
     return [x.to_dict() for x in comments]
 
 
-def fetch_counting_history(subreddit, time_limit, verbosity=1):
+def fetch_counting_history(subreddit, time_limit):
     """
     Fetch all submissions made to r/counting within time_limit days
     """
@@ -113,8 +116,8 @@ def fetch_counting_history(subreddit, time_limit, verbosity=1):
     new_submissions = []
     for count, submission in enumerate(submissions):
         submission.comment_sort = "old"
-        if verbosity > 1 and count % 20 == 0:
-            print(f"Processing reddit submission {submission.id}")
+        if count % 20 == 0:
+            printer.debug("Processing reddit submission %s", submission.id)
         title = submission.title.lower()
         if "tidbits" in title or "free talk friday" in title:
             continue
@@ -129,7 +132,9 @@ def fetch_counting_history(subreddit, time_limit, verbosity=1):
         if now - post_time > time_limit:
             break
     else:  # no break
-        print("Threads between {now - six_months} and {post_time} have not been collected")
+        printer.warning(
+            "Threads between %s and %s have not been collected", now - time_limit, post_time
+        )
 
     return (
         rct.models.SubmissionTree(submissions_dict, tree, rct.reddit_interface.reddit),

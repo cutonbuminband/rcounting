@@ -1,9 +1,12 @@
+import logging
 from collections import defaultdict, deque
 
 from praw.exceptions import ClientException
 from prawcore.exceptions import ServerError
 
 from rcounting import utils
+
+printer = logging.getLogger(__name__)
 
 
 class RedditPost:
@@ -231,7 +234,7 @@ class CommentTree(Tree):
     that many of the methods for finding parents & children have to be overridden.
     """
 
-    def __init__(self, comments=None, reddit=None, get_missing_replies=True, verbosity=3):
+    def __init__(self, comments=None, reddit=None, get_missing_replies=True):
         if comments is None:
             comments = []
         tree = {x.id: x.parent_id[3:] for x in comments if not is_root(x)}
@@ -239,8 +242,8 @@ class CommentTree(Tree):
         super().__init__(comments, tree)
         self.reddit = reddit
         self.get_missing_replies = get_missing_replies
-        self.verbosity = verbosity
-        self.refresh_counter = [None, 5, 2, 1][self.verbosity]
+        # logger levels are 10, 20, 30, where 10 is most verbose
+        self.refresh_counter = [0, 5, 2][3 - int(printer.getEffectiveLevel() // 10)]
         self._parent_counter, self._child_counter = 0, 0
         self.comment = self.node
 
@@ -267,14 +270,13 @@ class CommentTree(Tree):
         praw_comment = self.reddit.comment(comment_id)
         try:
             praw_comment.refresh()
-            if self.verbosity:
-                if self._parent_counter == 0:
-                    print(f"Fetching ancestors of comment {praw_comment.id}")
-                    self._parent_counter = self.refresh_counter
-                else:
-                    self._parent_counter -= 1
+            if self._parent_counter == 0:
+                printer.info("Fetching ancestors of comment %s", praw_comment.id)
+                self._parent_counter = self.refresh_counter
+            else:
+                self._parent_counter -= 1
         except (ClientException, ServerError) as e:
-            print(f"Unable to refresh {comment_id}")
+            printer.warning("Unable to refresh %s", comment_id)
             print(e)
         for i in range(9):
             comments.append(praw_comment)
@@ -294,12 +296,11 @@ class CommentTree(Tree):
     def find_children(self, node):
         children = [self.comment(x) for x in self.reversed_tree[node.id]]
         if not children and self.get_missing_replies:
-            if self.verbosity:
-                if self._child_counter == 0:
-                    self._child_counter = self.refresh_counter
-                    print(f"Fetching replies to comment {node.id}")
-                else:
-                    self._child_counter -= 1
+            if self._child_counter == 0:
+                self._child_counter = self.refresh_counter
+                printer.info("Fetching replies to comment %s", node.id)
+            else:
+                self._child_counter -= 1
             children = self.add_missing_replies(node)
         by_date = sorted(children, key=lambda x: x.created_utc)
         return sorted(by_date, key=lambda x: x.body in utils.deleted_phrases)

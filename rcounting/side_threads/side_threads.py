@@ -1,6 +1,7 @@
 import collections
 import configparser
 import functools
+import logging
 import math
 import os
 import re
@@ -15,6 +16,8 @@ from rcounting.counters import is_ignored_counter
 from rcounting.models import comment_to_dict
 from rcounting.thread_navigation import fetch_comments
 from rcounting.utils import deleted_phrases, is_leap_year
+
+printer = logging.getLogger(__name__)
 
 minute = 60
 hour = 60 * 60
@@ -643,7 +646,7 @@ default_thread_unknown_length = [
 ]
 
 
-def get_side_thread(thread_name, verbosity=1):
+def get_side_thread(thread_name):
     """Return the properties of the side thread with first post thread_id"""
     if thread_name in known_threads:
         return known_threads[thread_name]
@@ -651,11 +654,13 @@ def get_side_thread(thread_name, verbosity=1):
         return SideThread(length=None, form=base_10)
     if thread_name in default_thread_varying_length:
         return SideThread(update_function=update_from_traversal, form=base_10)
-    if verbosity > 0 and thread_name != "default":
-        print(
-            f"No rule found for {thread_name}. "
-            "Not validating comment contents. "
-            "Assuming n=1000 and no double counting."
+    if thread_name != "default":
+        printer.info(
+            (
+                "No rule found for %s. Not validating comment contents. "
+                "Assuming n=1000 and no double counting."
+            ),
+            thread_name,
         )
     return SideThread()
 
