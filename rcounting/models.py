@@ -1,5 +1,8 @@
 from collections import defaultdict, deque
 
+from praw.exceptions import ClientException
+from prawcore.exceptions import ServerError
+
 from rcounting import utils
 
 
@@ -279,7 +282,8 @@ class CommentTree(Tree):
                     self._parent_counter = self.refresh_counter
                 else:
                     self._parent_counter -= 1
-        except Exception as e:  # pylint: disable=broad-except
+        except (ClientException, ServerError) as e:
+            print(f"Unable to refresh {comment_id}")
             print(e)
         for i in range(9):
             comments.append(praw_comment)

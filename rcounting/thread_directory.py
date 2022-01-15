@@ -121,7 +121,7 @@ class Row:
         made in the thread, taking the revival status of each submission into account."""
         try:
             count = side_thread.update_count(self.count, chain, was_revival)
-        except Exception:  # pylint: disable=broad-except
+        except (ValueError, IndexError):
             count = None
         self.count_string = self.format_count(count)
         if count is not None:

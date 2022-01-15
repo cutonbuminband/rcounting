@@ -42,12 +42,10 @@ def update_main_document(document, tree, verbosity):
             rows = [td.Row(*x) for x in paragraph[1]]
             for row_idx, row in enumerate(rows):
                 try:
-                    backup_row = copy.copy(row)
                     row.update(tree, verbosity=verbosity)
-                except Exception as e:  # pylint: disable=broad-except
-                    print(f"Unable to update new thread {row.title}")
-                    print(e)
-                    rows[row_idx] = backup_row
+                except Exception:  # pylint: disable=broad-except
+                    print(f"Unable to update thread {row.title}")
+                    raise
             if table_counter == 2:
                 rows.sort(reverse=True)
             document[idx] = rows
@@ -73,10 +71,9 @@ def find_new_submissions(new_submission_ids, tree, threads):
         row = td.Row(name, first_submission.id, title, first_submission.id, None, "-")
         try:
             row.update(tree, deepest_comment=True)
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             print(f"Unable to update new thread {row.title}")
-            print(e)
-            continue
+            raise
         n_authors = len(set(x.author for x in row.comment.walk_up_tree()))
         is_long_chain = row.comment.depth >= 50 and n_authors >= 5
         if is_long_chain or row.submission_id != first_submission.id:
@@ -102,10 +99,9 @@ def find_revived_submissions(new_submission_ids, tree, threads, archive_dict):
                 row = copy.copy(archive_dict[submission.id])
                 try:
                     row.update(tree, from_archive=True, deepest_comment=True)
-                except Exception as e:  # pylint: disable=broad-except
-                    print(f"Unable to update new thread {row.title}")
-                    print(e)
-                    continue
+                except Exception:  # pylint: disable=broad-except
+                    print(f"Unable to update revived thread {row.title}")
+                    raise
                 if row.comment.depth >= 20 or len(chain) > 2:
                     revivals.append(row)
                     del archive_dict[submission.id]
