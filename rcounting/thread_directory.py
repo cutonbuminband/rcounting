@@ -81,11 +81,11 @@ class Row:
         return self.order_tuple() < other.order_tuple()
 
     @property
-    def submission_id(self):  # pylint: disable=missing-function-docstring
+    def submission_id(self):
         return self.submission.id if self.submission is not None else self.initial_submission_id
 
     @property
-    def comment_id(self):  # pylint: disable=missing-function-docstring
+    def comment_id(self):
         return self.comment.id if self.comment is not None else self.initial_comment_id
 
     @property

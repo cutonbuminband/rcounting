@@ -13,7 +13,7 @@ from .validate import validate
     commands=[log, validate, update_directory],
     context_settings=dict(help_option_names=["-h", "--help"]),
 )
-def cli():  # pylint: disable=missing-function-docstring
+def cli():
     pass
 
 
