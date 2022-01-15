@@ -7,8 +7,8 @@ max-line-length = "99"
 
 [tool.pylint.'MESSAGES CONTROL']
 disable = [
-	"missing-module-docstring",
-	"missing-function-docstring",
+    "missing-module-docstring",
+    "missing-function-docstring",
     "too-many-instance-attributes",
     "too-many-public-methods",
     "too-many-statements",
@@ -16,9 +16,9 @@ disable = [
     "unused-argument",
     "no-self-use",
     "add 4 spaces",
-	"invalid-name",
-	"unused-variable"
-	]
+    "invalid-name",
+    "unused-variable"
+    ]
 
 
 [tool.pylint.SIMILARITIES]
