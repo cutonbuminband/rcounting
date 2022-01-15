@@ -1,7 +1,7 @@
 import datetime
 import logging
 
-import rcounting as rct
+from rcounting import models, parsing, reddit_interface
 
 printer = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ def find_previous_get(comment, validate_get=True):
     validate_get: Whether or not the prorgram should check that the linked comment ends in 000,
     and if not, try to find a nearby comment that does.
     """
-    reddit = rct.reddit_interface.reddit
+    reddit = reddit_interface.reddit
 
     try:
         submission = comment.submission
@@ -32,7 +32,7 @@ def find_previous_get(comment, validate_get=True):
         submission = comment.submission
     urls = filter(
         lambda x: int(x[0], 36) < int(submission.id, 36),
-        rct.parsing.find_urls_in_submission(submission),
+        parsing.find_urls_in_submission(submission),
     )
     new_submission_id, new_get_id = next(urls)
 
@@ -63,7 +63,7 @@ def find_deepest_comment(submission, reddit):
     if not hasattr(submission, "id"):
         submission = reddit.submission(submission)
         submission.comment_sort = "old"
-    comments = rct.models.CommentTree(reddit=reddit)
+    comments = models.CommentTree(reddit=reddit)
     for comment in submission.comments:
         comments.add_missing_replies(comment)
     return comments.deepest_node.id
@@ -73,7 +73,7 @@ def search_up_from_gz(comment, max_retries=5):
     """Look for a count up to max_retries above the linked_comment"""
     for i in range(max_retries):
         try:
-            count = rct.parsing.post_to_count(comment)
+            count = parsing.post_to_count(comment)
             return count, comment
         except ValueError:
             if i == max_retries:
@@ -90,7 +90,7 @@ def find_get_from_comment(comment):
     replies.replace_more(limit=None)
     while count % 1000 != 0:
         comment = comment.replies[0]
-        count = rct.parsing.post_to_count(comment)
+        count = parsing.post_to_count(comment)
     return comment
 
 
@@ -98,8 +98,8 @@ def fetch_comments(comment):
     """
     Fetch a chain of comments from root to the supplied leaf comment.
     """
-    reddit = rct.reddit_interface.reddit
-    tree = rct.models.CommentTree([], reddit=reddit)
+    reddit = reddit_interface.reddit
+    tree = models.CommentTree([], reddit=reddit)
     comment_id = getattr(comment, "id", comment)
     comments = tree.comment(comment_id).walk_up_tree()[::-1]
     return [x.to_dict() for x in comments]
@@ -122,7 +122,7 @@ def fetch_counting_history(subreddit, time_limit):
         if "tidbits" in title or "free talk friday" in title:
             continue
         submissions_dict[submission.id] = submission
-        urls = rct.parsing.find_urls_in_submission(submission)
+        urls = parsing.find_urls_in_submission(submission)
         try:
             url = next(filter(lambda x, s=submission: int(x[0], 36) < int(s.id, 36), urls))
             tree[submission.id] = url[0]
@@ -137,6 +137,6 @@ def fetch_counting_history(subreddit, time_limit):
         )
 
     return (
-        rct.models.SubmissionTree(submissions_dict, tree, rct.reddit_interface.reddit),
+        models.SubmissionTree(submissions_dict, tree, reddit_interface.reddit),
         new_submissions,
     )

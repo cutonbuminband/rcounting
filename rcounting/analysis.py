@@ -11,7 +11,7 @@ from numpy import pi
 from numpy.fft import fftshift, irfft, rfft
 from scipy.special import i0
 
-import rcounting as rct
+from rcounting import counters, utils
 
 
 def load_csvs(start, n, directory="."):
@@ -33,10 +33,10 @@ def hoc_string(df, title):
     Calculate the thread participation table of a data frame.
     Return a string representation of it.
     """
-    getter = rct.counters.apply_alias(df.iloc[-1]["username"])
+    getter = counters.apply_alias(df.iloc[-1]["username"])
 
     def hoc_format(username):
-        username = rct.counters.apply_alias(username)
+        username = counters.apply_alias(username)
         return f"**/u/{username}**" if username == getter else f"/u/{username}"
 
     df["hoc_username"] = df["username"].apply(hoc_format)
@@ -46,7 +46,7 @@ def hoc_string(df, title):
 
     header = f"Thread Participation Chart for {title}\n\nRank|Username|Counts\n---|---|---"
     footer = (
-        f"It took {len(table)} counters {rct.utils.format_timedelta(dt)} to complete this thread."
+        f"It took {len(table)} counters {utils.format_timedelta(dt)} to complete this thread."
         f" Bold is the user with the get\ntotal counts in this chain logged: {len(df) - 1}"
     )
     return "\n".join([header, data, footer])
@@ -67,12 +67,12 @@ def response_graph(df, n=250, username_column="username"):
     return graph
 
 
-def effective_number_of_counters(counters):
+def effective_number_of_counters(c):
     """
     Calculate the effective number of parties for a given reply distribution.
     See also https://en.wikipedia.org/wiki/Effective_number_of_parties
     """
-    normalised_counters = counters / counters.sum()
+    normalised_counters = c / c.sum()
     return 1 / (normalised_counters ** 2).sum()
 
 

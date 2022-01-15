@@ -9,10 +9,10 @@ from pathlib import Path
 import click
 import pandas as pd
 
-import rcounting as rct
-import rcounting.thread_directory as td
-import rcounting.thread_navigation as tn
-from rcounting import configure_logging
+from rcounting import configure_logging, models, parsing
+from rcounting import thread_directory as td
+from rcounting import thread_navigation as tn
+from rcounting import utils
 from rcounting.reddit_interface import reddit, subreddit
 
 printer = logging.getLogger("rcounting")
@@ -65,15 +65,15 @@ class ThreadLogger:
         """Determine whether a submission has already been logged"""
         if self.sql:
             return comment.submission.id in self.known_submissions
-        body = rct.parsing.strip_markdown_links(comment.body)
-        basecount = rct.parsing.find_count_in_text(body) - 1000
+        body = parsing.strip_markdown_links(comment.body)
+        basecount = parsing.find_count_in_text(body) - 1000
         hoc_path = self.output_directory / Path(f"{basecount}.csv")
         return os.path.isfile(hoc_path)
 
     def log_sql(self, comment):
         """Save one submission to a database"""
         df = pd.DataFrame(tn.fetch_comments(comment))
-        submission = pd.Series(rct.models.Submission(comment.submission).to_dict())
+        submission = pd.Series(models.Submission(comment.submission).to_dict())
         submission = submission[["submission_id", "username", "timestamp", "title", "body"]]
         submission["integer_id"] = int(submission["submission_id"], 36)
         df.to_sql("comments", self.db, index_label="position", if_exists="append")
@@ -82,7 +82,7 @@ class ThreadLogger:
     def log_csv(self, comment):
         """Save one submission to a csv file"""
         df = pd.DataFrame(tn.fetch_comments(comment))
-        extract_count = functools.partial(rct.parsing.find_count_in_text, raise_exceptions=False)
+        extract_count = functools.partial(parsing.find_count_in_text, raise_exceptions=False)
         n = int(1000 * ((df["body"].apply(extract_count) - df.index).median() // 1000))
         path = self.output_directory / Path(f"{n}.csv")
 
@@ -149,7 +149,7 @@ def log(
     find the true get if the gz or the assist are linked instead.
     """
     t_start = datetime.now()
-    rct.utils.ensure_directory(output_directory)
+    utils.ensure_directory(output_directory)
 
     if side_thread or (
         filename is not None
@@ -158,7 +158,7 @@ def log(
         sql = True
 
     configure_logging.setup(printer, verbose, quiet)
-    threads = rct.utils.flatten(
+    threads = utils.flatten(
         [x[1] for x in td.load_wiki_page(subreddit, "directory") if x[0] == "table"]
     )
     first_submissions = [x[1] for x in threads]

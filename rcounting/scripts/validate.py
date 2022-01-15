@@ -2,8 +2,8 @@
 import click
 import pandas as pd
 
-import rcounting.side_threads as st
-import rcounting.thread_navigation as tn
+from rcounting import side_threads as st
+from rcounting import thread_navigation as tn
 from rcounting.reddit_interface import reddit
 
 rule_dict = {

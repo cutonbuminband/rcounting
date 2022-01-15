@@ -1,7 +1,7 @@
 import logging
 
-import rcounting as rct
-import rcounting.side_threads as st
+from rcounting import models, parsing
+from rcounting import side_threads as st
 
 printer = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ def load_wiki_page(subreddit, location):
     """
     wiki_page = subreddit.wiki[location]
     document = wiki_page.content_md.replace("\r\n", "\n")
-    return rct.parsing.parse_directory_page(document)
+    return parsing.parse_directory_page(document)
 
 
 def title_from_first_comment(submission):
@@ -26,7 +26,7 @@ def title_from_first_comment(submission):
     """
     comment = sorted(list(submission.comments), key=lambda x: x.created_utc)[0]
     body = comment.body.split("\n")[0]
-    return rct.parsing.normalise_title(rct.parsing.strip_markdown_links(body))
+    return parsing.normalise_title(parsing.strip_markdown_links(body))
 
 
 class Row:
@@ -53,11 +53,11 @@ class Row:
         self.archived = False
         self.name = name
         self.first_submission = first_submission
-        self.title = rct.parsing.normalise_title(title)
+        self.title = parsing.normalise_title(title)
         self.initial_submission_id = submission_id
         self.initial_comment_id = comment_id
         self.count_string = count
-        self.count = rct.parsing.find_count_in_text(self.count_string.replace("-", "0"))
+        self.count = parsing.find_count_in_text(self.count_string.replace("-", "0"))
         self.is_approximate = self.count_string[0] == "~"
         self.starred_count = self.count_string[-1] == "*"
         self.thread_type = st.known_thread_ids.get(self.first_submission, fallback="default")
@@ -117,7 +117,7 @@ class Row:
             title = "|".join(sections[1:]).strip()
         else:
             title = title_from_first_comment(self.submission)
-        self.title = rct.parsing.normalise_title(title)
+        self.title = parsing.normalise_title(title)
 
     def update_count(self, chain, was_revival, side_thread):
         """
@@ -189,7 +189,7 @@ class Row:
         if len(chain) > 1:
             self.initial_comment_id = None
 
-        comments = rct.models.CommentTree(reddit=submission_tree.reddit)
+        comments = models.CommentTree(reddit=submission_tree.reddit)
         if deepest_comment:
             for comment in self.submission.comments:
                 comments.add_missing_replies(comment)
@@ -208,7 +208,7 @@ class Row:
             comment = comment_chain[-3 if len(comment_chain) >= 3 else 0]
 
         self.comment = comment
-        was_revival = [rct.parsing.is_revived(x.title) for x in chain]
+        was_revival = [parsing.is_revived(x.title) for x in chain]
         if from_archive:
             was_revival[1] = True
         if not all(was_revival[1:]):
