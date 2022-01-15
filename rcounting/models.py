@@ -271,7 +271,7 @@ class CommentTree(Tree):
         try:
             praw_comment.refresh()
             if self._parent_counter == 0:
-                printer.info("Fetching ancestors of comment %s", praw_comment.id)
+                printer.info("Fetching ancestors of comment %s", normalise(praw_comment.body))
                 self._parent_counter = self.refresh_counter
             else:
                 self._parent_counter -= 1
@@ -298,7 +298,7 @@ class CommentTree(Tree):
         if not children and self.get_missing_replies:
             if self._child_counter == 0:
                 self._child_counter = self.refresh_counter
-                printer.info("Fetching replies to comment %s", node.id)
+                printer.info("Fetching replies to comment %s", normalise(node.body))
             else:
                 self._child_counter -= 1
             children = self.add_missing_replies(node)
@@ -392,3 +392,7 @@ def is_root(comment):
             comment.submission_id if hasattr(comment, "submission_id") else comment.link_id
         )
         return comment.parent_id == submission_id
+
+
+def normalise(body):
+    return body.split("\n")[0]
