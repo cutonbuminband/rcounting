@@ -3,7 +3,8 @@ from pathlib import Path
 
 module_dir = os.path.dirname(__file__)
 
-alias_list = open(module_dir / Path("aliases.txt"), "r").readlines()
+with open(module_dir / Path("aliases.txt"), "r", encoding="utf8") as f:
+    alias_list = f.readlines()
 alias_list = [x.strip().split(",") for x in alias_list]
 alias_dict = {}
 for aliases in alias_list:
