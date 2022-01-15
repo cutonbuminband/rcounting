@@ -1,10 +1,11 @@
-from pathlib import Path
 import os
+from pathlib import Path
 
 module_dir = os.path.dirname(__file__)
 
-alias_list = open(module_dir / Path('aliases.txt'), 'r').readlines()
-alias_list = [x.strip().split(',') for x in alias_list]
+with open(module_dir / Path("aliases.txt"), "r", encoding="utf8") as f:
+    alias_list = f.readlines()
+alias_list = [x.strip().split(",") for x in alias_list]
 alias_dict = {}
 for aliases in alias_list:
     for alias in aliases:
@@ -15,17 +16,19 @@ def apply_alias(username):
     return alias_dict[username] if username in alias_dict else username
 
 
-mods = ['Z3F',
-        '949paintball',
-        'zhige',
-        'atomicimploder',
-        'ekjp',
-        'TheNitromeFan',
-        'davidjl123',
-        'rschaosid',
-        'KingCaspianX',
-        'Urbul',
-        'Zaajdaeon']
+mods = [
+    "Z3F",
+    "949paintball",
+    "zhige",
+    "atomicimploder",
+    "ekjp",
+    "TheNitromeFan",
+    "davidjl123",
+    "rschaosid",
+    "KingCaspianX",
+    "Urbul",
+    "Zaajdaeon",
+]
 
 
 def is_mod(username):
@@ -34,7 +37,7 @@ def is_mod(username):
 
 ignored_counters = ["LuckyNumber-Bot", "CountingStatsBot", "CountingHelper", "WikiSummarizerBot"]
 ignored_counters = [x.lower() for x in ignored_counters]
-banned_counters = ['[deleted]', 'Franciscouzo']
+banned_counters = ["[deleted]", "Franciscouzo"]
 
 
 def is_ignored_counter(username):

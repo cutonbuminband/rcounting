@@ -1,74 +1,88 @@
 from collections import defaultdict, deque
+
 from rcounting import utils
 
 
-class RedditPost():
+class RedditPost:
+    """A superclass to treat reddit comments and submissions under the same umbrella."""
+
     def __init__(self, post, cached=False, api=None):
         self.id = post.id
         self.created_utc = post.created_utc
         self.author = str(post.author)
-        self.body = post.body if hasattr(post, 'body') else post.selftext
-        cached = cached or hasattr(post, 'cached')
-        if hasattr(post, 'post_type'):
+        self.body = post.body if hasattr(post, "body") else post.selftext
+        self.submission_id = post.submission_id if hasattr(post, "submission_id") else post.name
+        cached = cached or hasattr(post, "cached")
+        if hasattr(post, "post_type"):
             self.post_type = post.post_type
         else:
-            self.post_type = 'comment' if hasattr(post, 'body') else 'submission'
+            self.post_type = "comment" if hasattr(post, "body") else "submission"
         if not cached and api is not None:
             if self.body in utils.deleted_phrases or self.author in utils.deleted_phrases:
-                if self.post_type == 'comment':
+                if self.post_type == "comment":
                     search = api.search_comments
-                elif self.post_type == 'submission':
+                elif self.post_type == "submission":
                     search = api.search_submissions
                 self.body, self.author = self.find_missing_content(search)
         self.cached = True
 
     def find_missing_content(self, search):
         try:
-            post = next(search(ids=[self.id], metadata='true', limit=0))
+            post = next(search(ids=[self.id], metadata="true", limit=0))
         except StopIteration:
             return self.body, self.author
         author = post.author
-        body = post.body if hasattr(post, 'body') else post.selftext
+        body = post.body if hasattr(post, "body") else post.selftext
         return body, author
 
     def to_dict(self):
-        return {'username': self.author,
-                'timestamp': self.created_utc,
-                'comment_id': self.id,
-                'submission_id': self.submission_id[3:],
-                'body': self.body}
+        return {
+            "username": self.author,
+            "timestamp": self.created_utc,
+            "comment_id": self.id,
+            "submission_id": self.submission_id[3:],
+            "body": self.body,
+        }
 
 
 class Submission(RedditPost):
+    """Submissions have titles on top of all the things posts and submissions have in common"""
+
     def __init__(self, s):
         super().__init__(s)
         self.title = s.title
-        self.submission_id = s.submission_id if hasattr(s, 'submission_id') else s.name
 
     def to_dict(self):
-        return {'username': self.author,
-                'timestamp': self.created_utc,
-                'comment_id': self.id,
-                'submission_id': self.submission_id[3:],
-                'body': self.body,
-                'title': self.title}
+        return {
+            "username": self.author,
+            "timestamp": self.created_utc,
+            "submission_id": self.submission_id[3:],
+            "body": self.body,
+            "title": self.title,
+        }
 
     def __repr__(self):
-        return f'offline_submission(id={self.id})'
+        return f"offline_submission(id={self.id})"
 
 
 class Comment(RedditPost):
+    """
+    A reddit comment class with two parts:
+
+    The data about this comment is stored in the RedditPost object.
+    Information about the tree of comments is stored in the tree member."""
+
     def __init__(self, comment, tree=None):
         RedditPost.__init__(self, comment)
-        self.submission_id = (comment.submission_id
-                              if hasattr(comment, 'submission_id')
-                              else comment.link_id)
+        self.submission_id = (
+            comment.submission_id if hasattr(comment, "submission_id") else comment.link_id
+        )
         self.parent_id = comment.parent_id
-        self.is_root = (self.parent_id == self.submission_id)
+        self.is_root = self.parent_id == self.submission_id
         self.tree = tree
 
     def __repr__(self):
-        return f'offline_comment(id={self.id})'
+        return f"offline_comment(id={self.id})"
 
     def refresh(self):
         pass
@@ -92,7 +106,16 @@ class Comment(RedditPost):
         return self.tree.find_depth(self)
 
 
-class Tree():
+class Tree:
+    """
+    A class for dealing with tree structures.
+
+    The tree is represented as a dict, where y = tree[x] means y is the parent of x.
+
+    Only the node ids are stored in this structure,the rest of the information
+    about each node is stored in an auxiliary nodes dict
+    """
+
     def __init__(self, nodes, tree):
         self.tree = tree
         self.nodes = nodes
@@ -110,6 +133,7 @@ class Tree():
         return [self.node(x) for x in self.reversed_tree[node.id]]
 
     def walk_up_tree(self, node, limit=None):
+        """Navigate the tree from node to root"""
         if isinstance(node, str):
             try:
                 node = self.node(node)
@@ -119,7 +143,7 @@ class Tree():
             return None
         nodes = [node]
         counter = 1
-        while node.id in self.tree and not getattr(node, 'is_root', False):
+        while node.id in self.tree and not getattr(node, "is_root", False):
             if limit is not None and counter >= limit:
                 break
             node = self.parent(node)
@@ -128,6 +152,10 @@ class Tree():
         return nodes
 
     def walk_down_tree(self, node, limit=None):
+        """
+        Navigate the tree from node to leaf, taking the earliest child each
+        time there's a choice
+        """
         if node.id not in self.nodes and node.id not in self.reversed_tree:
             return [node]
         result = [node]
@@ -148,6 +176,7 @@ class Tree():
             del self.tree[node.id]
 
     def delete_subtree(self, node):
+        """Delete the entire subtree rooted at the `node`"""
         queue = deque([node])
         while queue:
             node = queue.popleft()
@@ -155,14 +184,18 @@ class Tree():
             self.delete_node(node)
 
     def find_depth(self, node):
+        """
+        Find the depth of a node.
+
+        The root nodes have depth 0. Otherwise, each node is one deeper than its parent.
+        """
         if node.id in self.root_ids:
             return 0
-        elif node.id in self.depths:
+        if node.id in self.depths:
             return self.depths[node.id]
-        else:
-            depth = 1 + self.find_depth(node.parent())
-            self.depths[node.id] = depth
-            return depth
+        depth = 1 + self.find_depth(node.parent())
+        self.depths[node.id] = depth
+        return depth
 
     @property
     def deepest_node(self):
@@ -196,7 +229,17 @@ class Tree():
 
 
 class CommentTree(Tree):
-    def __init__(self, comments=[], reddit=None, get_missing_replies=True, verbosity=3):
+    """
+    A class representing the comment tree
+
+    In addition to all the things the superclass can do, this one can use
+    a reddit instance to get information about missing comments. That means
+    that many of the methods for finding parents & children have to be overridden.
+    """
+
+    def __init__(self, comments=None, reddit=None, get_missing_replies=True, verbosity=3):
+        if comments is None:
+            comments = []
         tree = {x.id: x.parent_id[3:] for x in comments if not is_root(x)}
         comments = {x.id: x for x in comments}
         super().__init__(comments, tree)
@@ -207,12 +250,12 @@ class CommentTree(Tree):
         self._parent_counter, self._child_counter = 0, 0
         self.comment = self.node
 
-    def node(self, comment_id):
-        if comment_id not in self.tree and self.reddit is not None:
-            self.add_missing_parents(comment_id)
-        return Comment(super().node(comment_id), self)
+    def node(self, node_id):
+        if node_id not in self.tree and self.reddit is not None:
+            self.add_missing_parents(node_id)
+        return Comment(super().node(node_id), self)
 
-    def add_nodes(self, comments):
+    def add_comments(self, comments):
         new_comments = {x.id: x for x in comments}
         new_tree = {x.id: x.parent_id[3:] for x in comments if not is_root(x)}
         super().add_nodes(new_comments, new_tree)
@@ -236,15 +279,14 @@ class CommentTree(Tree):
                     self._parent_counter = self.refresh_counter
                 else:
                     self._parent_counter -= 1
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             print(e)
-            pass
         for i in range(9):
             comments.append(praw_comment)
             if praw_comment.is_root:
                 break
             praw_comment = praw_comment.parent()
-        self.add_nodes(comments)
+        self.add_comments(comments)
 
     def fill_gaps(self):
         for node in self.roots:
@@ -254,22 +296,22 @@ class CommentTree(Tree):
             if self.is_broken(leaf):
                 self.delete_node(leaf)
 
-    def find_children(self, comment):
-        children = [self.comment(x) for x in self.reversed_tree[comment.id]]
+    def find_children(self, node):
+        children = [self.comment(x) for x in self.reversed_tree[node.id]]
         if not children and self.get_missing_replies:
             if self.verbosity:
                 if self._child_counter == 0:
                     self._child_counter = self.refresh_counter
-                    print(f"Fetching replies to comment {comment.id}")
+                    print(f"Fetching replies to comment {node.id}")
                 else:
                     self._child_counter -= 1
-            children = self.add_missing_replies(comment)
+            children = self.add_missing_replies(node)
         by_date = sorted(children, key=lambda x: x.created_utc)
         return sorted(by_date, key=lambda x: x.body in utils.deleted_phrases)
 
     def add_missing_replies(self, comment):
         if comment.id not in self.nodes:
-            self.add_nodes([comment])
+            self.add_comments([comment])
         praw_comment = self.reddit.comment(comment.id)
 
         praw_comment.refresh()
@@ -277,10 +319,9 @@ class CommentTree(Tree):
         replies.replace_more(limit=None)
         replies = replies.list()
         if replies:
-            self.add_nodes(replies)
+            self.add_comments(replies)
             return [self.comment(x.id) for x in replies]
-        else:
-            return []
+        return []
 
     def is_broken(self, comment):
         if comment.is_root:
@@ -292,6 +333,10 @@ class CommentTree(Tree):
         return False
 
     def prune(self, side_thread):
+        """
+        Use a side thread object to remove invalid comments and their descendants
+        from the comment tree.
+        """
         nodes = self.roots
         queue = deque([(node, side_thread.get_history(node)) for node in nodes])
         while queue:
@@ -304,6 +349,12 @@ class CommentTree(Tree):
 
 
 class SubmissionTree(Tree):
+    """
+    A tree that tracks submissions.
+
+    It currently can only keep track of whether or not a submission is archived.
+    """
+
     def __init__(self, submissions, submission_tree, reddit=None):
         self.reddit = reddit
         super().__init__(submissions, submission_tree)
@@ -321,6 +372,9 @@ class SubmissionTree(Tree):
 
 
 def edges_to_tree(edges):
+    """
+    Popupate a tree dictionary from a list of edges
+    """
     tree = defaultdict(list)
     for source, dest in edges:
         tree[source].append(dest)
@@ -338,6 +392,7 @@ def is_root(comment):
     try:
         return comment.is_root
     except AttributeError:
-        submission_id = (comment.submission_id
-                         if hasattr(comment, 'submission_id') else comment.link_id)
+        submission_id = (
+            comment.submission_id if hasattr(comment, "submission_id") else comment.link_id
+        )
         return comment.parent_id == submission_id
