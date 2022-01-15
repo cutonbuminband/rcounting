@@ -8,6 +8,11 @@ repos:
       hooks:
         - id: check-added-large-files
         - id: check-toml
+    - repo: https://github.com/pycqa/isort
+      rev: 5.10.1
+      hooks:
+        - id: isort
+          name: isort (python)
     - repo: local
       hooks:
         - id: pylint
