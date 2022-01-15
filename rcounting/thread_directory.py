@@ -174,7 +174,7 @@ class Row:
         side_thread = st.get_side_thread(self.thread_type)
         printer.debug("Updating side thread: %s", self.thread_type)
         if self.thread_type == "default":
-            printer.info(
+            printer.warning(
                 "No rule found for %s. Not validating comment contents. "
                 "Assuming n=1000 and no double counting.",
                 self.name,
