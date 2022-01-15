@@ -13,6 +13,7 @@ from .validate import validate
     commands=[log, validate, update_directory],
     context_settings=dict(help_option_names=["-h", "--help"]),
 )
+@click.version_option()
 def cli():
     pass
 
