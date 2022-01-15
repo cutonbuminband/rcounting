@@ -1,5 +1,9 @@
+import logging
+
 import rcounting as rct
 import rcounting.side_threads as st
+
+printer = logging.getLogger(__name__)
 
 
 def load_wiki_page(subreddit, location):
@@ -139,7 +143,7 @@ class Row:
             return f"~{count:,d}"
         return f"{count:,d}"
 
-    def update(self, submission_tree, from_archive=False, verbosity=1, deepest_comment=False):
+    def update(self, submission_tree, from_archive=False, deepest_comment=False):
         """Find the latest comment in the latest submission of the side thread
         represented by this row.
 
@@ -152,8 +156,6 @@ class Row:
         from_archive: Whether the current side thread originally comes from the
         archive. If it does, a bit of care is needed when updating the total
         number of counts
-
-        verbosity: How much output to print. Higher verbosity=more output
 
         deepest_comment: A flag used to say that the function should find the
         deepest comment overall, rather than the deepest comment in the
@@ -169,13 +171,13 @@ class Row:
         comment.
 
         """
-        side_thread = st.get_side_thread(self.thread_type, verbosity)
-        if verbosity > 1:
-            print(f"Updating side thread: {self.thread_type}")
-        if verbosity > 0 and self.thread_type == "default":
-            print(
-                f"No rule found for {self.name}. Not validating comment contents. Assuming n=1000"
-                " and no double counting."
+        side_thread = st.get_side_thread(self.thread_type)
+        printer.debug("Updating side thread: %s", self.thread_type)
+        if self.thread_type == "default":
+            printer.info(
+                "No rule found for %s. Not validating comment contents. "
+                "Assuming n=1000 and no double counting.",
+                self.name,
             )
 
         chain = submission_tree.walk_down_tree(submission_tree.node(self.submission_id))
@@ -187,7 +189,7 @@ class Row:
         if len(chain) > 1:
             self.initial_comment_id = None
 
-        comments = rct.models.CommentTree(reddit=submission_tree.reddit, verbosity=verbosity)
+        comments = rct.models.CommentTree(reddit=submission_tree.reddit)
         if deepest_comment:
             for comment in self.submission.comments:
                 comments.add_missing_replies(comment)

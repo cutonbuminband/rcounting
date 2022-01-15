@@ -1,5 +1,6 @@
 """Script for logging reddit submissions to either a database or a csv file"""
 import functools
+import logging
 import os
 import sqlite3
 from datetime import datetime
@@ -11,34 +12,32 @@ import pandas as pd
 import rcounting as rct
 import rcounting.thread_directory as td
 import rcounting.thread_navigation as tn
+from rcounting import configure_logging
 from rcounting.reddit_interface import reddit, subreddit
 
-document = td.load_wiki_page(subreddit, "directory")
-threads = rct.utils.flatten([x[1] for x in document if x[0] == "table"])
-first_submissions = [x[1] for x in threads]
+printer = logging.getLogger("rcounting")
 
 
-def find_comment(leaf_comment_id, verbosity):
+def find_comment(leaf_comment_id, threads):
     """
     Return the comment associated with the leaf comment id.
     If the leaf comment id is none, return the latest comment in the directory
     """
     if not leaf_comment_id:
         comment_id = threads[0][4]
-        return tn.find_previous_get(reddit.comment(comment_id), verbosity=verbosity)
+        return tn.find_previous_get(reddit.comment(comment_id))
     return reddit.comment(leaf_comment_id)
 
 
-class Logger:
+class ThreadLogger:
     """Simple class for logging either to a database or to a csv file"""
 
-    def __init__(self, sql, output_directory, filename=None, verbosity=1):
+    def __init__(self, sql, output_directory, filename=None):
         self.sql = sql
         self.output_directory = output_directory
         self.last_checkpoint = ""
         if self.sql:
             self.setup_sql(filename)
-        self.verbosity = verbosity
         self.log = self.log_sql if self.sql else self.log_csv
 
     def setup_sql(self, filename):
@@ -48,7 +47,7 @@ class Logger:
         if filename is None:
             filename = "counting.sqlite"
         path = self.output_directory / filename
-        print(f"Writing submissions to sql database at {path}")
+        printer.warning("Writing submissions to sql database at %s", path)
         db = sqlite3.connect(path)
         try:
             known_submissions = pd.read_sql("select * from submissions", db)[
@@ -73,7 +72,7 @@ class Logger:
 
     def log_sql(self, comment):
         """Save one submission to a database"""
-        df = pd.DataFrame(tn.fetch_comments(comment, verbosity=self.verbosity))
+        df = pd.DataFrame(tn.fetch_comments(comment))
         submission = pd.Series(rct.models.Submission(comment.submission).to_dict())
         submission = submission[["submission_id", "username", "timestamp", "title", "body"]]
         submission["integer_id"] = int(submission["submission_id"], 36)
@@ -82,15 +81,14 @@ class Logger:
 
     def log_csv(self, comment):
         """Save one submission to a csv file"""
-        df = pd.DataFrame(tn.fetch_comments(comment, verbosity=self.verbosity))
+        df = pd.DataFrame(tn.fetch_comments(comment))
         extract_count = functools.partial(rct.parsing.find_count_in_text, raise_exceptions=False)
         n = int(1000 * ((df["body"].apply(extract_count) - df.index).median() // 1000))
         path = self.output_directory / Path(f"{n}.csv")
 
         columns = ["username", "timestamp", "comment_id", "submission_id"]
         output_df = df.set_index(df.index + n)[columns].iloc[1:]
-        if self.verbosity > 0:
-            print(f"Writing submission log to {path}")
+        printer.debug("Writing submission log to %s", path)
         header = ["username", "timestamp", "comment_id", "submission_id"]
         with open(path, "w", encoding="utf8") as f:
             print(f"# {comment.submission.title}", file=f)
@@ -131,7 +129,7 @@ class Logger:
         "switched off for side threads, and only sqlite output is supported"
     ),
 )
-@click.option("--verbose", "-v", "verbosity", count=True, help="Print more output")
+@click.option("--verbose", "-v", count=True, help="Print more output")
 @click.option("--quiet", "-q", is_flag=True, default=False, help="Suppress output")
 def log(
     leaf_comment_id,
@@ -141,9 +139,9 @@ def log(
     output_directory,
     sql,
     side_thread,
-    verbosity,
+    verbose,
     quiet,
-):  # pylint: disable=too-many-arguments
+):  # pylint: disable=too-many-arguments,too-many-locals
     """
     Log the reddit submission which ends in LEAF_COMMENT_ID.
     If no comment id is provided, use the latest completed thread found in the thread directory.
@@ -158,48 +156,55 @@ def log(
         and (n_threads != 1 or all_counts or Path(filename).suffix == ".sqlite")
     ):
         sql = True
-    verbosity = (1 - quiet) * (1 + verbosity)
 
-    comment = find_comment(leaf_comment_id, verbosity)
-    print(
-        f"Logging {'all' if all_counts else n_threads} "
-        f"reddit submission{'s' if (n_threads > 1) or all_counts else ''} "
-        f"starting at comment id {comment.id} and moving backwards"
+    configure_logging.setup(printer, verbose, quiet)
+    threads = rct.utils.flatten(
+        [x[1] for x in td.load_wiki_page(subreddit, "directory") if x[0] == "table"]
+    )
+    first_submissions = [x[1] for x in threads]
+
+    comment = find_comment(leaf_comment_id, threads)
+    printer.debug(
+        "Logging %s reddit submission%s starting at comment id %s and moving backwards",
+        "all" if all_counts else n_threads,
+        "s" if (n_threads > 1) or all_counts else "",
+        comment.id,
     )
 
-    logger = Logger(sql, output_directory, filename, verbosity)
+    threadlogger = ThreadLogger(sql, output_directory, filename)
     completed = 0
 
     while (not all_counts and (completed < n_threads)) or (
-        all_counts and comment.submission.id != logger.last_checkpoint
+        all_counts and comment.submission.id != threadlogger.last_checkpoint
     ):
-        if verbosity > 0:
-            print(f"Logging reddit submission {comment.submission.id}")
+        printer.info("Logging %s", comment.submission.title)
         completed += 1
-        if not logger.is_already_logged(comment):
-            logger.log(comment)
-        elif verbosity > 0:
-            print(f"Thread {comment.submission.id} has already been logged!")
+        if not threadlogger.is_already_logged(comment):
+            threadlogger.log(comment)
+        else:
+            printer.info("Submission %s has already been logged!", comment.submission.title)
 
         if comment.submission.id in first_submissions:
             break
 
-        comment = tn.find_previous_get(comment, validate_get=not side_thread, verbosity=verbosity)
+        comment = tn.find_previous_get(comment, validate_get=not side_thread)
 
     if (
         completed
         and sql
-        and (comment.submission.id in first_submissions + [logger.last_checkpoint])
+        and (comment.submission.id in first_submissions + [threadlogger.last_checkpoint])
     ):
         newest_submission = pd.read_sql(
-            "select submission_id from submissions order by integer_id", logger.db
+            "select submission_id from submissions order by integer_id", threadlogger.db
         ).iloc[-1]
         newest_submission.name = "submission_id"
-        newest_submission.to_sql("last_submission", logger.db, index=False, if_exists="append")
+        newest_submission.to_sql(
+            "last_submission", threadlogger.db, index=False, if_exists="append"
+        )
 
     if completed == 0:
-        print("The database is already up to date!")
-    print(f"Running the script took {datetime.now() - t_start}")
+        printer.info("The database is already up to date!")
+    printer.info("Running the script took %s", datetime.now() - t_start)
 
 
 if __name__ == "__main__":

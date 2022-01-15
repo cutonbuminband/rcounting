@@ -3,13 +3,17 @@ import bisect
 import copy
 import datetime
 import itertools
+import logging
 
 import click
 
 import rcounting as rct
 import rcounting.thread_directory as td
 import rcounting.thread_navigation as tn
+from rcounting import configure_logging
 from rcounting.reddit_interface import subreddit
+
+printer = logging.getLogger("rcounting")
 
 
 def document_to_string(document):
@@ -31,7 +35,7 @@ def document_to_dict(document):
     return {x.submission_id: x for x in rows}
 
 
-def update_main_document(document, tree, verbosity):
+def update_main_document(document, tree):
     """Update every row in the main directory page and sort the second table"""
     table_counter = 0
     for idx, paragraph in enumerate(document):
@@ -42,9 +46,9 @@ def update_main_document(document, tree, verbosity):
             rows = [td.Row(*x) for x in paragraph[1]]
             for row_idx, row in enumerate(rows):
                 try:
-                    row.update(tree, verbosity=verbosity)
+                    row.update(tree)
                 except Exception:  # pylint: disable=broad-except
-                    print(f"Unable to update thread {row.title}")
+                    printer.warning("Unable to update thread %s", row.title)
                     raise
             if table_counter == 2:
                 rows.sort(reverse=True)
@@ -72,7 +76,7 @@ def find_new_submissions(new_submission_ids, tree, threads):
         try:
             row.update(tree, deepest_comment=True)
         except Exception:  # pylint: disable=broad-except
-            print(f"Unable to update new thread {row.title}")
+            printer.warning("Unable to update new thread %s", row.title)
             raise
         n_authors = len(set(x.author for x in row.comment.walk_up_tree()))
         is_long_chain = row.comment.depth >= 50 and n_authors >= 5
@@ -100,7 +104,7 @@ def find_revived_submissions(new_submission_ids, tree, threads, archive_dict):
                 try:
                     row.update(tree, from_archive=True, deepest_comment=True)
                 except Exception:  # pylint: disable=broad-except
-                    print(f"Unable to update revived thread {row.title}")
+                    printer.warning("Unable to update revived thread %s", row.title)
                     raise
                 if row.comment.depth >= 20 or len(chain) > 2:
                     revivals.append(row)
@@ -116,8 +120,10 @@ def update_archive(threads, archive_dict, dry_run):
     newly_archived_threads = [x for x in threads if x.archived]
     archived_rows = list(archive_dict.values()) + newly_archived_threads
     n = len(newly_archived_threads)
-    print(
-        f"Moving {n} archived thread{'s' if n != 1 else ''} to /r/counting/wiki/directory/archive"
+    printer.info(
+        "Moving %s archived thread%s to /r/counting/wiki/directory/archive",
+        n,
+        "s" if n != 1 else "",
     )
     archived_rows.sort(key=lambda x: rct.parsing.name_sort(x.name))
     splits = ["A", "D", "I", "P", "T", "["]
@@ -146,20 +152,16 @@ def update_directory(quiet, verbose, dry_run):
     """
     Update the thread directory located at reddit.com/r/counting/wiki/directory.
     """
-    verbosity = (1 + verbose) * (1 - quiet)
+    configure_logging.setup(printer, verbose, quiet)
     start = datetime.datetime.now()
     document = td.load_wiki_page(subreddit, "directory")
-    if verbosity > 0:
-        print("Getting history")
+    printer.info("Getting history")
 
-    tree, new_submissions = tn.fetch_counting_history(
-        subreddit, datetime.timedelta(days=187), verbosity
-    )
+    tree, new_submissions = tn.fetch_counting_history(subreddit, datetime.timedelta(days=187))
 
     new_submissions = {tree.walk_down_tree(submission)[-1].id for submission in new_submissions}
-    if verbosity > 0:
-        print("Updating tables")
-    document = update_main_document(document, tree, verbosity)
+    printer.info("Updating tables")
+    document = update_main_document(document, tree)
 
     if "new" in document[-3].lower() and "revived" in document[-3].lower():
         new_table = document[-2]
@@ -173,7 +175,7 @@ def update_directory(quiet, verbose, dry_run):
 
     archive_dict = document_to_dict(td.load_wiki_page(subreddit, "directory/archive"))
 
-    print("Finding revived threads")
+    printer.info("Finding revived threads")
     revived_submissions, archived_dict = find_revived_submissions(
         new_submissions, tree, threads, archive_dict
     )
@@ -192,7 +194,7 @@ def update_directory(quiet, verbose, dry_run):
     if [x for x in threads if x.archived] or bool(revived_submissions):
         update_archive(threads, archived_dict, dry_run)
     end = datetime.datetime.now()
-    print(end - start)
+    printer.info("Running the script took %s", end - start)
 
 
 if __name__ == "__main__":
