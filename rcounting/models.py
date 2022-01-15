@@ -9,25 +9,16 @@ from rcounting import utils
 class RedditPost:
     """A superclass to treat reddit comments and submissions under the same umbrella."""
 
-    def __init__(self, post, cached=False, api=None):
+    def __init__(self, post):
         self.id = post.id
         self.created_utc = post.created_utc
         self.author = str(post.author)
         self.body = post.body if hasattr(post, "body") else post.selftext
         self.submission_id = post.submission_id if hasattr(post, "submission_id") else post.name
-        cached = cached or hasattr(post, "cached")
         if hasattr(post, "post_type"):
             self.post_type = post.post_type
         else:
             self.post_type = "comment" if hasattr(post, "body") else "submission"
-        if not cached and api is not None:
-            if self.body in utils.deleted_phrases or self.author in utils.deleted_phrases:
-                if self.post_type == "comment":
-                    search = api.search_comments
-                elif self.post_type == "submission":
-                    search = api.search_submissions
-                self.body, self.author = self.find_missing_content(search)
-        self.cached = True
 
     def find_missing_content(self, search):
         try:

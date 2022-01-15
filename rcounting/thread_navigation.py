@@ -1,10 +1,6 @@
 import datetime
 
-from psaw import PushshiftAPI
-
 import rcounting as rct
-
-api = PushshiftAPI()
 
 
 def find_previous_get(comment, validate_get=True, verbosity=0):
@@ -42,8 +38,8 @@ def find_previous_get(comment, validate_get=True, verbosity=0):
             new_submission_id, new_get_id = next(urls)
         except StopIteration:
             break
-    if not new_get_id and validate_get:
-        new_get_id = find_get_in_submission(new_submission_id, reddit)
+    if not new_get_id:
+        new_get_id = find_deepest_comment(new_submission_id, reddit, verbosity)
     comment = reddit.comment(new_get_id)
     if validate_get:
         new_get = find_get_from_comment(comment)
@@ -57,27 +53,24 @@ def find_previous_get(comment, validate_get=True, verbosity=0):
     return new_get
 
 
-def find_get_in_submission(submission_id, reddit):
+def find_deepest_comment(submission, reddit, verbosity=0):
     """
-    Find the get based on submission id; start by looking at the last comment on the submission.
+    Find the deepest comment on a submission
     """
-    ids = api._get_submission_comment_ids(submission_id)[::-1]  # pylint: disable=protected-access
-    for comment_id in ids[:-1]:
-        comment = reddit.comment(comment_id)
-        try:
-            count = rct.parsing.post_to_count(comment, api)
-            if count % 1000 == 0:
-                return comment.id
-        except ValueError:
-            continue
-    raise ValueError(f"Unable to locate get in submission {submission_id}")
+    if not hasattr(submission, "id"):
+        submission = reddit.submission(submission)
+        submission.comment_sort = "old"
+    comments = rct.models.CommentTree(reddit=reddit, verbosity=verbosity)
+    for comment in submission.comments:
+        comments.add_missing_replies(comment)
+    return comments.deepest_node.id
 
 
 def search_up_from_gz(comment, max_retries=5):
     """Look for a count up to max_retries above the linked_comment"""
     for i in range(max_retries):
         try:
-            count = rct.parsing.post_to_count(comment, api)
+            count = rct.parsing.post_to_count(comment)
             return count, comment
         except ValueError:
             if i == max_retries:
@@ -94,48 +87,18 @@ def find_get_from_comment(comment):
     replies.replace_more(limit=None)
     while count % 1000 != 0:
         comment = comment.replies[0]
-        count = rct.parsing.post_to_count(comment, api)
+        count = rct.parsing.post_to_count(comment)
     return comment
 
 
-def fetch_comment_tree(
-    submission, root_id=None, verbosity=1, use_pushshift=True, history=1, fill_gaps=False
-):  # pylint: disable=too-many-arguments
-    """
-    Fetch the tree of comments under a given submission.
-
-    If a root id is supplied, only fetch descendants of that comment,
-    and then ancestors `history` levels back.
-    """
-    reddit = rct.reddit_interface.reddit
-    if use_pushshift:
-        ids = api._get_submission_comment_ids(submission.id)  # pylint: disable=protected-access
-        comment_ids = list(ids)
-    else:
-        comment_ids = []
-    if not comment_ids:
-        return rct.models.CommentTree([], reddit=reddit, verbosity=verbosity)
-
-    comment_ids.sort(key=lambda x: int(x, 36))
-    if root_id is not None:
-        idx = 0
-        for idx, comment_id in enumerate(comment_ids):
-            if int(comment_id, 36) >= int(root_id, 36):
-                break
-        comment_ids = comment_ids[max(0, idx - history) :]
-    comments = list(reddit.info(["t1_" + x for x in comment_ids]))
-    submission_tree = rct.models.CommentTree(comments, reddit=reddit, verbosity=verbosity)
-    if fill_gaps:
-        submission_tree.fill_gaps()
-    return submission_tree
-
-
-def fetch_comments(comment, verbosity=1, use_pushshift=True):
+def fetch_comments(comment, verbosity=1):
     """
     Fetch a chain of comments from root to the supplied leaf comment.
     """
-    tree = fetch_comment_tree(comment.submission, verbosity=verbosity, use_pushshift=use_pushshift)
-    comments = tree.comment(comment.id).walk_up_tree()[::-1]
+    reddit = rct.reddit_interface.reddit
+    tree = rct.models.CommentTree([], reddit=reddit, verbosity=verbosity)
+    comment_id = getattr(comment, "id", comment)
+    comments = tree.comment(comment_id).walk_up_tree()[::-1]
     return [x.to_dict() for x in comments]
 
 

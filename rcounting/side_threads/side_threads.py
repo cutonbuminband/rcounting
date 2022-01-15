@@ -13,7 +13,7 @@ import scipy.sparse
 from rcounting import parsing
 from rcounting.counters import is_ignored_counter
 from rcounting.models import comment_to_dict
-from rcounting.thread_navigation import fetch_comment_tree
+from rcounting.thread_navigation import fetch_comments
 from rcounting.utils import deleted_phrases, is_leap_year
 
 minute = 60
@@ -281,8 +281,8 @@ def update_from_traversal(old_count, chain, was_revival):
             lambda x, t=thread: x[0] == t.id, parsing.find_urls_in_text(new_thread.selftext)
         )
         submission_id, comment_id = next(urls)
-        tree = fetch_comment_tree(thread, use_pushshift=False)
-        count += len(tree.comment(comment_id).walk_up_tree())
+        comments = fetch_comments(comment_id)
+        count += len(comments)
         new_thread = thread
     return count
 

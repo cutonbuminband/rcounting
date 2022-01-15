@@ -36,14 +36,14 @@ def find_urls_in_text(body):
     return urls
 
 
-def post_to_count(reddit_post, api=None):
+def post_to_count(reddit_post):
     """Extract an integer from a reddit submission or comment"""
-    return find_count_in_text(RedditPost(reddit_post, api=api).body)
+    return find_count_in_text(RedditPost(reddit_post).body)
 
 
-def post_to_urls(reddit_post, api=None):
+def post_to_urls(reddit_post):
     """Find urls in a reddit submission or comment"""
-    return find_urls_in_text(RedditPost(reddit_post, api=api).body)
+    return find_urls_in_text(RedditPost(reddit_post).body)
 
 
 def parse_markdown_links(body):

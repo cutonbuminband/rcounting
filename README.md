@@ -69,11 +69,9 @@ Using the scripts here (and an archive supplied by members of r/counting), I've 
 
 The program has been tested on python 3.7, 3.8 and 3.10, on Windows and on Linux.
 
-The program makes use of the [Python Reddit API Wrapper](https://praw.readthedocs.io/en/latest/) to interact with reddit.
+The program makes use of the [Python Reddit API Wrapper](https://praw.readthedocs.io/en/latest/) to interact with reddit and `pandas` to work with tabular data. Updating some of the side threads requires `scipy` -- yes, really!
 
-The program also uses the [Pushshift API Wrapper](https://psaw.readthedocs.io/en/latest/#)
-
-The program uses `pandas` to work with tabular data
+The command line interface is built using `click`.
 
 ## License
 
@@ -82,7 +80,7 @@ This project is licensed under the terms of the GNU General Public License v3.0,
 ## Contributing and Future Ideas
 This is a loosely organised list of things which could be done in the future. If you have any suggestions, don't hesitate to write, or to send a pull request. As a heads up, when you submit a pull request, you are also agreeing to license your code under the GPL (see github's [terms of service](https://docs.github.com/en/github/site-policy/github-terms-of-service#6-contributions-under-repository-license)).
 
-* ~~Recovering gracefully if a linked comment is inaccessible because it's been deleted or removed~~ This has been done more or less, in that the code tries to see if the reddit object is accessible on pushshift. If it isn't, it still crashes, but there's no simple way of recovering gently if e.g. the body of a submission is missing so that the previous get can't be found.
+* Recovering gracefully if a linked comment is inaccessible because it's been deleted or removed
 * Making the comment and url extraction less brittle
 
 ## Get in touch

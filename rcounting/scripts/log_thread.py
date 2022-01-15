@@ -73,9 +73,7 @@ class Logger:
 
     def log_sql(self, comment):
         """Save one submission to a database"""
-        df = pd.DataFrame(
-            tn.fetch_comments(comment, use_pushshift=False, verbosity=self.verbosity)
-        )
+        df = pd.DataFrame(tn.fetch_comments(comment, verbosity=self.verbosity))
         submission = pd.Series(rct.models.Submission(comment.submission).to_dict())
         submission = submission[["submission_id", "username", "timestamp", "title", "body"]]
         submission["integer_id"] = int(submission["submission_id"], 36)
@@ -84,9 +82,7 @@ class Logger:
 
     def log_csv(self, comment):
         """Save one submission to a csv file"""
-        df = pd.DataFrame(
-            tn.fetch_comments(comment, use_pushshift=False, verbosity=self.verbosity)
-        )
+        df = pd.DataFrame(tn.fetch_comments(comment, verbosity=self.verbosity))
         extract_count = functools.partial(rct.parsing.find_count_in_text, raise_exceptions=False)
         n = int(1000 * ((df["body"].apply(extract_count) - df.index).median() // 1000))
         path = self.output_directory / Path(f"{n}.csv")

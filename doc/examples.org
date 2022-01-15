@@ -49,7 +49,7 @@ Then we load some data, both the counts and the gets. We convert the timestamp t
 Using various pieces of functionality, we can validate side threads. Here, we confirm that an old side thread is valid:
 #+begin_src jupyter-python
   comment = rct.reddit.comment("gja0ehe")
-  comments = pd.DataFrame(rct.fetch_comments(comment, use_pushshift=False))
+  comments = pd.DataFrame(rct.fetch_comments(comment))
   side_thread = side_threads.get_side_thread('slowestest')
   side_thread.is_valid_thread(comments)
 #+end_src

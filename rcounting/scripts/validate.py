@@ -32,7 +32,7 @@ def validate(comment_id, rule):
     """Validate the thread ending at COMMENT_ID according to the specified rule."""
     comment = reddit.comment(comment_id)
     print(f"Validating thread: '{comment.submission.title}' according to rule {rule}")
-    comments = pd.DataFrame(tn.fetch_comments(comment, use_pushshift=False))
+    comments = pd.DataFrame(tn.fetch_comments(comment))
     side_thread = st.get_side_thread(rule_dict[rule])
     result = side_thread.is_valid_thread(comments)
     if result[0]:
