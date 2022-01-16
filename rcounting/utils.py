@@ -1,5 +1,7 @@
 import os
 
+from rcounting.units import HOUR, MINUTE
+
 
 def flatten(mylist):
     return [element for sublist in mylist for element in sublist]
@@ -20,8 +22,8 @@ def format_timedelta(timedelta):
         return f"{n} {unit}{'s' if n > 1 else ''}"
 
     days = timedelta.days
-    hours, rem = divmod(timedelta.seconds, 3600)
-    minutes, seconds = divmod(rem, 60)
+    hours, rem = divmod(timedelta.seconds, HOUR)
+    minutes, seconds = divmod(rem, MINUTE)
     amounts = [days, hours, minutes, seconds]
     units = ["day", "hour", "minute", "second"]
     formatted = [format_one_interval(n, unit) for n, unit in zip(amounts, units)]

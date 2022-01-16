@@ -12,6 +12,7 @@ from numpy.fft import fftshift, irfft, rfft
 from scipy.special import i0
 
 from rcounting import counters, utils
+from rcounting.units import DAY
 
 
 def load_csvs(start, n, directory="."):
@@ -128,7 +129,7 @@ def fft_kde_on_unit_circle(data, n_bins, kernel=vonmises_distribution, **params)
 def fft_kde(data, n_bins, kernel=vonmises_distribution, **params):
     """Prepare time data for use with `fft_kde_on_unit_circle`"""
     minval = 0
-    maxval = 24 * 3600
+    maxval = DAY
     if kernel == "vonmises_distribution":
         kernel = vonmises_distribution
     elif kernel == "normal_distribution":

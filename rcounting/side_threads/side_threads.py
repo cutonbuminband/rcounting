@@ -11,18 +11,13 @@ import numpy as np
 import pandas as pd
 import scipy.sparse
 
-from rcounting import parsing
-from rcounting.counters import is_ignored_counter
+from rcounting import counters, parsing
+from rcounting import thread_navigation as tn
+from rcounting import utils
 from rcounting.models import comment_to_dict
-from rcounting.thread_navigation import fetch_comments
-from rcounting.utils import deleted_phrases, is_leap_year
+from rcounting.units import DAY, HOUR, MINUTE
 
 printer = logging.getLogger(__name__)
-
-minute = 60
-hour = 60 * 60
-day = 60 * 60 * 24
-
 
 alphanumeric = string.digits + string.ascii_uppercase
 
@@ -271,7 +266,7 @@ def update_dates(count, chain, was_revival=None):
     regex = r"([,\d]+)$"  # All digits at the end of the line, plus optional separators
     for submission in chain:
         year = int(re.search(regex, submission.title).group().replace(",", ""))
-        length = 1095 + any(map(is_leap_year, range(year, year + 3)))
+        length = 1095 + any(map(utils.is_leap_year, range(year, year + 3)))
         count += length
     return count
 
@@ -284,7 +279,7 @@ def update_from_traversal(old_count, chain, was_revival):
             lambda x, t=thread: x[0] == t.id, parsing.find_urls_in_text(new_thread.selftext)
         )
         submission_id, comment_id = next(urls)
-        comments = fetch_comments(comment_id)
+        comments = tn.fetch_comments(comment_id)
         count += len(comments)
         new_thread = thread
     return count
@@ -326,7 +321,7 @@ class SideThread:
         history = history.append(comment_to_dict(comment), ignore_index=True)
         valid_history = self.is_valid_thread(history)[0]
         valid_count = self.looks_like_count(comment)
-        valid_user = not is_ignored_counter(str(comment.author))
+        valid_user = not counters.is_ignored_counter(str(comment.author))
         return valid_history and valid_count and valid_user, history
 
     def get_history(self, comment):
@@ -336,7 +331,7 @@ class SideThread:
         return self.rule.get_history(comment)
 
     def looks_like_count(self, comment):
-        return comment.body in deleted_phrases or self.form(comment.body)
+        return comment.body in utils.deleted_phrases or self.form(comment.body)
 
 
 class OnlyRepeatingDigits(SideThread):
@@ -474,9 +469,9 @@ known_threads = {
     "wait 9": SideThread(form=base_10, rule=CountingRule(wait_n=9)),
     "wait 10": SideThread(form=base_10, rule=CountingRule(wait_n=10)),
     "once per thread": SideThread(form=base_10, rule=CountingRule(wait_n=None)),
-    "slow": SideThread(form=base_10, rule=CountingRule(thread_time=minute)),
-    "slower": SideThread(form=base_10, rule=CountingRule(user_time=hour)),
-    "slowestest": SideThread(form=base_10, rule=CountingRule(thread_time=hour, user_time=day)),
+    "slow": SideThread(form=base_10, rule=CountingRule(thread_time=MINUTE)),
+    "slower": SideThread(form=base_10, rule=CountingRule(user_time=HOUR)),
+    "slowestest": SideThread(form=base_10, rule=CountingRule(thread_time=HOUR, user_time=DAY)),
     "unicode": SideThread(form=base_n(16), length=1024),
     "valid brainfuck programs": SideThread(form=brainfuck),
     "only double counting": SideThread(form=base_10, rule=OnlyDoubleCounting()),

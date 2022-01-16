@@ -9,6 +9,7 @@ from cycler import cycler
 from pandas.plotting import register_matplotlib_converters
 
 from rcounting.analysis import fft_kde
+from rcounting.units import DAY, HOUR, MINUTE
 
 register_matplotlib_converters()
 
@@ -71,17 +72,17 @@ def speedrun_histogram(df, n=3):
 
 
 def time_of_day_histogram(df, ax, n=4):
-    bins = np.linspace(0, 24 * 3600, 24 * 12 + 1)
+    bins = np.linspace(0, DAY, 24 * 12 + 1)
     df = df.copy()
-    df["time_of_day"] = df["timestamp"].astype(int) % (24 * 3600)
+    df["time_of_day"] = df["timestamp"].astype(int) % DAY
     top_counters = df["username"].value_counts().index[:n]
     ax.hist(df["time_of_day"], bins=bins, alpha=0.8, label="total", color="C3", edgecolor="k")
     for counter in top_counters:
         data = df.query("username==@counter")["time_of_day"]
         ax.hist(data, bins=bins, alpha=0.7, label=counter, edgecolor="k")
-    ax.set_xlim(0, 24 * 3600 + 1)
+    ax.set_xlim(0, DAY + 1)
     intervals = range(0, 25, 3)
-    ax.set_xticks([x * 3600 for x in intervals])
+    ax.set_xticks([x * HOUR for x in intervals])
     ax.set_xticklabels(["f{x:02d}:00" for x in intervals])
     ax.legend()
     ax.set_ylabel("Number of counts per 5 min interval")
@@ -90,10 +91,10 @@ def time_of_day_histogram(df, ax, n=4):
 
 def time_of_day_kde(df, ax, n=4):
     alpha = 0.8
-    nbins = 24 * 60 * 2
+    nbins = DAY / MINUTE * 2
     sigma = 0.02
     df = df.copy()
-    df["time_of_day"] = df["timestamp"].astype(int) % (24 * 3600)
+    df["time_of_day"] = df["timestamp"].astype(int) % DAY
     counts = df["username"].value_counts()
     top_counters = counts.index[:n]
     x, kde = fft_kde(df["time_of_day"], nbins, kernel="normal_distribution", sigma=sigma)
@@ -106,9 +107,9 @@ def time_of_day_kde(df, ax, n=4):
         kde *= counts.loc[counter]
         ax.fill_between(x, kde, color=colors[idx], alpha=alpha)
         ax.plot(x, kde, label=counter, color=colors[idx], lw=2)
-    ax.set_xlim(0, 24 * 3600 + 1)
+    ax.set_xlim(0, DAY + 1)
     intervals = range(0, 25, 3)
-    ax.set_xticks([x * 3600 for x in intervals])
+    ax.set_xticks([x * HOUR for x in intervals])
     ax.set_xticklabels([f"{x:02d}:00" for x in intervals])
     ax.set_ylim(bottom=0)
     ax.legend()
