@@ -12,19 +12,6 @@ from rcounting.analysis import fft_kde
 
 register_matplotlib_converters()
 
-standard_colors = [
-    "#1f77b4",
-    "#ff7f0e",
-    "#2ca02c",
-    "#d62728",
-    "#9467bd",
-    "#8c564b",
-    "#e377c2",
-    "#7f7f7f",
-    "#bcbd22",
-    "#17becf",
-]
-
 
 def format_x_date_month(ax):
     months = mdates.MonthLocator()  # every month
@@ -64,6 +51,7 @@ def speedrun_histogram(df, n=3):
     df["dt"] = df["timestamp"].diff()
     counters = df.query("dt < 20").groupby("username").mean()["dt"].sort_values().index
     fig, axes = plt.subplots(n, sharex=True, sharey=True)
+    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     for idx, counter in enumerate(counters[:n]):
         ax = axes[idx]
         ax.hist(
@@ -72,7 +60,7 @@ def speedrun_histogram(df, n=3):
             alpha=0.6,
             label=counter,
             density=True,
-            color=standard_colors[idx],
+            color=colors[idx],
             edgecolor="k",
         )
         ax.legend()
@@ -110,17 +98,17 @@ def time_of_day_kde(df, ax, n=4):
     top_counters = counts.index[:n]
     x, kde = fft_kde(df["time_of_day"], nbins, kernel="normal_distribution", sigma=sigma)
     kde *= len(df)
+    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     ax.fill_between(x, kde, label="All Counts", color="0.8")
     for idx, counter in enumerate(top_counters):
         data = df.query("username==@counter")["time_of_day"]
         x, kde = fft_kde(data, nbins, kernel="normal_distribution", sigma=sigma)
         kde *= counts.loc[counter]
-        ax.fill_between(x, kde, color=standard_colors[idx], alpha=alpha)
-        ax.plot(x, kde, label=counter, color=standard_colors[idx], lw=2)
+        ax.fill_between(x, kde, color=colors[idx], alpha=alpha)
+        ax.plot(x, kde, label=counter, color=colors[idx], lw=2)
     ax.set_xlim(0, 24 * 3600 + 1)
-    hour = 3600
     intervals = range(0, 25, 3)
-    ax.set_xticks([x * hour for x in intervals])
+    ax.set_xticks([x * 3600 for x in intervals])
     ax.set_xticklabels([f"{x:02d}:00" for x in intervals])
     ax.set_ylim(bottom=0)
     ax.legend()
@@ -130,7 +118,8 @@ def time_of_day_kde(df, ax, n=4):
 
 
 def plot_get_time(df, ax, **kwargs):
-    cc = cycler(color=["C0", "C1"]) * cycler(marker=list("vs"))
+    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"][:2]
+    cc = cycler(colors) * cycler(marker=list("vs"))
     ax.set_prop_cycle(cc)
     modstring = {False: "Non-mod", True: "Mod"}
     get_type = {"get": "Get", "assist": "Assist"}
