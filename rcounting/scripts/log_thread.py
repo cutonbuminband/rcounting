@@ -122,18 +122,8 @@ def log(
 
         comment = tn.find_previous_get(comment, validate_get=not side_thread)
 
-    if (
-        completed
-        and sql
-        and (comment.submission.id in first_submissions + [threadlogger.last_checkpoint])
-    ):
-        newest_submission = pd.read_sql(
-            "select submission_id from submissions order by integer_id", threadlogger.db
-        ).iloc[-1]
-        newest_submission.name = "submission_id"
-        newest_submission.to_sql(
-            "last_submission", threadlogger.db, index=False, if_exists="append"
-        )
+    if completed and (comment.submission.id in first_submissions + [threadlogger.last_checkpoint]):
+        threadlogger.update_checkpoint()
 
     if completed == 0:
         printer.info("The database is already up to date!")

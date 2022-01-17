@@ -73,3 +73,12 @@ class ThreadLogger:
         with open(path, "w", encoding="utf8") as f:
             print(f"# {comment.submission.title}", file=f)
             print(output_df.to_csv(index_label="count", header=header), file=f, end="")
+
+    def update_checkpoint(self):
+        if not self.sql:
+            return
+        newest_submission = pd.read_sql(
+            "select submission_id from submissions order by integer_id", self.db
+        ).iloc[-1]
+        newest_submission.name = "submission_id"
+        newest_submission.to_sql("last_submission", self.db, index=False, if_exists="append")
