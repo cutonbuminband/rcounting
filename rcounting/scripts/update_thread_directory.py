@@ -1,38 +1,16 @@
+# pylint: disable=import-outside-toplevel,too-many-locals
 """A script to update the thread directory"""
-import bisect
 import copy
-import datetime
-import itertools
 import logging
 
 import click
 
-from rcounting import configure_logging, parsing
+from rcounting import parsing
 from rcounting import thread_directory as td
-from rcounting import thread_navigation as tn
 from rcounting import utils
 from rcounting.reddit_interface import subreddit
 
 printer = logging.getLogger("rcounting")
-
-
-def document_to_string(document):
-    """
-    Convert a list of paragraphs to a single string.
-
-    The paragraphs can be either strings or a list of Row objects.
-    """
-    return "\n\n".join([x if isinstance(x, str) else td.rows2string(x) for x in document])
-
-
-def document_to_dict(document):
-    """
-    Generate a dictionary of all the rows present in the document, indexed by their original id
-    """
-
-    rows = [entry[1][:] for entry in document if entry[0] == "table"]
-    rows = [td.Row(*x) for x in utils.flatten(rows)]
-    return {x.submission_id: x for x in rows}
 
 
 def update_main_document(document, tree):
@@ -115,6 +93,9 @@ def find_revived_submissions(new_submission_ids, tree, threads, archive_dict):
 
 def update_archive(threads, archive_dict, dry_run):
     """Update the archive located at http://reddit.com/r/counting/wiki/directory/archive"""
+    import bisect
+    import itertools
+
     archive_wiki = subreddit.wiki["directory/archive"]
     archive = td.load_wiki_page(subreddit, "directory/archive")
     newly_archived_threads = [x for x in threads if x.archived]
@@ -152,6 +133,11 @@ def update_directory(quiet, verbose, dry_run):
     """
     Update the thread directory located at reddit.com/r/counting/wiki/directory.
     """
+    import datetime
+
+    from rcounting import configure_logging
+    from rcounting import thread_navigation as tn
+
     configure_logging.setup(printer, verbose, quiet)
     start = datetime.datetime.now()
     document = td.load_wiki_page(subreddit, "directory")
@@ -173,7 +159,7 @@ def update_directory(quiet, verbose, dry_run):
 
     new_table += find_new_submissions(new_submissions, tree, threads)
 
-    archive_dict = document_to_dict(td.load_wiki_page(subreddit, "directory/archive"))
+    archive_dict = td.document_to_dict(td.load_wiki_page(subreddit, "directory/archive"))
 
     printer.info("Finding revived threads")
     revived_submissions, archived_dict = find_revived_submissions(
@@ -185,11 +171,11 @@ def update_directory(quiet, verbose, dry_run):
     document[-2] = new_table
     if not dry_run:
         subreddit.wiki["directory"].edit(
-            document_to_string(document), reason="Ran the update script"
+            td.document_to_string(document), reason="Ran the update script"
         )
     else:
         with open("directory.md", "w", encoding="utf8") as f:
-            print(document_to_string(document), file=f)
+            print(td.document_to_string(document), file=f)
 
     if [x for x in threads if x.archived] or bool(revived_submissions):
         update_archive(threads, archived_dict, dry_run)

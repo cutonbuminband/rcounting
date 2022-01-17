@@ -2,6 +2,7 @@ import logging
 
 from rcounting import models, parsing
 from rcounting import side_threads as st
+from rcounting import utils
 
 printer = logging.getLogger(__name__)
 
@@ -27,6 +28,25 @@ def title_from_first_comment(submission):
     comment = sorted(list(submission.comments), key=lambda x: x.created_utc)[0]
     body = comment.body.split("\n")[0]
     return parsing.normalise_title(parsing.strip_markdown_links(body))
+
+
+def document_to_string(document):
+    """
+    Convert a list of paragraphs to a single string.
+
+    The paragraphs can be either strings or a list of Row objects.
+    """
+    return "\n\n".join([x if isinstance(x, str) else rows2string(x) for x in document])
+
+
+def document_to_dict(document):
+    """
+    Generate a dictionary of all the rows present in the document, indexed by their original id
+    """
+
+    rows = [entry[1][:] for entry in document if entry[0] == "table"]
+    rows = [Row(*x) for x in utils.flatten(rows)]
+    return {x.submission_id: x for x in rows}
 
 
 class Row:

@@ -1,10 +1,6 @@
+# pylint: disable=import-outside-toplevel
 """Validate the thread ending at COMMENT_ID according to the specified rule."""
 import click
-import pandas as pd
-
-from rcounting import side_threads as st
-from rcounting import thread_navigation as tn
-from rcounting.reddit_interface import reddit
 
 rule_dict = {
     "default": "default",
@@ -30,6 +26,12 @@ rule_dict = {
 @click.argument("comment_id")
 def validate(comment_id, rule):
     """Validate the thread ending at COMMENT_ID according to the specified rule."""
+    import pandas as pd
+
+    from rcounting import side_threads as st
+    from rcounting import thread_navigation as tn
+    from rcounting.reddit_interface import reddit
+
     comment = reddit.comment(comment_id)
     print(f"Validating thread: '{comment.submission.title}' according to rule {rule}")
     comments = pd.DataFrame(tn.fetch_comments(comment))

@@ -1,3 +1,4 @@
+# pylint: disable=import-outside-toplevel
 """Script for logging reddit submissions to either a database or a csv file"""
 import logging
 from datetime import datetime
@@ -6,25 +7,7 @@ from pathlib import Path
 import click
 import pandas as pd
 
-from rcounting import configure_logging
-from rcounting import thread_directory as td
-from rcounting import thread_navigation as tn
-from rcounting import utils
-from rcounting.io import ThreadLogger
-from rcounting.reddit_interface import reddit, subreddit
-
 printer = logging.getLogger("rcounting")
-
-
-def find_comment(leaf_comment_id, threads):
-    """
-    Return the comment associated with the leaf comment id.
-    If the leaf comment id is none, return the latest comment in the directory
-    """
-    if not leaf_comment_id:
-        comment_id = threads[0][4]
-        return tn.find_previous_get(reddit.comment(comment_id))
-    return reddit.comment(leaf_comment_id)
 
 
 @click.command()
@@ -80,6 +63,13 @@ def log(
     By default, assumes that this is part of the main chain, and will attempt to
     find the true get if the gz or the assist are linked instead.
     """
+    from rcounting import configure_logging
+    from rcounting import thread_directory as td
+    from rcounting import thread_navigation as tn
+    from rcounting import utils
+    from rcounting.io import ThreadLogger
+    from rcounting.reddit_interface import reddit, subreddit
+
     t_start = datetime.now()
     utils.ensure_directory(output_directory)
 
@@ -95,7 +85,11 @@ def log(
     )
     first_submissions = [x[1] for x in threads]
 
-    comment = find_comment(leaf_comment_id, threads)
+    if not leaf_comment_id:
+        comment_id = threads[0][4]
+        comment = tn.find_previous_get(reddit.comment(comment_id))
+    else:
+        comment = reddit.comment(leaf_comment_id)
     printer.debug(
         "Logging %s reddit submission%s starting at comment id %s and moving backwards",
         "all" if all_counts else n_threads,
