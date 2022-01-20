@@ -1,3 +1,6 @@
+import bisect
+import copy
+import itertools
 import logging
 
 from rcounting import models, parsing
@@ -7,7 +10,7 @@ from rcounting import utils
 printer = logging.getLogger(__name__)
 
 
-def load_wiki_page(subreddit, location):
+def load_wiki_page(subreddit, location, kind="directory"):
     """
     Load the wiki page at reddit.com/r/subreddit/wiki/location
 
@@ -15,7 +18,7 @@ def load_wiki_page(subreddit, location):
     """
     wiki_page = subreddit.wiki[location]
     document = wiki_page.content_md.replace("\r\n", "\n")
-    return parsing.parse_directory_page(document)
+    return Directory(parsing.parse_directory_page(document), kind)
 
 
 def title_from_first_comment(submission):
@@ -28,25 +31,6 @@ def title_from_first_comment(submission):
     comment = sorted(list(submission.comments), key=lambda x: x.created_utc)[0]
     body = comment.body.split("\n")[0]
     return parsing.normalise_title(parsing.strip_markdown_links(body))
-
-
-def document_to_string(document):
-    """
-    Convert a list of paragraphs to a single string.
-
-    The paragraphs can be either strings or a list of Row objects.
-    """
-    return "\n\n".join([x if isinstance(x, str) else rows2string(x) for x in document])
-
-
-def document_to_dict(document):
-    """
-    Generate a dictionary of all the rows present in the document, indexed by their original id
-    """
-
-    rows = [entry[1][:] for entry in document if entry[0] == "table"]
-    rows = [Row(*x) for x in utils.flatten(rows)]
-    return {x.submission_id: x for x in rows}
 
 
 class Row:
@@ -237,17 +221,182 @@ class Row:
             self.update_title()
 
 
-def rows2string(rows=None, show_archived=False, kind="directory"):
-    """Convert a list of rows to a markdown table."""
-    if rows is None:
-        rows = []
-    labels = {"directory": "Current", "archive": "Last"}
-    header = [
-        "⠀" * 10 + "Name &amp; Initial Thread" + "⠀" * 10,
-        "⠀" * 10 + f"{labels[kind]} Thread" + "⠀" * 10,
-        "⠀" * 3 + "# of Counts" + "⠀" * 3,
-    ]
-    header = [" | ".join(header), ":--:|:--:|--:"]
-    if not show_archived:
-        rows = [x for x in rows if not x.archived]
-    return "\n".join(header + [str(x) for x in rows])
+class Paragraph:
+    """A class to hold either a text paragraph, or a markdown table"""
+
+    def __init__(self, tagged_text, kind="directory"):
+        self.tag, self.contents = tagged_text
+        if self.tag == "table":
+            if not self.contents:
+                self.contents = []
+            self.contents = [Row(*x) if hasattr(x, "__iter__") else x for x in self.contents]
+        self.kind = kind
+
+    def update(self, tree):
+        if self.tag == "text":
+            return
+        for row in self.contents:
+            try:
+                row.update(tree)
+            except Exception:  # pylint: disable=broad-except
+                printer.warning("Unable to update thread %s", row.title)
+                raise
+
+    def sort(self, *args, **kwargs):
+        if self.tag != "text":
+            self.contents.sort(*args, **kwargs)
+
+    def __str__(self):
+        if self.tag == "text":
+            return self.contents
+        labels = {"directory": "Current", "archive": "Last"}
+        header = [
+            "⠀" * 10 + "Name &amp; Initial Thread" + "⠀" * 10,
+            "⠀" * 10 + f"{labels[self.kind]} Thread" + "⠀" * 10,
+            "⠀" * 3 + "# of Counts" + "⠀" * 3,
+        ]
+        header = [" | ".join(header), ":--:|:--:|--:"]
+        rows = self.contents
+        if self.kind == "directory":
+            rows = [x for x in self.contents if not x.archived]
+        return "\n".join(header + [str(x) for x in rows])
+
+    def is_misc_table_heading(self):
+        return "new" in self.contents.lower() and "revived" in self.contents.lower()
+
+
+class Directory:
+    """A class to hold the state associated with the thread directory.
+
+    At its core, the directory is a collection of paragraphs, each of which is
+    either a table with information about side threads, or a text paragraph.
+
+    Updating the directory means updating each paragraph, then checking for new
+    submissions, and finally checking for revived submissions. There's a fair
+    bit of fiddling to keep track of, which is why the whole thing is
+    encapsulated in this class.
+
+    """
+
+    def __init__(self, paragraphs, kind="directory", archive=None):
+        self.paragraphs = [Paragraph(x, kind) for x in paragraphs]
+        self.known_submissions = {x.submission_id for x in self.rows}
+        if archive is None:
+            archive = {}
+        self.archive = archive
+        self.updated_archive = False
+        if kind == "archive":
+            self.header = paragraphs[0][1]
+
+    @property
+    def rows(self):
+        return utils.flatten([x.contents for x in self.paragraphs if x.tag == "table"])
+
+    def __str__(self):
+        return "\n\n".join(str(x) for x in self.paragraphs)
+
+    def set_archive(self, archive):
+        archive = {x.submission_id: x for x in archive.rows}
+        self.archive = archive
+
+    def update(self, tree, new_submission_ids):
+        printer.info("Updating tables")
+        self.update_existing_rows(tree)
+        self.add_last_table()
+        printer.info("Updating new threads")
+        new_submissions = self.find_new_submissions(tree, new_submission_ids)
+        printer.info("Finding revived threads")
+        revived_submissions = self.find_revived_submissions(tree, new_submission_ids)
+        self.paragraphs[-2].contents += new_submissions + revived_submissions
+        self.paragraphs[-2].sort(key=lambda x: parsing.name_sort(x.name))
+        for row in revived_submissions:
+            del self.archive[row.submission_id]
+            self.updated_archive = True
+        archived_rows = [row for row in self.rows if row.archived]
+        if archived_rows:
+            self.updated_archive = True
+            self.archive.update({row.submission_id: row for row in archived_rows})
+
+    def update_existing_rows(self, tree):
+        """Update every row in the main directory page and sort the second table"""
+        table_counter = 0
+        for paragraph in self.paragraphs:
+            paragraph.update(tree)
+            if paragraph.tag != "text":
+                table_counter += 1
+            if table_counter == 2:
+                paragraph.sort(reverse=True)
+
+    def add_last_table(self):
+        if not self.paragraphs[-3].is_misc_table_heading():
+            self.paragraphs = (
+                self.paragraphs[:-1]
+                + [Paragraph(["text", "\n## New and Revived Threads"]), Paragraph(["table", []])]
+                + self.paragraphs[-1:]
+            )
+
+    def find_new_submissions(self, tree, new_submission_ids):
+        """
+        Make a list of update rows corresponding to new submissions
+
+        If a row cannot be updated or, don't include it.
+        The same goes for new submissions with only a few comments on them.
+        """
+        result = []
+        for submission_id in new_submission_ids - self.known_submissions:
+            first_submission = tree.walk_up_tree(submission_id)[-1]
+            name = f'**{first_submission.title.split("|")[0].strip()}**'
+            try:
+                title = title_from_first_comment(first_submission)
+            except IndexError:
+                continue
+            row = Row(name, first_submission.id, title, first_submission.id, None, "-")
+            try:
+                row.update(tree, deepest_comment=True)
+            except Exception:  # pylint: disable=broad-except
+                printer.warning("Unable to update new thread %s", row.title)
+                raise
+            n_authors = len(set(x.author for x in row.comment.walk_up_tree()))
+            is_long_chain = row.comment.depth >= 50 and n_authors >= 5
+            if is_long_chain or row.submission_id != first_submission.id:
+                result.append(row)
+        return result
+
+    def find_revived_submissions(self, tree, new_submission_ids):
+        """
+        Make a list of updated rows corresponding to revived threads.
+
+        If a row cannot be updated or, don't include it.
+        The same goes for new submissions with only a few comments on them.
+        """
+        revivals = []
+        revived_threads = {x.id for x in tree.leaves} - new_submission_ids - self.known_submissions
+        for thread in revived_threads:
+            chain = tree.walk_up_tree(thread)
+            for submission in chain:
+                if submission.id in self.archive:
+                    row = copy.copy(self.archive[submission.id])
+                    try:
+                        row.update(tree, from_archive=True, deepest_comment=True)
+                    except Exception:  # pylint: disable=broad-except
+                        printer.warning("Unable to update revived thread %s", row.title)
+                        raise
+                    if row.comment.depth >= 20 or len(chain) > 2:
+                        revivals.append(row)
+                    break
+        return revivals
+
+    def archive2string(self):
+        archived_rows = list(self.archive.values())
+        printer.info("Updating archive at /r/counting/wiki/directory/archive")
+        archived_rows.sort(key=lambda x: parsing.name_sort(x.name))
+        splits = ["A", "D", "I", "P", "T", "["]
+        titles = [f"\n### {splits[idx]}-{chr(ord(x) - 1)}" for idx, x in enumerate(splits[1:])]
+        keys = [parsing.name_sort(x.name) for x in archived_rows]
+        indices = [bisect.bisect_left(keys, (split.lower(),)) for split in splits[1:-1]]
+        parts = [
+            str(Paragraph(["table", x], kind="archive"))
+            for x in utils.partition(archived_rows, indices)
+        ]
+        archive = list(itertools.chain.from_iterable(zip(titles, parts)))
+        return "\n\n".join(archive[1:])
