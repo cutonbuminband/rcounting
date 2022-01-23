@@ -162,8 +162,8 @@ class Row:
         number of counts
 
         deepest_comment: A flag used to say that the function should find the
-        deepest comment overall, rather than the deepest comment in the
-        earliest valid chain. Earliest is defined according to the order
+        deepest comment overall, rather than the leaf of the earliest valid chain.
+        Earliest is defined according to the order
 
         a < b if a is an ancestor of b
         a < b if a and b have the same parent and a was posted before b
@@ -188,7 +188,6 @@ class Row:
         self.submission = chain[-1]
         if submission_tree.is_archived(self.submission):
             self.archived = True
-            return
 
         if len(chain) > 1:
             self.initial_comment_id = None

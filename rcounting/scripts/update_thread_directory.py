@@ -5,7 +5,11 @@ import logging
 
 import click
 
+from rcounting import configure_logging
+
 printer = logging.getLogger("rcounting")
+
+incorrect_edges = [("r2h98h", "nyg22w")]
 
 
 @click.command()
@@ -19,7 +23,6 @@ def update_directory(quiet, verbose, dry_run):
     Update the thread directory located at reddit.com/r/counting/wiki/directory.
     """
 
-    from rcounting import configure_logging
     from rcounting import thread_directory as td
     from rcounting import thread_navigation as tn
     from rcounting.reddit_interface import subreddit
@@ -28,6 +31,9 @@ def update_directory(quiet, verbose, dry_run):
     start = datetime.datetime.now()
     printer.info("Getting history")
     tree, new_submissions = tn.fetch_counting_history(subreddit, datetime.timedelta(days=187))
+    for edge in incorrect_edges:
+        tree.delete_edge(*edge)
+
     new_submission_ids = {tree.walk_down_tree(submission)[-1].id for submission in new_submissions}
 
     directory = td.load_wiki_page(subreddit, "directory")
