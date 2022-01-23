@@ -172,6 +172,13 @@ def permutation_order(word, alphabet, no_leading_zeros=False):
 
 
 @update_from_title
+def update_binary_coded_decimal(title):
+    count = "".join(x for x in title.split("|")[-1] if x in ["0", "1"])
+    digits = [str(int("".join(y for y in x)), 2) for x in utils.chunked(4, count)]
+    return int("".join(digits))
+
+
+@update_from_title
 def update_no_repeating(title):
     count = parsing.find_count_in_text(title.split("|")[-1])
     word = str(count)
@@ -459,7 +466,9 @@ known_threads = {
     "balanced ternary": SideThread(form=balanced_ternary, length=729),
     "base 16 roman": SideThread(form=roman_numeral),
     "binary encoded hexadecimal": SideThread(form=base_n(2), length=1024),
-    "binary encoded decimal": SideThread(form=base_n(2)),
+    "binary encoded decimal": SideThread(
+        form=base_n(2), update_function=update_binary_coded_decimal
+    ),
     "base 2i": SideThread(form=base_n(4), update_function=update_2i),
     "bijective base 2": SideThread(form=base_n(3), length=1024),
     "cyclical bases": SideThread(form=base_n(16)),
