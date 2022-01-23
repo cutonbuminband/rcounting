@@ -283,12 +283,15 @@ class Directory:
             archive = {}
         self.archive = archive
         self.updated_archive = False
-        if kind == "archive":
-            self.header = paragraphs[0][1]
+        self.header = paragraphs[0][1]
 
     @property
     def rows(self):
         return utils.flatten([x.contents for x in self.paragraphs if x.tag == "table"])
+
+    @property
+    def first_submissions(self):
+        return [x.first_submission for x in self.rows]
 
     def __str__(self):
         return "\n\n".join(str(x) for x in self.paragraphs)

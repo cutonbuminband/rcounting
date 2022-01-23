@@ -1,4 +1,4 @@
-# pylint: disable=import-outside-toplevel
+# pylint: disable=import-outside-toplevel,too-many-arguments,too-many-locals
 """Script for logging reddit submissions to either a database or a csv file"""
 import logging
 from datetime import datetime
@@ -56,7 +56,7 @@ def log(
     side_thread,
     verbose,
     quiet,
-):  # pylint: disable=too-many-arguments,too-many-locals
+):
     """
     Log the reddit submission which ends in LEAF_COMMENT_ID.
     If no comment id is provided, use the latest completed thread found in the thread directory.
@@ -80,14 +80,10 @@ def log(
         sql = True
 
     configure_logging.setup(printer, verbose, quiet)
-    threads = utils.flatten(
-        [x[1] for x in td.load_wiki_page(subreddit, "directory") if x[0] == "table"]
-    )
-    first_submissions = [x[1] for x in threads]
+    directory = td.load_wiki_page(subreddit, "directory")
 
     if not leaf_comment_id:
-        comment_id = threads[0][4]
-        comment = tn.find_previous_get(reddit.comment(comment_id))
+        comment = tn.find_previous_get(reddit.comment(directory.rows[0].comment_id))
     else:
         comment = reddit.comment(leaf_comment_id)
     printer.debug(
@@ -105,18 +101,20 @@ def log(
     ):
         printer.info("Logging %s", comment.submission.title)
         completed += 1
-        df = pd.DataFrame(tn.fetch_comments(comment))
         if not threadlogger.is_already_logged(comment):
+            df = pd.DataFrame(tn.fetch_comments(comment))
             threadlogger.log(comment, df)
         else:
             printer.info("Submission %s has already been logged!", comment.submission.title)
 
-        if comment.submission.id in first_submissions:
+        if comment.submission.id in directory.first_submissions:
             break
 
         comment = tn.find_previous_get(comment, validate_get=not side_thread)
 
-    if completed and (comment.submission.id in first_submissions + [threadlogger.last_checkpoint]):
+    if completed and (
+        comment.submission.id in directory.first_submissions + [threadlogger.last_checkpoint]
+    ):
         threadlogger.update_checkpoint()
 
     if completed == 0:
