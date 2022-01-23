@@ -333,12 +333,15 @@ class CommentTree(Tree):
             return True
         return False
 
-    def prune(self, side_thread):
+    def prune(self, side_thread, comment=None):
         """
         Use a side thread object to remove invalid comments and their descendants
         from the comment tree.
         """
-        nodes = self.roots
+        if comment is None:
+            nodes = self.roots
+        else:
+            nodes = self.find_children(comment)
         queue = deque([(node, side_thread.get_history(node)) for node in nodes])
         while queue:
             node, history = queue.popleft()

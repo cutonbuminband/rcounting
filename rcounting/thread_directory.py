@@ -193,7 +193,7 @@ class Row:
         if len(chain) > 1:
             self.initial_comment_id = None
 
-        comments = models.CommentTree(reddit=submission_tree.reddit)
+        comments = models.CommentTree(reddit=submission_tree.reddit, get_missing_replies=False)
         if deepest_comment:
             for comment in self.submission.comments:
                 comments.add_missing_replies(comment)
@@ -203,8 +203,7 @@ class Row:
         else:
             comment = submission_tree.reddit.comment(self.comment_id)
             comments.add_missing_replies(comment)
-        comments.get_missing_replies = False
-        comments.prune(side_thread)
+        comments.prune(side_thread, self.comment_id)
         if deepest_comment:
             comment = comments.deepest_node.walk_up_tree(limit=3)[-1]
         else:
