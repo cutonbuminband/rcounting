@@ -501,6 +501,7 @@ known_threads = {
     "only repeating digits": OnlyRepeatingDigits(),
     "no successive digits": SideThread(update_function=update_no_successive, form=base_10),
     "planetary octal": SideThread(length=1024, form=planetary_octal_form),
+    "decimal encoded sexagesimal": SideThread(length=900, form=base_10),
 }
 
 # fmt: off
