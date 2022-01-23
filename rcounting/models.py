@@ -123,11 +123,11 @@ class Tree:
         return edges_to_tree([(parent, child) for child, parent in self.tree.items()])
 
     def parent(self, node):
-        parent_id = self.tree[node.id]
+        parent_id = self.tree[extract_id(node)]
         return self.node(parent_id)
 
     def find_children(self, node):
-        return [self.node(x) for x in self.reversed_tree[node.id]]
+        return [self.node(x) for x in self.reversed_tree[extract_id(node)]]
 
     def walk_up_tree(self, node, limit=None):
         """Navigate the tree from node to root"""
@@ -153,6 +153,8 @@ class Tree:
         Navigate the tree from node to leaf, taking the earliest child each
         time there's a choice
         """
+        if isinstance(node, str):
+            node = self.node(node)
         if node.id not in self.nodes and node.id not in self.reversed_tree:
             return [node]
         result = [node]
@@ -168,9 +170,10 @@ class Tree:
         return self.nodes[node_id]
 
     def delete_node(self, node):
-        del self.nodes[node.id]
-        if node.id in self.tree:
-            del self.tree[node.id]
+        node_id = extract_id(node)
+        del self.nodes[node_id]
+        if node_id in self.tree:
+            del self.tree[node_id]
 
     def delete_subtree(self, node):
         """Delete the entire subtree rooted at the `node`"""
@@ -186,12 +189,13 @@ class Tree:
 
         The root nodes have depth 0. Otherwise, each node is one deeper than its parent.
         """
-        if node.id in self.root_ids:
+        node_id = extract_id(node)
+        if node_id in self.root_ids:
             return 0
-        if node.id in self.depths:
-            return self.depths[node.id]
-        depth = 1 + self.find_depth(node.parent())
-        self.depths[node.id] = depth
+        if node_id in self.depths:
+            return self.depths[node_id]
+        depth = 1 + self.find_depth(self.parent(node_id))
+        self.depths[node_id] = depth
         return depth
 
     @property
@@ -262,12 +266,16 @@ class CommentTree(Tree):
         return self.nodes.values()
 
     def parent(self, node):
-        parent_id = self.tree[node.id]
+        node_id = extract_id(node)
+        parent_id = self.tree[node_id]
         return self.node(parent_id)
 
     def add_missing_parents(self, comment_id):
         comments = []
         praw_comment = self.reddit.comment(comment_id)
+        if praw_comment.is_root:
+            self.add_comments([praw_comment])
+            return
         try:
             praw_comment.refresh()
             if self._parent_counter == 0:
@@ -294,21 +302,18 @@ class CommentTree(Tree):
                 self.delete_node(leaf)
 
     def find_children(self, node):
-        children = [self.comment(x) for x in self.reversed_tree[node.id]]
+        node_id = extract_id(node)
+        children = [self.comment(x) for x in self.reversed_tree[node_id]]
         if not children and self.get_missing_replies:
-            if self._child_counter == 0:
-                self._child_counter = self.refresh_counter
-                printer.info("Fetching replies to comment %s", normalise(node.body))
-            else:
-                self._child_counter -= 1
-            children = self.add_missing_replies(node)
+            children = self.add_missing_replies(node_id)
         by_date = sorted(children, key=lambda x: x.created_utc)
         return sorted(by_date, key=lambda x: x.body in utils.deleted_phrases)
 
     def add_missing_replies(self, comment):
-        if comment.id not in self.nodes:
+        comment_id = extract_id(comment)
+        praw_comment = self.reddit.comment(comment_id)
+        if comment_id not in self.nodes:
             self.add_comments([comment])
-        praw_comment = self.reddit.comment(comment.id)
 
         praw_comment.refresh()
         replies = praw_comment.replies
@@ -356,7 +361,7 @@ class SubmissionTree(Tree):
         super().__init__(submissions, submission_tree)
 
     def is_archived(self, submission):
-        return submission.id not in self.nodes
+        return extract_id(submission) not in self.nodes
 
     def node(self, node_id):
         try:
@@ -388,11 +393,20 @@ def is_root(comment):
     try:
         return comment.is_root
     except AttributeError:
+        parent_id = getattr(comment, "parent_id", False)
+        if not parent_id:
+            return False
         submission_id = (
             comment.submission_id if hasattr(comment, "submission_id") else comment.link_id
         )
-        return comment.parent_id == submission_id
+        return parent_id == submission_id
 
 
 def normalise(body):
     return body.split("\n")[0]
+
+
+def extract_id(node):
+    if hasattr(node, "id"):
+        return node.id
+    return node
