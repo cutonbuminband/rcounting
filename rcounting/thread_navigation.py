@@ -102,7 +102,7 @@ def fetch_comments(comment):
     tree = models.CommentTree([], reddit=reddit)
     comment_id = getattr(comment, "id", comment)
     comments = tree.comment(comment_id).walk_up_tree()[::-1]
-    return [x.to_dict() for x in comments]
+    return [models.comment_to_dict(x) for x in comments]
 
 
 def fetch_counting_history(subreddit, time_limit):

@@ -9,6 +9,29 @@ from rcounting import utils
 printer = logging.getLogger(__name__)
 
 
+class Comment:
+    """
+    A lightweight class for combining a reddit comment object with a tree object
+    """
+
+    def __init__(self, comment, tree):
+        self.comment = comment
+        self.tree = tree
+        self.created_utc = comment.created_utc
+        self.body = comment.body
+        self.id = comment.id
+        self.link_id = comment.link_id
+        self.author = str(comment.author)
+        self.is_root = comment.is_root
+
+    def walk_up_tree(self, *args, **kwargs):
+        return self.tree.walk_up_tree(self.comment, *args, **kwargs)
+
+    @property
+    def depth(self):
+        return self.tree.find_depth(self)
+
+
 class Tree:
     """
     A class for dealing with tree structures.
@@ -153,7 +176,7 @@ class CommentTree(Tree):
     def __init__(self, comments=None, reddit=None, get_missing_replies=True):
         if comments is None:
             comments = []
-        tree = {x.id: x.parent_id[3:] for x in comments if not is_root(x)}
+        tree = {x.id: x.parent_id[3:] for x in comments if not x.is_root}
         comments = {x.id: x for x in comments}
         super().__init__(comments, tree)
         self.reddit = reddit
@@ -166,11 +189,11 @@ class CommentTree(Tree):
     def node(self, node_id):
         if node_id not in self.tree and self.reddit is not None:
             self.add_missing_parents(node_id)
-        return super().node(node_id)
+        return Comment(super().node(node_id), self)
 
     def add_comments(self, comments):
         new_comments = {x.id: x for x in comments}
-        new_tree = {x.id: x.parent_id[3:] for x in comments if not is_root(x)}
+        new_tree = {x.id: x.parent_id[3:] for x in comments if not x.is_root}
         super().add_nodes(new_comments, new_tree)
 
     @property
@@ -290,7 +313,7 @@ def comment_to_dict(comment):
         "username": str(comment.author),
         "timestamp": comment.created_utc,
         "comment_id": comment.id,
-        "submission_id": comment.submission_id[3:],
+        "submission_id": comment.link_id[3:],
         "body": comment.body,
     }
 
@@ -300,22 +323,9 @@ def submission_to_dict(submission):
         "username": str(submission.author),
         "timestamp": submission.created_utc,
         "submission_id": submission.id,
-        "body": submission.body,
+        "body": submission.selftext,
         "title": submission.title,
     }
-
-
-def is_root(comment):
-    try:
-        return comment.is_root
-    except AttributeError:
-        parent_id = getattr(comment, "parent_id", False)
-        if not parent_id:
-            return False
-        submission_id = (
-            comment.submission_id if hasattr(comment, "submission_id") else comment.link_id
-        )
-        return parent_id == submission_id
 
 
 def find_body(post):
