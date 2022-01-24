@@ -172,7 +172,7 @@ class Tree:
     def delete_edge(self, child, parent):
         child_id = extract_id(child)
         parent_id = extract_id(parent)
-        if self.tree[child_id] == parent_id:
+        if self.tree.get(child_id, float("nan")) == parent_id:
             del self.tree[child_id]
 
     def delete_node(self, node):
