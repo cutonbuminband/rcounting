@@ -1,7 +1,7 @@
 """A collection of functions for parsing texts and extracting urls and counts"""
 import re
 
-from rcounting.models import RedditPost
+from rcounting import models
 
 
 def find_count_in_text(body, base=10, raise_exceptions=True):
@@ -38,12 +38,12 @@ def find_urls_in_text(body):
 
 def post_to_count(reddit_post):
     """Extract an integer from a reddit submission or comment"""
-    return find_count_in_text(RedditPost(reddit_post).body)
+    return find_count_in_text(models.find_body(reddit_post))
 
 
 def post_to_urls(reddit_post):
     """Find urls in a reddit submission or comment"""
-    return find_urls_in_text(RedditPost(reddit_post).body)
+    return find_urls_in_text(models.find_body(reddit_post))
 
 
 def parse_markdown_links(body):

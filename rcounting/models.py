@@ -9,100 +9,6 @@ from rcounting import utils
 printer = logging.getLogger(__name__)
 
 
-class RedditPost:
-    """A superclass to treat reddit comments and submissions under the same umbrella."""
-
-    def __init__(self, post):
-        self.id = post.id
-        self.created_utc = post.created_utc
-        self.author = str(post.author)
-        self.body = post.body if hasattr(post, "body") else post.selftext
-        self.submission_id = post.submission_id if hasattr(post, "submission_id") else post.name
-        if hasattr(post, "post_type"):
-            self.post_type = post.post_type
-        else:
-            self.post_type = "comment" if hasattr(post, "body") else "submission"
-
-    def find_missing_content(self, search):
-        try:
-            post = next(search(ids=[self.id], metadata="true", limit=0))
-        except StopIteration:
-            return self.body, self.author
-        author = post.author
-        body = post.body if hasattr(post, "body") else post.selftext
-        return body, author
-
-    def to_dict(self):
-        return {
-            "username": self.author,
-            "timestamp": self.created_utc,
-            "comment_id": self.id,
-            "submission_id": self.submission_id[3:],
-            "body": self.body,
-        }
-
-
-class Submission(RedditPost):
-    """Submissions have titles on top of all the things posts and submissions have in common"""
-
-    def __init__(self, s):
-        super().__init__(s)
-        self.title = s.title
-
-    def to_dict(self):
-        return {
-            "username": self.author,
-            "timestamp": self.created_utc,
-            "submission_id": self.submission_id[3:],
-            "body": self.body,
-            "title": self.title,
-        }
-
-    def __repr__(self):
-        return f"offline_submission(id={self.id})"
-
-
-class Comment(RedditPost):
-    """
-    A reddit comment class with two parts:
-
-    The data about this comment is stored in the RedditPost object.
-    Information about the tree of comments is stored in the tree member."""
-
-    def __init__(self, comment, tree=None):
-        RedditPost.__init__(self, comment)
-        self.submission_id = (
-            comment.submission_id if hasattr(comment, "submission_id") else comment.link_id
-        )
-        self.parent_id = comment.parent_id
-        self.is_root = self.parent_id == self.submission_id
-        self.tree = tree
-
-    def __repr__(self):
-        return f"offline_comment(id={self.id})"
-
-    def refresh(self):
-        pass
-
-    def walk_up_tree(self, limit=None):
-        return self.tree.walk_up_tree(self, limit)
-
-    def parent(self):
-        return self.tree.parent(self)
-
-    @property
-    def replies(self):
-        return self.tree.find_children(self)
-
-    @property
-    def get_missing_replies(self):
-        return self.tree.get_missing_replies
-
-    @property
-    def depth(self):
-        return self.tree.find_depth(self)
-
-
 class Tree:
     """
     A class for dealing with tree structures.
@@ -260,7 +166,7 @@ class CommentTree(Tree):
     def node(self, node_id):
         if node_id not in self.tree and self.reddit is not None:
             self.add_missing_parents(node_id)
-        return Comment(super().node(node_id), self)
+        return super().node(node_id)
 
     def add_comments(self, comments):
         new_comments = {x.id: x for x in comments}
@@ -303,9 +209,6 @@ class CommentTree(Tree):
         for node in self.roots:
             if not node.is_root:
                 node.walk_up_tree()
-        for leaf in self.leaves:
-            if self.is_broken(leaf):
-                self.delete_node(leaf)
 
     def find_children(self, node):
         node_id = extract_id(node)
@@ -329,15 +232,6 @@ class CommentTree(Tree):
             self.add_comments(replies)
             return [self.comment(x.id) for x in replies]
         return []
-
-    def is_broken(self, comment):
-        if comment.is_root:
-            return False
-        parent = comment.parent()
-        replies = self.add_missing_replies(parent)
-        if comment.id not in [x.id for x in replies]:
-            return True
-        return False
 
     def prune(self, side_thread, comment=None):
         """
@@ -392,10 +286,23 @@ def edges_to_tree(edges):
 
 
 def comment_to_dict(comment):
-    try:
-        return comment.to_dict()
-    except AttributeError:
-        return Comment(comment).to_dict()
+    return {
+        "username": str(comment.author),
+        "timestamp": comment.created_utc,
+        "comment_id": comment.id,
+        "submission_id": comment.submission_id[3:],
+        "body": comment.body,
+    }
+
+
+def submission_to_dict(submission):
+    return {
+        "username": str(submission.author),
+        "timestamp": submission.created_utc,
+        "submission_id": submission.id,
+        "body": submission.body,
+        "title": submission.title,
+    }
 
 
 def is_root(comment):
@@ -409,6 +316,10 @@ def is_root(comment):
             comment.submission_id if hasattr(comment, "submission_id") else comment.link_id
         )
         return parent_id == submission_id
+
+
+def find_body(post):
+    return post.body if hasattr(post, "body") else post.selftext
 
 
 def normalise(body):

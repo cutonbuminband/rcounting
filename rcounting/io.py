@@ -54,7 +54,7 @@ class ThreadLogger:
 
     def log_sql(self, comment, df):
         """Save one submission to a database"""
-        submission = pd.Series(models.Submission(comment.submission).to_dict())
+        submission = pd.Series(models.submission_to_dict(comment.submission))
         submission = submission[["submission_id", "username", "timestamp", "title", "body"]]
         submission["integer_id"] = int(submission["submission_id"], 36)
         df.to_sql("comments", self.db, index_label="position", if_exists="append")
