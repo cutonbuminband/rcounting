@@ -11,8 +11,8 @@ We start with some imports
   import re
   import sqlite3
   import matplotlib.pyplot as plt
-  import rcounting as rct
-  from rcounting import side_threads, counters, analysis
+  from rcounting import side_threads, counters, analysis, thread_navigation as tn
+  from rcounting.reddit_interface import reddit
 
   plt.style.use("seaborn")
   plot_directory = Path('../../plots')
@@ -32,7 +32,7 @@ Then we load some data, both the counts and the gets. We convert the timestamp t
                        "from comments join submissions "
                        "on comments.submission_id = submissions.submission_id "
                        "where comments.position > 0 "
-                       "order by submissions.basecount, comments.position", db)
+                       "order by submissions.integer_id, comments.position", db)
   counts['date'] = pd.to_datetime(counts['timestamp'], unit='s')
   counts["username"] = counts["username"].apply(counters.apply_alias)
   counts.drop('timestamp', inplace=True, axis=1)
@@ -48,8 +48,8 @@ Then we load some data, both the counts and the gets. We convert the timestamp t
 ** Validating side threads
 Using various pieces of functionality, we can validate side threads. Here, we confirm that an old side thread is valid:
 #+begin_src jupyter-python
-  comment = rct.reddit.comment("gja0ehe")
-  comments = pd.DataFrame(rct.fetch_comments(comment))
+  comment = reddit.comment("gja0ehe")
+  comments = pd.DataFrame(tn.fetch_comments(comment))
   side_thread = side_threads.get_side_thread('slowestest')
   side_thread.is_valid_thread(comments)
 #+end_src
