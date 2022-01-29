@@ -89,26 +89,31 @@ def time_of_day_histogram(df, ax, n=4):
     return ax
 
 
-def time_of_day_kde(df, ax, n=4):
+def time_of_day_kde(
+    df, ax, n_counters=4, time_resolution=MINUTE / 2, show_total=True, normalize=True
+):
     alpha = 0.8
-    nbins = DAY / MINUTE * 2
     sigma = 0.02
-    df = df.copy()
+    nbins = int(DAY / time_resolution)
+    df = df[["username", "timestamp"]].copy()
     df["time_of_day"] = df["timestamp"].astype(int) % DAY
     counts = df["username"].value_counts()
-    top_counters = counts.index[:n]
-    x, kde = fft_kde(df["time_of_day"], nbins, kernel="normal_distribution", sigma=sigma)
-    kde *= len(df)
+    top_counters = counts.index[:n_counters]
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-    ax.fill_between(x, kde, label="All Counts", color="0.8")
+    if show_total:
+        x, kde = fft_kde(df["time_of_day"], nbins, kernel="normal_distribution", sigma=sigma)
+        if normalize:
+            kde *= len(df)
+        ax.fill_between(x, kde, label="All Counts", color="0.8")
     for idx, counter in enumerate(top_counters):
         data = df.query("username==@counter")["time_of_day"]
         x, kde = fft_kde(data, nbins, kernel="normal_distribution", sigma=sigma)
-        kde *= counts.loc[counter]
+        if normalize:
+            kde *= counts.loc[counter]
         ax.fill_between(x, kde, color=colors[idx], alpha=alpha)
         ax.plot(x, kde, label=counter, color=colors[idx], lw=2)
-    ax.set_xlim(0, DAY + 1)
     intervals = range(0, 25, 3)
+    ax.set_xlim(0, DAY + 1)
     ax.set_xticks([x * HOUR for x in intervals])
     ax.set_xticklabels([f"{x:02d}:00" for x in intervals])
     ax.set_ylim(bottom=0)
