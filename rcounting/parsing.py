@@ -58,7 +58,7 @@ def parse_markdown_links(body):
 
 def strip_markdown_links(body):
     """Replace all markdown links of the form [description](link) with description."""
-    regex = r"\[(.+?)\]\((.+?(?<!\\))\)"
+    regex = r"\[(.*?)\]\((.+?(?<!\\))\)"
     replacement = r"\1"
     return re.sub(regex, replacement, body)
 
