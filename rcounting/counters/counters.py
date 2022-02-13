@@ -35,7 +35,13 @@ def is_mod(username):
     return username in mods
 
 
-ignored_counters = ["LuckyNumber-Bot", "CountingStatsBot", "CountingHelper", "WikiSummarizerBot"]
+ignored_counters = [
+    "LuckyNumber-Bot",
+    "CountingStatsBot",
+    "CountingHelper",
+    "WikiSummarizerBot",
+    "InactiveUserDetector",
+]
 ignored_counters = [x.lower() for x in ignored_counters]
 banned_counters = ["[deleted]", "Franciscouzo"]
 
