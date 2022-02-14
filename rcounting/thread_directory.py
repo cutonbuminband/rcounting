@@ -310,9 +310,6 @@ class Directory:
         revived_submissions = self.find_revived_submissions(tree, new_submission_ids)
         self.paragraphs[-2].contents += new_submissions + revived_submissions
         self.paragraphs[-2].sort(key=lambda x: parsing.name_sort(x.name))
-        for row in revived_submissions:
-            del self.archive[row.submission_id]
-            self.updated_archive = True
         archived_rows = [row for row in self.rows if row.archived]
         if archived_rows:
             self.updated_archive = True
@@ -384,6 +381,8 @@ class Directory:
                         raise
                     if row.comment.depth >= 20 or len(chain) > 2:
                         revivals.append(row)
+                        del self.archive[submission.id]
+                        self.updated_archive = True
                     break
         return revivals
 
