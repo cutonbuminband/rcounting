@@ -126,7 +126,7 @@ class Tree:
         """
         node_id = extract_id(node)
         if node_id in self.root_ids:
-            return 0
+            return 1
         if node_id in self.depths:
             return self.depths[node_id]
         depth = 1 + self.find_depth(self.parent(node_id))
