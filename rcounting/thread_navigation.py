@@ -79,7 +79,7 @@ def search_up_from_gz(comment, max_retries=5):
             if i == max_retries:
                 raise
             comment = comment.parent()
-    return None
+    raise ValueError(f"Unable to find count in {comment.submission.permalink}")
 
 
 def find_get_from_comment(comment):
