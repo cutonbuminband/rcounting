@@ -77,7 +77,7 @@ class Tree:
             counter += 1
         return nodes
 
-    def walk_down_tree(self, node, limit=None):
+    def walk_down_tree(self, node):
         """
         Navigate the tree from node to leaf, taking the earliest child each
         time there's a choice
@@ -187,7 +187,7 @@ class CommentTree(Tree):
         self.comment = self.node
 
     def node(self, node_id):
-        if node_id not in self.tree and self.reddit is not None:
+        if node_id not in self.tree:
             self.add_missing_parents(node_id)
         return Comment(super().node(node_id), self)
 
@@ -207,6 +207,8 @@ class CommentTree(Tree):
 
     def add_missing_parents(self, comment_id):
         comments = []
+        if self.reddit is None:
+            return
         praw_comment = self.reddit.comment(comment_id)
         if praw_comment.is_root:
             self.add_comments([praw_comment])
@@ -221,7 +223,7 @@ class CommentTree(Tree):
         except (ClientException, ServerError) as e:
             printer.warning("Unable to refresh %s", comment_id)
             print(e)
-        for i in range(9):
+        for _ in range(9):
             comments.append(praw_comment)
             if praw_comment.is_root:
                 break
@@ -243,6 +245,8 @@ class CommentTree(Tree):
 
     def add_missing_replies(self, comment):
         comment_id = extract_id(comment)
+        if self.reddit is None:
+            return []
         praw_comment = self.reddit.comment(comment_id)
         if comment_id not in self.nodes:
             self.add_comments([comment])
