@@ -249,7 +249,7 @@ class CommentTree(Tree):
             return []
         praw_comment = self.reddit.comment(comment_id)
         if comment_id not in self.nodes:
-            self.add_comments([comment])
+            self.add_comments([praw_comment])
 
         praw_comment.refresh()
         replies = praw_comment.replies

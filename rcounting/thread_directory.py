@@ -1,5 +1,6 @@
 import bisect
 import copy
+import datetime
 import itertools
 import logging
 
@@ -182,8 +183,6 @@ class Row:
 
         chain = submission_tree.walk_down_tree(submission_tree.node(self.submission_id))
         self.submission = chain[-1]
-        if submission_tree.is_archived(self.submission):
-            self.archived = True
 
         if len(chain) > 1:
             self.initial_comment_id = None
@@ -196,8 +195,8 @@ class Row:
             comment = next(filter(side_thread.looks_like_count, self.submission.comments))
             comments.add_missing_replies(comment)
         else:
-            comment = submission_tree.reddit.comment(self.comment_id)
-            comments.add_missing_replies(comment)
+            comments.add_missing_replies(self.comment_id)
+            comment = comments.node(self.comment_id)
         comments.prune(side_thread, self.comment_id)
         if deepest_comment:
             comment = comments.deepest_node.walk_up_tree(limit=3)[-1]
@@ -211,6 +210,12 @@ class Row:
             # If there's really a new thread, the title & count need updating
             self.update_count(chain, was_revival, side_thread)
             self.update_title()
+        if submission_tree.is_archived(self.submission):
+            comment = comment.walk_up_tree(limit=20)[-1]
+            dt = datetime.timedelta(days=30)
+            now = datetime.datetime.utcnow()
+            if now - datetime.datetime.utcfromtimestamp(comment.created_utc) > dt:
+                self.archived = True
 
 
 class Paragraph:
