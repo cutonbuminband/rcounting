@@ -147,7 +147,7 @@ class Row:
             return f"~{count:,d}"
         return f"{count:,d}"
 
-    def update(self, submission_tree, from_archive=False, deepest_comment=False):
+    def update(self, submission_tree, deepest_comment=False):
         """Find the latest comment in the latest submission of the side thread
         represented by this row.
 
@@ -156,10 +156,6 @@ class Row:
         submission_tree: A models.Tree object representing which
         submissions are linked to which. If no mistakes have been made, this
         should just be a series of straight line chains
-
-        from_archive: Whether the current side thread originally comes from the
-        archive. If it does, a bit of care is needed when updating the total
-        number of counts
 
         deepest_comment: A flag used to say that the function should find the
         deepest comment overall, rather than the leaf of the earliest valid chain.
@@ -211,8 +207,6 @@ class Row:
 
         self.comment = comment
         was_revival = [parsing.is_revived(x.title) for x in chain]
-        if from_archive:
-            was_revival[1] = True
         if not all(was_revival[1:]):
             # If there's really a new thread, the title & count need updating
             self.update_count(chain, was_revival, side_thread)
@@ -375,7 +369,7 @@ class Directory:
                 if submission.id in self.archive:
                     row = copy.copy(self.archive[submission.id])
                     try:
-                        row.update(tree, from_archive=True, deepest_comment=True)
+                        row.update(tree, deepest_comment=True)
                     except Exception:  # pylint: disable=broad-except
                         printer.warning("Unable to update revived thread %s", row.title)
                         raise
