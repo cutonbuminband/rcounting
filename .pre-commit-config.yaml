@@ -1,23 +1,24 @@
 repos:
-    - repo: https://github.com/psf/black
-      rev: 21.12b0
-      hooks:
-        - id: black
-    - repo: https://github.com/pre-commit/pre-commit-hooks
-      rev: v4.1.0
-      hooks:
-        - id: check-added-large-files
-        - id: check-toml
-    - repo: https://github.com/pycqa/isort
-      rev: 5.10.1
-      hooks:
-        - id: isort
-          name: isort (python)
-    - repo: local
-      hooks:
-        - id: pylint
-          name: pylint
-          entry: pylint
-          language: system
-          types: [python]
-          args: ["--unsafe-load-any-extension=y"]
+- repo: https://github.com/psf/black
+  rev: 21.12b0
+  hooks:
+    - id: black
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.1.0
+  hooks:
+    - id: check-added-large-files
+    - id: check-toml
+    - id: check-yaml
+- repo: https://github.com/pycqa/isort
+  rev: 5.10.1
+  hooks:
+    - id: isort
+      name: isort (python)
+- repo: local
+  hooks:
+    - id: pylint
+      name: pylint
+      entry: pylint
+      language: system
+      types: [python]
+      args: ["--unsafe-load-any-extension=y"]
