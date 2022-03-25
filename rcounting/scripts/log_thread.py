@@ -12,8 +12,8 @@ printer = logging.getLogger("rcounting")
 
 @click.command()
 @click.argument("leaf_comment_id", default="")
-@click.option("--all", "-a", "all_counts", is_flag=True)
 @click.option("-n", "--n-threads", default=1, help="The number of submissions to log.")
+@click.option("--all", "-a", "all_counts", is_flag=True, help="Log all threads. Can take a while!")
 @click.option(
     "--filename",
     "-f",
