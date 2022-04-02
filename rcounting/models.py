@@ -25,7 +25,7 @@ class Comment:
         self.is_root = comment.is_root
 
     def walk_up_tree(self, *args, **kwargs):
-        return self.tree.walk_up_tree(self.comment, *args, **kwargs)
+        return self.tree.walk_up_tree(self, *args, **kwargs)
 
     @property
     def depth(self):
