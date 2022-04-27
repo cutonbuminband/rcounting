@@ -10,6 +10,7 @@ import string
 import numpy as np
 import pandas as pd
 import scipy.sparse
+from fuzzywuzzy import fuzz
 
 from rcounting import counters, parsing
 from rcounting import thread_navigation as tn
@@ -138,7 +139,7 @@ def reddit_username_form(comment_body):
 
 
 def throwaway_form(comment_body):
-    return reddit_username_form(comment_body) and base_10(comment_body)
+    return (fuzz.partial_ratio("u/throwaway", comment_body) > 80) and base_10(comment_body)
 
 
 planets = ["MERCURY", "VENUS", "EARTH", "MARS", "JUPITER", "SATURN", "URANUS", "NEPTUNE"]
