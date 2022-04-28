@@ -160,6 +160,15 @@ def update_from_title(update_function):
     return wrapper
 
 
+def update_base_n(n: int):
+    @update_from_title
+    def update_function(title):
+        count = "".join(x for x in title.split("|")[-1])
+        return parsing.find_count_in_text(count, base=n)
+
+    return update_function
+
+
 def permutation_order(word, alphabet, no_leading_zeros=False):
     word_length = len(word)
     if word_length == 0:
@@ -514,20 +523,9 @@ known_threads = {
     "decimal encoded sexagesimal": SideThread(length=900, form=base_10),
 }
 
-# fmt: off
-base_n_lengths = [
-    None,
-    1000, 1024,  729, 1024, 1000, 1296, 1029, 1024,  729, 1000,  # noqa E241
-    1000,  864, 1014, None, None, 1024, 1156, None, None,  800,  # noqa E241
-    882, None, None, None, None,  None,  729, None, None, None,  # noqa E241
-    None, None, None, None, None, 1296,
-]
-# fmt: on
 
 base_n_threads = {
-    f"base {i}": SideThread(form=base_n(i), length=length)
-    for i, length in enumerate(base_n_lengths)
-    if length is not None
+    f"base {n}": SideThread(form=base_n(n), update_function=update_base_n(n)) for n in range(2, 37)
 }
 known_threads.update(base_n_threads)
 
