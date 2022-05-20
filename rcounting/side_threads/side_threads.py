@@ -336,7 +336,7 @@ class SideThread:
         return (False, history.loc[~mask, "comment_id"].iloc[0])
 
     def is_valid_count(self, comment, history):
-        history = history.append(comment_to_dict(comment), ignore_index=True)
+        history = pd.concat([history, pd.DataFrame([comment_to_dict(comment)])], ignore_index=True)
         valid_history = self.is_valid_thread(history)[0]
         valid_count = self.looks_like_count(comment)
         valid_user = not counters.is_ignored_counter(str(comment.author))
