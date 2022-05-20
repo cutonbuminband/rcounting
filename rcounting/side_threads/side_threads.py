@@ -241,7 +241,8 @@ def update_collatz(title):
 base_10 = base_n(10)
 default_rule = CountingRule()
 
-wave_regex = r"(-?\d+).*\((\d+)\+?\)"  # an int, then a bracketed int, maybe with a plus after it
+# an int, then a bracketed int, maybe with a plus or a minus after it
+wave_regex = r"(-?\d+).*\((\d+)[\+-]?\)"
 double_wave_regex = r"(-?\d+).*\((\d+)\).*\((\d+)\)"
 
 
