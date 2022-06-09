@@ -266,7 +266,7 @@ That gives the following graph:
 Notice you can clearly see when the count crossed 100k: that's when the red 'no separators' line drops from being the majority to being a clear minority of counts. That was followed by the era of commas, when the default format was clearly just to use commas as separators. The last two years have been significantly more noisy and muddy, with spaces as separators sometimes overtaking commas. Pretty neat!
 
 ** Network analysis
-We can do some network analysis. This snippet will generate the (comment, replying to, weight) graph for the top 250 counters. The heavy lifting is done by the [[file:analysis.py::def response_graph(df, n=250, username_column="username"):][response_graph]] function in analysis.py.
+We can do some network analysis. This snippet will generate the (comment, replying to, weight) graph for the top 250 counters. The heavy lifting is done by the [[file:../rcounting/analysis.py::def response_graph(df, n=250, username_column="username"):][response_graph]] function in analysis.py.
 #+begin_src jupyter-python
   n = 250
   graph = analysis.response_graph(counts, n, username_column="username")
