@@ -12,6 +12,7 @@ from numpy.fft import fftshift, irfft, rfft
 from scipy.special import i0
 
 from rcounting import counters, utils
+from rcounting.counters.counters import is_banned_counter
 from rcounting.units import DAY
 
 
@@ -59,7 +60,8 @@ def response_graph(df, n=250, username_column="username"):
     Create a directed edge a->b in the graph if a has ever replied to b.
     Weight each edge by the number of replies
     """
-    indices = df.groupby(username_column).size().sort_values(ascending=False).index[:n]
+    indices = df.groupby(username_column).size().sort_values(ascending=False).index
+    indices = [x for x in indices if not is_banned_counter(x)][:n]
     edges = df[username_column].isin(indices) & df[username_column].shift(1).isin(indices)
     top = pd.concat([df[username_column], df[username_column].shift()], axis=1).loc[edges]
     top.columns = ["username", "replying_to"]
