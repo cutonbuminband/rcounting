@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from rcounting import models, parsing
+from rcounting import counters, models, parsing
 
 printer = logging.getLogger(__name__)
 
@@ -82,3 +82,11 @@ class ThreadLogger:
         ).iloc[-1]
         newest_submission.name = "submission_id"
         newest_submission.to_sql("last_submission", self.db, index=False, if_exists="append")
+
+
+def update_counters_table(db):
+    counting_users = pd.read_sql("select distinct username from comments", db)
+    counting_users["canonical_username"] = counting_users["username"].apply(counters.apply_alias)
+    counting_users["is_mod"] = counting_users["username"].apply(counters.is_mod)
+    counting_users["is_banned"] = counting_users["username"].apply(counters.is_banned_counter)
+    counting_users.to_sql("counters", db, index=False, if_exists="replace")
