@@ -142,6 +142,10 @@ def throwaway_form(comment_body):
     return (fuzz.partial_ratio("u/throwaway", comment_body) > 80) and base_10(comment_body)
 
 
+def illion_form(comment_body):
+    return fuzz.partial_ratio("illion", comment_body) > 80
+
+
 planets = ["MERCURY", "VENUS", "EARTH", "MARS", "JUPITER", "SATURN", "URANUS", "NEPTUNE"]
 planetary_octal_form = validate_from_character_list(planets)
 
@@ -522,6 +526,7 @@ known_threads = {
     "no successive digits": SideThread(update_function=update_no_successive, form=base_10),
     "planetary octal": SideThread(length=1024, form=planetary_octal_form),
     "decimal encoded sexagesimal": SideThread(length=900, form=base_10),
+    "-illion": SideThread(form=illion_form),
 }
 
 
