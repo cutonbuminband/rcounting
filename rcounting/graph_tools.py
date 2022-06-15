@@ -28,21 +28,20 @@ def weighted_degree(edgelist, p=0.5):
     return weighted_product(len(edgelist), sum(edgelist.values()), p)
 
 
-def weighted_core(graph, p=0.5):
+def weighted_core_number(graph, p=0.5):
     degrees = calculate_weighted_degrees(graph, p)
     nodes = sorted(degrees, key=degrees.get)
     weights = [degrees[node] for node in nodes]
     neighbors = {v: dict((x[1:] for x in graph.edges(v, data="weight"))) for v in graph}
     core = degrees
     max_weight = 0
-    result = []
     for _ in range(len(nodes)):
         w = weights.pop(0)
         if w > max_weight:
             max_weight = w
-            result = nodes.copy()
-        assert len(nodes) == len(set(nodes))
+        w = max_weight
         v = nodes.pop(0)
+        core[v] = w
         for u in neighbors[v].keys():
             if core[u] > core[v]:
                 del neighbors[u][v]
@@ -54,7 +53,7 @@ def weighted_core(graph, p=0.5):
                 nodes.insert(new_position, u)
                 del weights[old_position]
                 weights.insert(new_position, core[u])
-    return max_weight, result
+    return core
 
 
 def symmetrize(graph):
