@@ -67,7 +67,7 @@ def log(
     from rcounting import thread_directory as td
     from rcounting import thread_navigation as tn
     from rcounting import utils
-    from rcounting.io import ThreadLogger
+    from rcounting.io import ThreadLogger, update_counters_table
     from rcounting.reddit_interface import reddit, subreddit
 
     t_start = datetime.now()
@@ -112,12 +112,12 @@ def log(
 
         comment = tn.find_previous_get(comment, validate_get=not side_thread)
 
-    if completed and (
-        comment.submission.id in directory.first_submissions + [threadlogger.last_checkpoint]
-    ):
-        threadlogger.update_checkpoint()
-
-    if completed == 0:
+    if completed:
+        if sql:
+            update_counters_table(threadlogger.db)
+        if comment.submission.id in directory.first_submissions + [threadlogger.last_checkpoint]:
+            threadlogger.update_checkpoint()
+    else:
         printer.info("The database is already up to date!")
     printer.info("Running the script took %s", datetime.now() - t_start)
 
