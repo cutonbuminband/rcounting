@@ -1,4 +1,5 @@
 praw.ini
+credentials.ini
 .env
 .venv
 *.sqlite
