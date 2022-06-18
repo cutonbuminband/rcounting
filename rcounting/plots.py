@@ -9,6 +9,7 @@ from cycler import cycler
 from pandas.plotting import register_matplotlib_converters
 
 from rcounting.analysis import fft_kde
+from rcounting.counters import apply_alias, is_banned_counter
 from rcounting.units import DAY, HOUR, MINUTE
 
 register_matplotlib_converters()
@@ -44,6 +45,31 @@ def parts_vs_counts(df):
     plt.xlim(left=10)
     plt.ylim(bottom=10)
     plt.savefig("parts_vs_counts.png", dpi=300, bbox_inches="tight")
+
+
+def hoc_by_time(df, n=25, ax=None):
+    if ax is None:
+        _, ax = plt.subplots(1, figsize=(10, 6))
+
+    if df.index.inferred_type != "datetime64" and "timestamp" in df.columns:
+        df["date"] = pd.to_datetime(df["timestamp"], unit="s")
+        df.set_index("date", inplace=True)
+        df.sort_index(inplace=True)
+
+    df["username"] = df["username"].apply(apply_alias)
+    top_counters = [
+        x
+        for x in df.groupby("username").size().sort_values(ascending=False).index
+        if not is_banned_counter(x)
+    ][:n]
+    filtered = df.query("username in @top_counters")
+    cumulative = pd.get_dummies(filtered["username"]).resample("12h").sum().expanding().sum()
+    cumulative[top_counters].plot(ax=ax)
+    plt.legend(bbox_to_anchor=(1.05, 1.07))
+    ax.set_ylabel("Cumulative counts")
+    ax.set_xlabel("")
+    ax.set_ylim(bottom=0)
+    return ax
 
 
 def speedrun_histogram(df, n=3):
