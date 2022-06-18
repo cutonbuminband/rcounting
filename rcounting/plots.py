@@ -30,11 +30,12 @@ def parts_vs_counts(df):
     combined = pd.merge(k_parts, hoc, left_index=True, right_index=True)
     combined.columns = ["k_parts", "total_counts"]
     combined = combined.query("k_parts > 10")
-    linear_model = np.polyfit(np.log10(combined.k_parts), np.log10(combined.total_counts), 1)
+    assert combined is not None, "Error, querying too small a dataframe"
+    linear_model = np.polyfit(np.log10(combined["k_parts"]), np.log10(combined["total_counts"]), 1)
     print(linear_model)
-    axis = np.linspace(1, combined.k_parts.max(), endpoint=True)
+    axis = np.linspace(1, combined["k_parts"].max(), endpoint=True)
 
-    plt.scatter(combined.k_parts, combined.total_counts, alpha=0.7)
+    plt.scatter(combined["k_parts"], combined["total_counts"], alpha=0.7)
     plt.plot(
         axis, 10 ** (np.poly1d(linear_model)(np.log10(axis))), linestyle="--", color="0.3", lw=2
     )
