@@ -122,6 +122,7 @@ def permissive(comment):
     return True
 
 
+base_10 = base_n(10)
 balanced_ternary = validate_from_character_list("T-0+")
 brainfuck = validate_from_character_list("><+-.,[]")
 roman_numeral = validate_from_character_list("IVXLCDMↁↂↇ")
@@ -257,7 +258,6 @@ def update_collatz(title):
     return sum([collatz(i) for i in range(1, current)]) + steps
 
 
-base_10 = base_n(10)
 default_rule = CountingRule()
 
 # an int, then a bracketed int, maybe with a plus or a minus after it
@@ -480,7 +480,7 @@ class OnlyRepeatingDigits(SideThread):
             * self.count_only_repeating_words(word_length)
             // (self.n - 1)
         )
-        current_matrix = scipy.sparse.identity(3 ** self.n, dtype=int, format="csr")
+        current_matrix = scipy.sparse.identity(3 ** self.n, dtype="int", format="csr")
         for i in range(word_length - 1, 0, -1):
             prefix = word[:i]
             current_char = word[i].upper()
