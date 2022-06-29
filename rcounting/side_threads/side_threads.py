@@ -221,6 +221,21 @@ def update_no_successive(title):
     return result
 
 
+unicode_squares = [
+    11035,
+    65039,
+    129003,
+    129002,
+    128998,
+    129001,
+    129000,
+    128999,
+    128997,
+    11036,
+    65039,
+]
+colored_squares_form = validate_from_character_list([chr(x) for x in unicode_squares])
+
 collatz_dict = {}
 
 
@@ -527,6 +542,7 @@ known_threads = {
     "planetary octal": SideThread(length=1024, form=planetary_octal_form),
     "decimal encoded sexagesimal": SideThread(length=900, form=base_10),
     "-illion": SideThread(form=illion_form),
+    "colored squares": SideThread(form=colored_squares_form, length=729),
 }
 
 
