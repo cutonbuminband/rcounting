@@ -165,6 +165,15 @@ def update_from_title(update_function):
     return wrapper
 
 
+def update_by_ns(n):
+    @update_from_title
+    def update_function(title):
+        count = parsing.find_count_in_text(title.split("|")[-1])
+        return int(count // n)
+
+    return update_function
+
+
 def update_base_n(n: int):
     @update_from_title
     def update_function(title):
@@ -531,6 +540,10 @@ known_threads = {
     "decimal encoded sexagesimal": SideThread(length=900, form=base_10),
     "-illion": SideThread(form=illion_form),
     "colored squares": SideThread(form=colored_squares_form, length=729),
+    "by 3s": SideThread(update_function=update_by_ns(3)),
+    "by 4s": SideThread(update_function=update_by_ns(4)),
+    "by 5s": SideThread(update_function=update_by_ns(5)),
+    "by 7s": SideThread(update_function=update_by_ns(7)),
 }
 
 
