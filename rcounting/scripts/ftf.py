@@ -1,5 +1,6 @@
 import datetime as dt
 
+from rcounting.counters import apply_alias
 from rcounting.reddit_interface import subreddit
 
 threshold_timestamp = dt.datetime.combine(dt.date.today(), dt.time(hour=7)).timestamp()
@@ -49,14 +50,34 @@ def generate_new_body(previous_ftf_id):
     return ftf_body.format(previous_ftf_id)
 
 
-previous_ftf_post = subreddit.sticky(number=2)
+def make_directory_row(post):
+    date = dt.date.fromtimestamp(post.created_utc)
+    link = f"[FTF #{post.title.split('#')[1]}](/{post.id})"
+    formatted_date = date.strftime("%b %d, %Y")
+    author = apply_alias(str(post.author))
+    return f"|{link}|{formatted_date}|{author}"
 
-if not is_within_threshold(previous_ftf_post):
-    ftf_post = find_manual_ftf(previous_ftf_post.author)
-    if not ftf_post:
-        title = generate_new_title(previous_ftf_post.title)
-        body = generate_new_body(previous_ftf_post.id)
-        ftf_post = subreddit.submit(title=title, selftext=body)
 
-    ftf_post.mod.sticky()
-    ftf_post.mod.suggested_sort(sort="new")
+def update_directory(post):
+    row = make_directory_row(post)
+    wiki = subreddit.wiki["ftf_directory"]
+    new_contents = "\n".join(wiki.contents_md.split("\n") + [row])
+    wiki.edit(new_contents, reason="Added latest FTF")
+
+
+if __name__ == "__main__":
+    previous_ftf_post = subreddit.sticky(number=2)
+
+    if is_within_threshold(previous_ftf_post):
+        update_directory(previous_ftf_post)
+    else:
+        ftf_post = find_manual_ftf(previous_ftf_post.author)
+        if not ftf_post:
+            title = generate_new_title(previous_ftf_post.title)
+            body = generate_new_body(previous_ftf_post.id)
+            ftf_post = subreddit.submit(title=title, selftext=body)
+
+        ftf_post.mod.sticky()
+        ftf_post.mod.suggested_sort(sort="new")
+
+        update_directory(ftf_post)
