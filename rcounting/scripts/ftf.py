@@ -52,5 +52,5 @@ if not is_within_threshold(previous_ftf_post):
         body = generate_new_body(previous_ftf_post.id)
         ftf_post = subreddit.submit(title=title, selftext=body)
 
-    ftf_post.mod.distinguish()
+    ftf_post.mod.sticky()
     ftf_post.mod.suggested_sort(sort="new")

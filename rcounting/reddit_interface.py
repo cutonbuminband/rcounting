@@ -23,7 +23,7 @@ def get_refresh_token():
 
     Ask for permission to read posts & wiki pages, and edit wiki pages.
     """
-    scopes = ["read", "wikiread", "wikiedit"]
+    scopes = ["read", "wikiread", "wikiedit", "modposts", "submit"]
 
     auth_reddit = praw.Reddit(
         client_id=_CLIENT_ID,
@@ -57,7 +57,7 @@ def get_refresh_token():
         send_message(client, params["error"])
         return 1
 
-    token = reddit.auth.authorize(params["code"])
+    token = auth_reddit.auth.authorize(params["code"])
     send_message(client, "Successfully retrieved refresh token! You can close this window now")
     return token
 
@@ -102,3 +102,4 @@ reddit = praw.Reddit(
 )
 
 subreddit = reddit.subreddit("counting")
+reddit.validate_on_submit = True
