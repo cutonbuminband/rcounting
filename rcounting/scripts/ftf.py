@@ -9,7 +9,7 @@ def is_within_threshold(post):
     return post.created_utc > threshold_timestamp
 
 
-def find_manual_ftf():
+def find_manual_ftf(previous_ftf_poster):
     submissions = []
     for submission in subreddit.new(limit=1000):
         if submission.created_utc >= threshold_timestamp:
@@ -19,7 +19,13 @@ def find_manual_ftf():
     candidate_ftfs = [
         submission for submission in submissions if "Free Talk Friday" in submission.title
     ]
-    return candidate_ftfs[-1] if candidate_ftfs else False
+    if not candidate_ftfs:
+        return False
+    if len(candidate_ftfs) > 1:
+        for candidate_ftf in candidate_ftfs[::-1]:
+            if candidate_ftf.author != previous_ftf_poster:
+                return candidate_ftf
+    return candidate_ftfs[-1]
 
 
 def generate_new_title(previous_title):
@@ -46,7 +52,7 @@ def generate_new_body(previous_ftf_id):
 previous_ftf_post = subreddit.sticky(number=2)
 
 if not is_within_threshold(previous_ftf_post):
-    ftf_post = find_manual_ftf()
+    ftf_post = find_manual_ftf(previous_ftf_post.author)
     if not ftf_post:
         title = generate_new_title(previous_ftf_post.title)
         body = generate_new_body(previous_ftf_post.id)
