@@ -4,17 +4,16 @@ from rcounting.counters import apply_alias
 from rcounting.parsing import parse_markdown_links
 from rcounting.reddit_interface import subreddit
 
-threshold_timestamp = dt.datetime.combine(dt.date.today(), dt.time(hour=7)).timestamp()
-
 
 def is_within_threshold(post):
-    return post.created_utc > threshold_timestamp
+    threshold_timestamp = dt.datetime.combine(dt.date.today(), dt.time(hour=7)).timestamp()
+    return post.created_utc >= threshold_timestamp
 
 
 def find_manual_ftf(previous_ftf_poster):
     submissions = []
     for submission in subreddit.new(limit=1000):
-        if submission.created_utc >= threshold_timestamp:
+        if is_within_threshold(submission):
             submissions.append(submission)
         else:
             break
