@@ -33,9 +33,10 @@ def get_refresh_token():
     )
     print(
         "This is the first time you're using the rcounting tools.",
-        "You need to allow the program to interact with reddit on your behalf",
+        "You need to allow the program to interact with reddit on your behalf.",
         "For logging, it needs to be able to read wiki pages and posts, "
-        "and to update the thread directory it needs permission to edit wiki pages.",
+        "to update the thread directory it needs permission to edit wiki pages, "
+        "and to create and pin an FTF post it needs permission to post and mod submissions",
         sep="\n",
     )
     state = str(random.randint(0, 65000))

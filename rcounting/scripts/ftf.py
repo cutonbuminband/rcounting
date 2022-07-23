@@ -73,6 +73,12 @@ def update_directory(post):
 
 @click.command()
 def pin_or_create_ftf():
+    """
+    Pin the earliest valid Free Talk Friday thread for this week.
+    If no FTF has been posted, create one, and then pin it.
+
+    Also update the FTF directory with the newest FTF.
+    """
     previous_ftf_post = subreddit.sticky(number=2)
 
     if is_within_threshold(previous_ftf_post):
