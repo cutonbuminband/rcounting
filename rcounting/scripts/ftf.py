@@ -8,7 +8,18 @@ from rcounting.reddit_interface import subreddit
 
 
 def is_within_threshold(post):
-    threshold_timestamp = dt.datetime.combine(dt.date.today(), dt.time(hour=7)).timestamp()
+    """
+    Check if a post was made after the most recent Friday at 0700 UTC
+    """
+    current_time = dt.datetime.now()
+    threshold_date = (
+        current_time.date()
+        - dt.timedelta(days=current_time.weekday())
+        + dt.timedelta(days=4, weeks=-1)
+    )
+    threshold_timestamp = dt.datetime.combine(threshold_date, dt.time(7))
+    if current_time - threshold_timestamp >= dt.timedelta(weeks=1):
+        threshold_timestamp += dt.timedelta(weeks=1)
     return post.created_utc >= threshold_timestamp
 
 
