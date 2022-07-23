@@ -1,5 +1,7 @@
 import datetime as dt
 
+import click
+
 from rcounting.counters import apply_alias
 from rcounting.parsing import parse_markdown_links
 from rcounting.reddit_interface import subreddit
@@ -69,7 +71,8 @@ def update_directory(post):
         wiki.edit(new_contents, reason="Added latest FTF")
 
 
-if __name__ == "__main__":
+@click.command()
+def pin_or_create_ftf():
     previous_ftf_post = subreddit.sticky(number=2)
 
     if is_within_threshold(previous_ftf_post):
@@ -85,3 +88,7 @@ if __name__ == "__main__":
         ftf_post.mod.suggested_sort(sort="new")
 
         update_directory(ftf_post)
+
+
+if __name__ == "__main__":
+    pin_or_create_ftf()
