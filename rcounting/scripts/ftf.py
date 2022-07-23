@@ -20,7 +20,7 @@ def is_within_threshold(post):
     threshold_timestamp = dt.datetime.combine(threshold_date, dt.time(7))
     if current_time - threshold_timestamp >= dt.timedelta(weeks=1):
         threshold_timestamp += dt.timedelta(weeks=1)
-    return post.created_utc >= threshold_timestamp
+    return post.created_utc >= threshold_timestamp.timestamp()
 
 
 def find_manual_ftf(previous_ftf_poster):
