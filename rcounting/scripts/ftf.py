@@ -1,6 +1,7 @@
 import datetime as dt
 
 from rcounting.counters import apply_alias
+from rcounting.parsing import parse_markdown_links
 from rcounting.reddit_interface import subreddit
 
 threshold_timestamp = dt.datetime.combine(dt.date.today(), dt.time(hour=7)).timestamp()
@@ -61,8 +62,12 @@ def make_directory_row(post):
 def update_directory(post):
     row = make_directory_row(post)
     wiki = subreddit.wiki["ftf_directory"]
-    new_contents = "\n".join(wiki.contents_md.split("\n") + [row])
-    wiki.edit(new_contents, reason="Added latest FTF")
+    contents_list = wiki.content_md.split("\n")
+    links = [parse_markdown_links(x) for x in contents_list]
+    known_posts = [x[0][1][1:] for x in links if x]
+    if post.id not in known_posts:
+        new_contents = "\n".join(contents_list + [row])
+        wiki.edit(new_contents, reason="Added latest FTF")
 
 
 if __name__ == "__main__":
