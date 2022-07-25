@@ -82,7 +82,7 @@ def update_directory(post):
         wiki.edit(new_contents, reason="Added latest FTF")
 
 
-@click.command()
+@click.command(name="ftf")
 def pin_or_create_ftf():
     """
     Pin the earliest valid Free Talk Friday thread for this week.
