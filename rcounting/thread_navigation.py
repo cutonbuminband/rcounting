@@ -94,14 +94,14 @@ def find_get_from_comment(comment):
     return comment
 
 
-def fetch_comments(comment):
+def fetch_comments(comment, limit=None):
     """
     Fetch a chain of comments from root to the supplied leaf comment.
     """
     reddit = reddit_interface.reddit
     tree = models.CommentTree([], reddit=reddit)
     comment_id = getattr(comment, "id", comment)
-    comments = tree.comment(comment_id).walk_up_tree()[::-1]
+    comments = tree.comment(comment_id).walk_up_tree(limit=limit)[::-1]
     return [models.comment_to_dict(x) for x in comments]
 
 
