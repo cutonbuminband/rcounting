@@ -547,6 +547,7 @@ known_threads = {
     "by 4s": SideThread(update_function=update_by_ns(4)),
     "by 5s": SideThread(update_function=update_by_ns(5)),
     "by 7s": SideThread(update_function=update_by_ns(7)),
+    "by 99s": SideThread(update_function=update_by_ns(99)),
     "rainbow": SideThread(length=1029, form=rainbow_form),
 }
 
