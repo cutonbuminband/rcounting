@@ -150,6 +150,9 @@ def illion_form(comment_body):
 planets = ["MERCURY", "VENUS", "EARTH", "MARS", "JUPITER", "SATURN", "URANUS", "NEPTUNE"]
 planetary_octal_form = validate_from_character_list(planets)
 
+colors = ["RED", "ORANGE", "YELLOW", "GREEN", "BLUE", "INDIGO", "VIOLET"]
+rainbow_form = validate_from_character_list(colors)
+
 
 def ignore_revivals(chain, was_revival):
     return chain if was_revival is None else [x for x, y in zip(chain, was_revival) if not y]
@@ -544,6 +547,7 @@ known_threads = {
     "by 4s": SideThread(update_function=update_by_ns(4)),
     "by 5s": SideThread(update_function=update_by_ns(5)),
     "by 7s": SideThread(update_function=update_by_ns(7)),
+    "rainbow": SideThread(length=1029, form=rainbow_form),
 }
 
 
