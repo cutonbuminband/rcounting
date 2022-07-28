@@ -1,10 +1,10 @@
+# pylint: disable=import-outside-toplevel
 import datetime as dt
 
 import click
 
 from rcounting.counters import apply_alias
 from rcounting.parsing import parse_markdown_links
-from rcounting.reddit_interface import subreddit
 
 
 def is_within_threshold(post):
@@ -23,7 +23,7 @@ def is_within_threshold(post):
     return post.created_utc >= threshold_timestamp.timestamp()
 
 
-def find_manual_ftf(previous_ftf_poster):
+def find_manual_ftf(previous_ftf_poster, subreddit):
     submissions = []
     for submission in subreddit.new(limit=1000):
         if is_within_threshold(submission):
@@ -71,7 +71,7 @@ def make_directory_row(post):
     return f"|{link}|{formatted_date}|{author}"
 
 
-def update_directory(post):
+def update_directory(post, subreddit):
     row = make_directory_row(post)
     wiki = subreddit.wiki["ftf_directory"]
     contents_list = wiki.content_md.split("\n")
@@ -90,12 +90,14 @@ def pin_or_create_ftf():
 
     Also update the FTF directory with the newest FTF.
     """
+    from rcounting.reddit_interface import subreddit
+
     previous_ftf_post = subreddit.sticky(number=2)
 
     if is_within_threshold(previous_ftf_post):
-        update_directory(previous_ftf_post)
+        update_directory(previous_ftf_post, subreddit)
     else:
-        ftf_post = find_manual_ftf(previous_ftf_post.author)
+        ftf_post = find_manual_ftf(previous_ftf_post.author, subreddit)
         if not ftf_post:
             title = generate_new_title(previous_ftf_post.title)
             body = generate_new_body(previous_ftf_post.id)
@@ -104,7 +106,7 @@ def pin_or_create_ftf():
         ftf_post.mod.sticky()
         ftf_post.mod.suggested_sort(sort="new")
 
-        update_directory(ftf_post)
+        update_directory(ftf_post, subreddit)
 
 
 if __name__ == "__main__":
