@@ -6,20 +6,21 @@ import click
 from rcounting.counters import apply_alias
 from rcounting.parsing import parse_markdown_links
 
+current_time = dt.datetime.now()
+threshold_date = (
+    current_time.date()
+    - dt.timedelta(days=current_time.weekday())
+    + dt.timedelta(days=4, weeks=-1)
+)
+threshold_timestamp = dt.datetime.combine(threshold_date, dt.time(7))
+if current_time - threshold_timestamp >= dt.timedelta(weeks=1):
+    threshold_timestamp += dt.timedelta(weeks=1)
+
 
 def is_within_threshold(post):
     """
     Check if a post was made after the most recent Friday at 0700 UTC
     """
-    current_time = dt.datetime.now()
-    threshold_date = (
-        current_time.date()
-        - dt.timedelta(days=current_time.weekday())
-        + dt.timedelta(days=4, weeks=-1)
-    )
-    threshold_timestamp = dt.datetime.combine(threshold_date, dt.time(7))
-    if current_time - threshold_timestamp >= dt.timedelta(weeks=1):
-        threshold_timestamp += dt.timedelta(weeks=1)
     return post.created_utc >= threshold_timestamp.timestamp()
 
 
@@ -42,6 +43,10 @@ def find_manual_ftf(previous_ftf_poster, subreddit):
     return candidate_ftfs[-1]
 
 
+def pprint(date):
+    return date.strftime("%A %B %d, %Y")
+
+
 def generate_new_title(previous_title):
     n = int(previous_title.split("#")[1])
     return f"Free Talk Friday #{n+1}"
@@ -57,10 +62,19 @@ def generate_new_body(previous_ftf_id):
         "pets, bears, hikes, dragons, trousers, travels, transit, cycling, family, "
         "or anything you like or dislike, except politics\n\n"
         "Feel free to check out our [tidbits](https://redd.it/n6onl8) thread "
-        "and introduce yourself if you haven't already."
+        "and introduce yourself if you haven't already.\n\n"
+        "*This post was made by a bot, since no-one else made an FTF before {} UTC 10:00. "
+        "Anyone can post the FTF, so if you want to have your post pinned here for a week, "
+        "just make one {} between UTC 07:00 and 10:00. The rules for these posts can be found in "
+        "the [faq](/r/counting/wiki/faq/#wiki_3.6_free_talk_friday_posts). You can also check out "
+        "our [directory](/r/counting/wiki/ftf_directory) of older posts for inspiration.*"
     )
 
-    return ftf_body.format(previous_ftf_id)
+    return ftf_body.format(
+        previous_ftf_id,
+        pprint(threshold_timestamp),
+        pprint(threshold_timestamp + dt.timedelta(weeks=1)),
+    )
 
 
 def make_directory_row(post):
