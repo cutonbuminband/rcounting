@@ -117,9 +117,9 @@ def pin_or_create_ftf():
             body = generate_new_body(previous_ftf_post.id)
             ftf_post = subreddit.submit(title=title, selftext=body)
 
+        ftf_post.mod.approve()
         ftf_post.mod.sticky()
         ftf_post.mod.suggested_sort(sort="new")
-
         update_directory(ftf_post, subreddit)
 
 
