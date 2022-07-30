@@ -63,6 +63,7 @@ def generate_new_body(previous_ftf_id):
         "or anything you like or dislike, except politics\n\n"
         "Feel free to check out our [tidbits](https://redd.it/n6onl8) thread "
         "and introduce yourself if you haven't already.\n\n"
+        "---\n\n"
         "*This post was made by a bot, since no-one else made an FTF before {} UTC 10:00. "
         "Anyone can post the FTF, so if you want to have your post pinned here for a week, "
         "just make one {} between UTC 07:00 and 10:00. The rules for these posts can be found in "
