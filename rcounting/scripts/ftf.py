@@ -6,28 +6,18 @@ import click
 from rcounting.counters import apply_alias
 from rcounting.parsing import parse_markdown_links
 
-current_time = dt.datetime.now()
-threshold_date = (
-    current_time.date()
-    - dt.timedelta(days=current_time.weekday())
-    + dt.timedelta(days=4, weeks=-1)
-)
-threshold_timestamp = dt.datetime.combine(threshold_date, dt.time(7))
-if current_time - threshold_timestamp >= dt.timedelta(weeks=1):
-    threshold_timestamp += dt.timedelta(weeks=1)
 
-
-def is_within_threshold(post):
+def is_within_threshold(post, timestamp):
     """
     Check if a post was made after the most recent Friday at 0700 UTC
     """
-    return post.created_utc >= threshold_timestamp.timestamp()
+    return post.created_utc >= timestamp.timestamp()
 
 
-def find_manual_ftf(previous_ftf_poster, subreddit):
+def find_manual_ftf(previous_ftf_poster, subreddit, timestamp):
     submissions = []
     for submission in subreddit.new(limit=1000):
-        if is_within_threshold(submission):
+        if is_within_threshold(submission, timestamp):
             submissions.append(submission)
         else:
             break
@@ -52,7 +42,7 @@ def generate_new_title(previous_title):
     return f"Free Talk Friday #{n+1}"
 
 
-def generate_new_body(previous_ftf_id):
+def generate_new_body(previous_ftf_id, threshold_date):
 
     ftf_body = (
         "Continued from last week's FTF [here](/comments/{}/)\n\n"
@@ -73,8 +63,8 @@ def generate_new_body(previous_ftf_id):
 
     return ftf_body.format(
         previous_ftf_id,
-        pprint(threshold_timestamp),
-        pprint(threshold_timestamp + dt.timedelta(weeks=1)),
+        pprint(threshold_date),
+        pprint(threshold_date + dt.timedelta(weeks=1)),
     )
 
 
@@ -97,6 +87,19 @@ def update_directory(post, subreddit):
         wiki.edit(new_contents, reason="Added latest FTF")
 
 
+def get_ftf_timestamp():
+    current_time = dt.datetime.now()
+    threshold_date = (
+        current_time.date()
+        - dt.timedelta(days=current_time.weekday())
+        + dt.timedelta(days=4, weeks=-1)
+    )
+    threshold_timestamp = dt.datetime.combine(threshold_date, dt.time(7))
+    if current_time - threshold_timestamp >= dt.timedelta(weeks=1):
+        threshold_timestamp += dt.timedelta(weeks=1)
+    return threshold_timestamp
+
+
 @click.command(name="ftf")
 def pin_or_create_ftf():
     """
@@ -108,14 +111,15 @@ def pin_or_create_ftf():
     from rcounting.reddit_interface import subreddit
 
     previous_ftf_post = subreddit.sticky(number=2)
+    threshold_timestamp = get_ftf_timestamp()
 
-    if is_within_threshold(previous_ftf_post):
+    if is_within_threshold(previous_ftf_post, threshold_timestamp):
         update_directory(previous_ftf_post, subreddit)
     else:
-        ftf_post = find_manual_ftf(previous_ftf_post.author, subreddit)
+        ftf_post = find_manual_ftf(previous_ftf_post.author, subreddit, threshold_timestamp)
         if not ftf_post:
             title = generate_new_title(previous_ftf_post.title)
-            body = generate_new_body(previous_ftf_post.id)
+            body = generate_new_body(previous_ftf_post.id, threshold_timestamp)
             ftf_post = subreddit.submit(title=title, selftext=body)
 
         ftf_post.mod.approve()
