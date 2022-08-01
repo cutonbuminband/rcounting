@@ -4,7 +4,7 @@ Antichess,AntichessSideThread,AutomatedCountingBot,thephilsblogbar123,RC_IS_DEAD
 artbn,artbn7
 Cox_1920,QuestoGuy
 Countletics,basskro,notbasskro
-CutOnBumInBandHere9,PaleRulerGoingAlone7
+CutOnBumInBandHere9,PaleRulerGoingAlone7, ocean_ghost
 Bepkoyt,Bepkoyt2
 davidjl123,davidjl1234,davidjl123456,davidjl1234567,MooraeIl,davidjl1234567
 ddodd69,ddodd69counting
