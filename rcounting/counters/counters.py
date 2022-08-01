@@ -41,6 +41,7 @@ ignored_counters = [
     "CountingHelper",
     "WikiSummarizerBot",
     "InactiveUserDetector",
+    "alphabet_order_bot",
 ]
 ignored_counters = [x.lower() for x in ignored_counters]
 banned_counters = ["[deleted]", "Franciscouzo"]
