@@ -193,8 +193,8 @@ def permutation_order(word, alphabet, no_leading_zeros=False):
     index = alphabet.index(word[0])
     position = index - int(no_leading_zeros)
     n_digits = len(alphabet)
-    new_alphabet = alphabet[:index] + alphabet[index + 1 :]
-    first_place_counts = position * math.perm(n_digits - 1, word_length - 1)
+    new_alphabet = alphabet[index + 1 :]
+    first_place_counts = sum(math.comb(n_digits - 1 - i, word_length - 1) for i in range(position))
     return first_place_counts + permutation_order(word[1:], new_alphabet)
 
 
