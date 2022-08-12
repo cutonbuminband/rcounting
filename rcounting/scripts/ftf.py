@@ -101,14 +101,20 @@ def get_ftf_timestamp():
 
 
 @click.command(name="ftf")
-def pin_or_create_ftf():
+@click.argument("subreddit", default="counting")
+def pin_or_create_ftf(subreddit):
     """
-    Pin the earliest valid Free Talk Friday thread for this week.
+    Pin the earliest valid Free Talk Friday thread for this week in [subreddit].
+    The subreddit is r/counting by default, but passing a different value lets you
+    test things on a subreddit you control.
+
     If no FTF has been posted, create one, and then pin it.
 
     Also update the FTF directory with the newest FTF.
     """
-    from rcounting.reddit_interface import subreddit
+    from rcounting.reddit_interface import reddit
+
+    subreddit = reddit.subreddit(subreddit)
 
     previous_ftf_post = subreddit.sticky(number=2)
     threshold_timestamp = get_ftf_timestamp()
@@ -129,4 +135,4 @@ def pin_or_create_ftf():
 
 
 if __name__ == "__main__":
-    pin_or_create_ftf()
+    pin_or_create_ftf()  # pylint: disable=no-value-for-parameter
