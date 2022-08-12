@@ -114,7 +114,7 @@ def pin_or_create_ftf():
     threshold_timestamp = get_ftf_timestamp()
 
     if is_within_threshold(previous_ftf_post, threshold_timestamp):
-        update_directory(previous_ftf_post, subreddit)
+        ftf_post = previous_ftf_post
     else:
         ftf_post = find_manual_ftf(previous_ftf_post.author, subreddit, threshold_timestamp)
         if not ftf_post:
@@ -124,8 +124,8 @@ def pin_or_create_ftf():
 
         ftf_post.mod.approve()
         ftf_post.mod.sticky()
-        ftf_post.mod.suggested_sort(sort="new")
-        update_directory(ftf_post, subreddit)
+    ftf_post.mod.suggested_sort(sort="new")
+    update_directory(ftf_post, subreddit)
 
 
 if __name__ == "__main__":
