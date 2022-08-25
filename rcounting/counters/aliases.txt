@@ -2,6 +2,7 @@ Academic_Relative_72,Psychological-Two982
 Adinida,EVOSexyBeast,ARandomURLAppears
 Antichess,AntichessSideThread,AutomatedCountingBot,thephilsblogbar123,RC_IS_DEAD
 artbn,artbn7
+colby6666,colby6667
 Cox_1920,QuestoGuy
 Countletics,basskro,notbasskro
 CutOnBumInBandHere9,PaleRulerGoingAlone7, ocean_ghost
@@ -33,4 +34,5 @@ thephilsblogbar2,thephilsblogbar3,buy_me_a_pint,thephilsblogbar
 Trial-Name,Perma_Name,Trial-Nombre,Perma-Name
 Urbul,Urbul_bot
 WGJC8463,WGJC3107
+whit4you,TOP_20
 Zaajdaeon,DemonBurritoCat,-DemonBurritoCat-
