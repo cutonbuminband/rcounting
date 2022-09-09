@@ -59,8 +59,8 @@ def generate_new_body(previous_ftf_id, threshold_date):
         "post pinned here for a week, just make one {} between UTC 07:00 and 10:00. "
         "The rules for these posts can be found in the "
         "[faq](/r/counting/wiki/faq/#wiki_3.6_free_talk_friday_posts). You can also check out "
-        "our [directory](/r/counting/wiki/ftf_directory) of older posts for inspiration.\n\n"
-        "If you have any questions or comments about the bot, feel free to write them below*"
+        "our [directory](/r/counting/wiki/ftf_directory) of older posts for inspiration.*\n\n"
+        "*If you have any questions or comments about the bot, feel free to write them below*"
     )
 
     return ftf_body.format(
