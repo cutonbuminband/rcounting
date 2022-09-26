@@ -186,16 +186,22 @@ def update_base_n(n: int):
     return update_function
 
 
-def permutation_order(word, alphabet, no_leading_zeros=False):
+def permutation_order(word, alphabet, ordered=False, no_leading_zeros=False):
     word_length = len(word)
     if word_length == 0:
         return 0
     index = alphabet.index(word[0])
     position = index - int(no_leading_zeros)
     n_digits = len(alphabet)
-    new_alphabet = alphabet[index + 1 :]
-    first_place_counts = sum(math.comb(n_digits - 1 - i, word_length - 1) for i in range(position))
-    return first_place_counts + permutation_order(word[1:], new_alphabet)
+    prefix = [] if ordered else alphabet[:index]
+    new_alphabet = prefix + alphabet[index + 1 :]
+    if ordered:
+        first_place_counts = sum(
+            math.comb(n_digits - 1 - i, word_length - 1) for i in range(position)
+        )
+    else:
+        first_place_counts = position * math.perm(n_digits - 1, word_length - 1)
+    return first_place_counts + permutation_order(word[1:], new_alphabet, ordered=ordered)
 
 
 @update_from_title
@@ -219,7 +225,7 @@ def update_powerball(title):
     balls, powerball = count_string.split("+")
     balls = balls.split()
     alphabet = [str(x) for x in range(1, 70)]
-    return permutation_order(balls, alphabet) * 26 + int(powerball) - 1
+    return permutation_order(balls, alphabet, ordered=True) * 26 + int(powerball) - 1
 
 
 @update_from_title
