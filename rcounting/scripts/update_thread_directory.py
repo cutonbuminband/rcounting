@@ -42,7 +42,7 @@ def update_directory(quiet, verbose, dry_run):
     directory.update(tree, new_submission_ids)
 
     if not dry_run:
-        subreddit.wiki["directory"].edit(str(directory), reason="Ran the update script")
+        subreddit.wiki["directory"].edit(content=str(directory), reason="Ran the update script")
     else:
         with open("directory.md", "w", encoding="utf8") as f:
             print(directory, file=f)
@@ -50,7 +50,9 @@ def update_directory(quiet, verbose, dry_run):
     if directory.updated_archive:
         archive = "\n\n".join([archive.header, directory.archive2string()])
         if not dry_run:
-            subreddit.wiki["directory/archive"].edit(archive, reason="Ran the update script")
+            subreddit.wiki["directory/archive"].edit(
+                content=archive, reason="Ran the update script"
+            )
         else:
             with open("archive.md", "w", encoding="utf8") as f:
                 print(archive, file=f)
