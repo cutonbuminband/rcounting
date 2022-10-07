@@ -1,8 +1,18 @@
 import bisect
 
+import networkx as nx
 import numpy as np
 
 # See e.g. https://iopscience.iop.org/article/10.1088/1367-2630/14/8/083030
+
+
+def prepare_graph(graph):
+    G = nx.DiGraph(graph)
+    G.remove_edges_from(nx.selfloop_edges(G))
+
+    G = symmetrize(G)
+    scale_weights(G)
+    return G
 
 
 def weighted_product(x, y, p):
