@@ -14,8 +14,10 @@ printer = logging.getLogger(__name__)
 class ThreadLogger:
     """Simple class for logging either to a database or to a csv file"""
 
-    def __init__(self, sql, output_directory, filename=None):
+    def __init__(self, sql, output_directory, filename=None, is_main=True):
         self.sql = sql
+        self.is_main = is_main
+        assert self.is_main or self.sql, "Only sql output is supported for side threads"
         self.output_directory = output_directory
         self.last_checkpoint = ""
         if self.sql:
@@ -35,7 +37,13 @@ class ThreadLogger:
             known_submissions = pd.read_sql("select * from submissions", db)[
                 "submission_id"
             ].tolist()
-            checkpoints = pd.read_sql("select submission_id from last_submission", db)
+            checkpoints = pd.read_sql(
+                "select last_submission.submission_id "
+                "from last_submission join submissions "
+                "on last_submission.submission_id = submissions.submission_id "
+                "order by timestamp",
+                db,
+            )
             last_checkpoint = checkpoints.iat[-1, 0]
         except pd.io.sql.DatabaseError:
             pass
@@ -44,7 +52,11 @@ class ThreadLogger:
         self.known_submissions = known_submissions
 
     def is_already_logged(self, comment):
-        """Determine whether a submission has already been logged"""
+        """
+        Determine whether a submission has already been logged based on its first
+        comment. It's important to do it this way because fetching a whole submission
+        is expensive, so we want to avoid having to do that.
+        """
         if self.sql:
             return comment.submission.id in self.known_submissions
         body = parsing.strip_markdown_links(comment.body)
@@ -56,14 +68,14 @@ class ThreadLogger:
         """Save one submission to a database"""
         submission = pd.Series(models.submission_to_dict(comment.submission))
         submission = submission[["submission_id", "username", "timestamp", "title", "body"]]
-        submission["integer_id"] = int(submission["submission_id"], 36)
+        if self.is_main:
+            submission["base_count"] = base_count(df)
         df.to_sql("comments", self.db, index_label="position", if_exists="append")
         submission.to_frame().T.to_sql("submissions", self.db, index=False, if_exists="append")
 
     def log_csv(self, comment, df):
         """Save one submission to a csv file"""
-        extract_count = functools.partial(parsing.find_count_in_text, raise_exceptions=False)
-        n = int(1000 * ((df["body"].apply(extract_count) - df.index).median() // 1000))
+        n = base_count(df)
         path = self.output_directory / Path(f"{n}.csv")
 
         columns = ["username", "timestamp", "comment_id", "submission_id"]
@@ -90,3 +102,8 @@ def update_counters_table(db):
     counting_users["is_mod"] = counting_users["username"].apply(counters.is_mod)
     counting_users["is_banned"] = counting_users["username"].apply(counters.is_banned_counter)
     counting_users.to_sql("counters", db, index=False, if_exists="replace")
+
+
+def base_count(df):
+    extract_count = functools.partial(parsing.find_count_in_text, raise_exceptions=False)
+    return int(round((df["body"].apply(extract_count) - df.index).median(), -3))

@@ -93,7 +93,7 @@ def log(
         comment.id,
     )
 
-    threadlogger = ThreadLogger(sql, output_directory, filename)
+    threadlogger = ThreadLogger(sql, output_directory, filename, not side_thread)
     completed = 0
 
     while (not all_counts and (completed < n_threads)) or (
