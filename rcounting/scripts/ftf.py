@@ -56,7 +56,7 @@ def generate_new_body(previous_ftf_id, threshold_date):
         "---\n\n"
         "*This post was made by a bot, because no-one else made a Free Talk Friday post "
         " before {} UTC 10:00. Anyone can post the FTF, so if you want to have your "
-        "post pinned here for a week, just make one {} between UTC 07:00 and 10:00. "
+        "post pinned here for a week, just make one {} between UTC 07:00 and 13:00. "
         "The rules for these posts can be found in the "
         "[faq](/r/counting/wiki/faq/#wiki_3.6_free_talk_friday_posts). You can also check out "
         "our [directory](/r/counting/wiki/ftf_directory) of older posts for inspiration.*\n\n"
