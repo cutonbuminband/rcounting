@@ -40,7 +40,7 @@ def get_refresh_token():
         sep="\n",
     )
     state = str(random.randint(0, 65000))
-    url = auth_reddit.auth.url(scopes, state, "permanent")
+    url = auth_reddit.auth.url(scopes=scopes, state=state)
     print(f"Please open this url in a web browser, and follow the instructions there: {url}")
 
     client = receive_connection()
