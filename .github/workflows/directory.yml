@@ -1,8 +1,8 @@
-name: Test FTF script
+name: Test directory script
 
 on:
   schedule:
-    - cron: '55 12 * * 5'
+    - cron: '45 11,23 * * *'
 
 jobs:
   build:
@@ -16,6 +16,5 @@ jobs:
           python-version: '3.10'
           cache: 'pip' # caching pip dependencies
       - run: pip install -e .
-      - name: FTF
-        if: github.event.schedule == '55 12 * * 5'
-        run: python3 rcounting/scripts/ftf.py
+      - name: directory
+        run: python3 rcounting/scripts/update_thread_directory.py -q
