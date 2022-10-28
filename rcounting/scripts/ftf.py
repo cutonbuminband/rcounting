@@ -86,7 +86,7 @@ def update_directory(post, subreddit):
     known_posts = [x[0][1][1:] for x in links if x]
     if post.id not in known_posts:
         new_contents = "\n".join(contents_list + [row])
-        wiki.edit(new_contents, reason="Added latest FTF")
+        wiki.edit(content=new_contents, reason="Added latest FTF")
 
 
 def get_ftf_timestamp():
