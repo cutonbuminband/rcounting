@@ -75,7 +75,7 @@ The command line interface is built using `click`.
 
 ## License
 
-This project is licensed under the terms of the GNU General Public License v3.0, or, at your discretion, any later version. You can read the license terms in [LICENSE.md](https://github.com/cutonbuminband/counting_stats/blob/master/LICENSE.md)
+This project is licensed under the terms of the GNU General Public License v3.0, or, at your discretion, any later version. You can read the license terms [here](/LICENSE.md).
 
 ## Contributing and Future Ideas
 This is a loosely organised list of things which could be done in the future. If you have any suggestions, don't hesitate to write, or to send a pull request. As a heads up, when you submit a pull request, you are also agreeing to license your code under the GPL (see github's [terms of service](https://docs.github.com/en/github/site-policy/github-terms-of-service#6-contributions-under-repository-license)).
