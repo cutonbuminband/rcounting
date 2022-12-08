@@ -15,8 +15,6 @@ disable = [
     "too-many-arguments",
 	"too-many-locals",
     "unused-argument",
-    "no-self-use",
-    "add 4 spaces",
     "invalid-name",
     "unused-variable"
     ]

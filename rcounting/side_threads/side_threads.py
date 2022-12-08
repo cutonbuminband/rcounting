@@ -215,7 +215,7 @@ def update_binary_coded_decimal(title):
 def update_no_repeating(title):
     count = parsing.find_count_in_text(title.split("|")[-1])
     word = str(count)
-    result = 9 * sum([math.perm(9, i - 1) for i in range(1, len(word))])
+    result = 9 * sum(math.perm(9, i - 1) for i in range(1, len(word)))
     return result + permutation_order(word, string.digits, no_leading_zeros=True)
 
 
@@ -232,7 +232,7 @@ def update_powerball(title):
 def update_no_successive(title):
     count = parsing.find_count_in_text(title.split("|")[-1])
     word = str(count)
-    result = sum([9 ** i for i in range(1, len(word))])
+    result = sum(9**i for i in range(1, len(word)))
     previous_i = "0"
     for ix, i in enumerate(word[:-1]):
         result += 9 ** (len(word) - ix - 1) * (int(i) - (i >= previous_i))
@@ -261,7 +261,7 @@ def update_collatz(title):
     regex = r".*\((.*)\)"
     contents = re.match(regex, title).groups()[0]
     current, steps = [int(x) for x in contents.split("|")]
-    return sum([collatz(i) for i in range(1, current)]) + steps
+    return sum(collatz(i) for i in range(1, current)) + steps
 
 
 default_rule = CountingRule()
@@ -274,7 +274,7 @@ double_wave_regex = r"(-?\d+).*\((\d+)\).*\((\d+)\)"
 @update_from_title
 def update_wave(title):
     a, b = parsing.parse_submission_title(title, wave_regex)
-    return 2 * b ** 2 - a
+    return 2 * b**2 - a
 
 
 def update_increasing_type(n):
@@ -300,7 +300,7 @@ def triangle_n_dimension(n, value):
 @update_from_title
 def update_2i(title):
     digits = title.split("|")[-1].strip()
-    corner = sum([(-4) ** ix * int(digit) for ix, digit in enumerate(digits[::-2])])
+    corner = sum((-4) ** ix * int(digit) for ix, digit in enumerate(digits[::-2]))
     return (2 * corner + 1) ** 2
 
 
@@ -419,18 +419,18 @@ class OnlyRepeatingDigits(SideThread):
         )
 
     def make_dfa(self):
-        data = np.zeros(self.n * 3 ** self.n, dtype=int)
-        x = np.zeros(self.n * 3 ** self.n, dtype=int)
-        y = np.zeros(self.n * 3 ** self.n, dtype=int)
+        data = np.zeros(self.n * 3**self.n, dtype=int)
+        x = np.zeros(self.n * 3**self.n, dtype=int)
+        y = np.zeros(self.n * 3**self.n, dtype=int)
         ix = 0
-        for i in range(3 ** self.n):
+        for i in range(3**self.n):
             length, js, new_data = self.connections(i)
             x[ix : ix + length] = i
             y[ix : ix + length] = js
             data[ix : ix + length] = new_data
             ix += length
         return scipy.sparse.coo_matrix(
-            (data[:ix], (x[:ix], y[:ix])), shape=(3 ** self.n, 3 ** self.n)
+            (data[:ix], (x[:ix], y[:ix])), shape=(3**self.n, 3**self.n)
         )
 
     def _indices(self, n):
@@ -457,10 +457,8 @@ class OnlyRepeatingDigits(SideThread):
 
         return (
             sum(
-                [
-                    (-1) ** i * (self.n - i) ** (k - i) * math.comb(self.n, i) * math.perm(k, i)
-                    for i in range(0, min(self.n, k) + 1)
-                ]
+                (-1) ** i * (self.n - i) ** (k - i) * math.comb(self.n, i) * math.perm(k, i)
+                for i in range(0, min(self.n, k) + 1)
             )
             * (self.n - 1)
             // self.n
@@ -480,19 +478,19 @@ class OnlyRepeatingDigits(SideThread):
         word_length = len(word)
         if word_length < 2:
             return 0
-        result = sum([self.count_only_repeating_words(i) for i in range(1, word_length)])
+        result = sum(self.count_only_repeating_words(i) for i in range(1, word_length))
         result += (
             (int(word[0], self.n) - 1)
             * self.count_only_repeating_words(word_length)
             // (self.n - 1)
         )
-        current_matrix = scipy.sparse.identity(3 ** self.n, dtype="int", format="csr")
+        current_matrix = scipy.sparse.identity(3**self.n, dtype="int", format="csr")
         for i in range(word_length - 1, 0, -1):
             prefix = word[:i]
             current_char = word[i].upper()
             suffixes = alphanumeric[: string.digits.index(current_char)]
             states = [self.get_state(prefix + suffix) for suffix in suffixes]
-            result += sum([current_matrix[state, self.indices].sum() for state in states])
+            result += sum(current_matrix[state, self.indices].sum() for state in states)
             current_matrix *= self.transition_matrix
         return result
 
