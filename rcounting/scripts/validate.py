@@ -13,6 +13,7 @@ rule_dict = {
     "slower": "slower",
     "slowestest": "slowestest",
     "only_double_counting": "only double counting",
+    "fast_or_slow": "fast or slow",
 }
 
 

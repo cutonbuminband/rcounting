@@ -79,6 +79,23 @@ class CountingRule:
         return pd.DataFrame([comment_to_dict(x) for x in comments[:0:-1]])
 
 
+class FastOrSlow(CountingRule):
+    """
+    An special case of the rules class to account for a thread where the rule
+    is not of the form 'wait at least X' before counting, but rather
+    'wait at most X or at least Y'.
+
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def _valid_thread_time(self, history):
+        elapsed_time = history["timestamp"].diff()
+        valid_time = elapsed_time.isna() | (elapsed_time < 5 * MINUTE) | (elapsed_time >= HOUR)
+        return valid_time
+
+
 class OnlyDoubleCounting:
     """
     Only double counting is sufficiently strange that it gets its own class.
@@ -553,6 +570,7 @@ known_threads = {
     "by 7s": SideThread(update_function=update_by_ns(7)),
     "by 99s": SideThread(update_function=update_by_ns(99)),
     "rainbow": SideThread(length=1029, form=rainbow_form),
+    "fast or slow": SideThread(rule=FastOrSlow()),
 }
 
 
