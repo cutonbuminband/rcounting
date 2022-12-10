@@ -135,7 +135,7 @@ def base_n(n=10, strip_links=True):
     return validate_from_character_list(alphanumeric[:n], strip_links)
 
 
-def permissive(comment):
+def permissive(comment_body: str) -> bool:
     return True
 
 
