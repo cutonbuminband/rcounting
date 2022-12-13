@@ -230,14 +230,17 @@ class Paragraph:
         self.kind = kind
 
     def update(self, tree):
+        result = set()
         if self.tag == "text":
-            return
+            return result
         for row in self.contents:
             try:
                 row.update(tree)
+                result.add(row.submission_id)
             except Exception:  # pylint: disable=broad-except
                 printer.warning("Unable to update thread %s", row.title)
                 raise
+        return result
 
     def sort(self, *args, **kwargs):
         if self.tag != "text":
@@ -318,7 +321,7 @@ class Directory:
         """Update every row in the main directory page and sort the second table"""
         table_counter = 0
         for paragraph in self.paragraphs:
-            paragraph.update(tree)
+            self.known_submissions |= paragraph.update(tree)
             if paragraph.tag != "text":
                 table_counter += 1
             if table_counter == 2:
