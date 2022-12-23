@@ -211,7 +211,7 @@ class Row:
             self.update_count(chain, was_revival, side_thread)
             self.update_title()
         if submission_tree.is_archived(self.submission):
-            comment = comment.walk_up_tree(limit=20)[-1]
+            comment = comment.walk_up_tree(limit=5)[-1]
             dt = datetime.timedelta(days=30)
             now = datetime.datetime.utcnow()
             if now - datetime.datetime.utcfromtimestamp(comment.created_utc) > dt:
