@@ -1,8 +1,1279 @@
-<html xmlns="http://www.w3.org/1999/xhtml">    
-  <head>      
-    <title>Redirect to about.html</title>      
-    <meta http-equiv="refresh" content="0;URL='about.html'" />    
-  </head>    
-  <body> 
-  </body>  
-</html>     
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.313">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>rcounting - Initial Analysis</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark.min.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-sidebar floating">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+    <div class="container-fluid d-flex justify-content-between">
+      <h1 class="quarto-secondary-nav-title">Initial Analysis</h1>
+      <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">rcounting</a> 
+        <div class="sidebar-tools-main">
+  <a href="" class="quarto-color-scheme-toggle sidebar-tool" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+    </div>
+      </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">Analysis</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link active">Initial Analysis</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./separators.html" class="sidebar-item-text sidebar-link">The use of separators</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./runs.html" class="sidebar-item-text sidebar-link">Longest runs</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples.html" class="sidebar-item-text sidebar-link">Examples</a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#imports-and-initialization" id="toc-imports-and-initialization" class="nav-link active" data-scroll-target="#imports-and-initialization">Imports and initialization</a></li>
+  <li><a href="#loading-data" id="toc-loading-data" class="nav-link" data-scroll-target="#loading-data">Loading Data</a></li>
+  <li><a href="#counting-progress-over-time" id="toc-counting-progress-over-time" class="nav-link" data-scroll-target="#counting-progress-over-time">Counting progress over time</a></li>
+  <li><a href="#total-counts-vs-k_parts" id="toc-total-counts-vs-k_parts" class="nav-link" data-scroll-target="#total-counts-vs-k_parts">Total counts vs k_parts</a></li>
+  <li><a href="#number-of-partners-and-effective-number-of-partners" id="toc-number-of-partners-and-effective-number-of-partners" class="nav-link" data-scroll-target="#number-of-partners-and-effective-number-of-partners">Number of partners and effective number of partners</a></li>
+  <li><a href="#oldest-counters" id="toc-oldest-counters" class="nav-link" data-scroll-target="#oldest-counters">Oldest counters</a></li>
+  <li><a href="#gets-and-streaks" id="toc-gets-and-streaks" class="nav-link" data-scroll-target="#gets-and-streaks">Gets and streaks</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title d-none d-lg-block">Initial Analysis</h1><button type="button" class="btn code-tools-button dropdown-toggle" id="quarto-code-tools-menu" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi"></i> Code</button><ul class="dropdown-menu dropdown-menu-end" aria-labelelledby="quarto-code-tools-menu"><li><a id="quarto-show-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Show All Code</a></li><li><a id="quarto-hide-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Hide All Code</a></li><li><hr class="dropdown-divider"></li><li><a id="quarto-view-source" class="dropdown-item" href="javascript:void(0)" role="button">View Source</a></li></ul></div></div>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<p>Here’s a page highlighting some of the analysis I’ve done of the counts made on r/counting using the database of counts I’ve acquired. Most of the figures and tables here have also been posted on the subreddit, but I wanted to have them in a central place</p>
+<section id="imports-and-initialization" class="level1">
+<h1>Imports and initialization</h1>
+<p>We start with some imports, which isn’t particularly interesting, and thus it’s folded below</p>
+<div class="cell" data-execution_count="1">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sqlite3</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> rcounting <span class="im">import</span> side_threads, counters, analysis, thread_navigation <span class="im">as</span> tn, parsing</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> rcounting.reddit_interface <span class="im">import</span> reddit</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>sns.set_theme()</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> IPython.display <span class="im">import</span> Markdown</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>data_directory <span class="op">=</span> Path(<span class="st">'../../data'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>After that we can connect to the sqlite database of counts.</p>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>db <span class="op">=</span> sqlite3.<span class="ex">connect</span>(data_directory <span class="op">/</span> <span class="st">"counting.sqlite"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="loading-data" class="level1">
+<h1>Loading Data</h1>
+<p>Then we load some data, both the counts and the gets. We convert the timestamp to a date column, and add a “replying to” column, since some of what we’ll be doing later needs it.</p>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>counts <span class="op">=</span> pd.read_sql(<span class="st">"select comments.username, comments.submission_id, comments.timestamp "</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"from comments join submissions "</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"on comments.submission_id = submissions.submission_id "</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"where comments.position &gt; 0 "</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"order by submissions.timestamp, comments.position"</span>, db)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>counts[<span class="st">'date'</span>] <span class="op">=</span> pd.to_datetime(counts[<span class="st">'timestamp'</span>], unit<span class="op">=</span><span class="st">'s'</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>counts[<span class="st">"username"</span>] <span class="op">=</span> counts[<span class="st">"username"</span>].<span class="bu">apply</span>(counters.apply_alias)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>counts.drop(<span class="st">'timestamp'</span>, inplace<span class="op">=</span><span class="va">True</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>counts[<span class="st">"replying_to"</span>] <span class="op">=</span> counts[<span class="st">"username"</span>].shift(<span class="dv">1</span>)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"There are </span><span class="sc">{</span><span class="bu">len</span>(counts)<span class="sc">}</span><span class="ss"> comments logged on main"</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>gets <span class="op">=</span> counts.groupby(<span class="st">"submission_id"</span>).last().sort_values(<span class="st">'date'</span>).reset_index()</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>gets[<span class="st">'basecount'</span>] <span class="op">=</span> (gets.index <span class="op">+</span> <span class="dv">15</span>) <span class="op">*</span> <span class="dv">1000</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>gets.loc[[<span class="dv">0</span>, <span class="dv">1</span>], [<span class="st">'basecount'</span>]] <span class="op">=</span> [<span class="dv">0</span>, <span class="dv">16691</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>There are 4805927 comments logged on main</code></pre>
+</div>
+</div>
+</section>
+<section id="counting-progress-over-time" class="level1">
+<h1>Counting progress over time</h1>
+<p>A first bit of analysis is to visualize the progress of r/counting over time. We can do that as follows:</p>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> gets.set_index(<span class="st">'date'</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>resampled <span class="op">=</span> data.resample(<span class="st">'30d'</span>).mean()</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>resampled[<span class="st">'basecount'</span>] <span class="op">/=</span> <span class="fl">1e6</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> resampled[[<span class="st">'basecount'</span>]].plot(ylabel<span class="op">=</span><span class="st">'Current count [millions]'</span>, xlabel<span class="op">=</span><span class="st">'Date'</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>h, l <span class="op">=</span> ax.get_legend_handles_labels()</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>ax.legend(h[:<span class="dv">1</span>],[<span class="st">'count'</span>])</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'Counting progress over time'</span>)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="index_files/figure-html/cell-5-output-1.png" width="583" height="450"></p>
+</div>
+</div>
+<p>You can see that the counting rate varies quite a bit over time, with signifcant peaks and lulls in activity. Whether or not there are active runners really changes how fast the count is progressing!</p>
+</section>
+<section id="total-counts-vs-k_parts" class="level1">
+<h1>Total counts vs k_parts</h1>
+<p>We can try plotting thread participation vs total counts. The expectation is that generally, people who’ve made more total counts will also have counted in more threads. However, some users might have periods where they make a count every now and then but never do any runs, leading to comparatively more k_parts. On the other hand, some counters might only do runs, giving a counts/thread of up to 500.</p>
+<p>We’ll start by extracting the number of counts and the threads participated in, using the groupby functionality of <code>pandas</code></p>
+<div class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>  groups <span class="op">=</span> counts.groupby(<span class="st">"username"</span>)[<span class="st">"submission_id"</span>]</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  k_parts <span class="op">=</span> groups.nunique()</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  hoc <span class="op">=</span> groups.count()</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  combined <span class="op">=</span> pd.concat([k_parts, hoc], axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  combined.columns <span class="op">=</span> [<span class="st">"k_parts"</span>, <span class="st">"total_counts"</span>]</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  combined <span class="op">=</span> combined.query(<span class="st">"k_parts &gt;= 10"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We can make a polynomial fit of this (well, a linear fit of the log-log quantities), and use matplotlib to plot that</p>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>linear_model <span class="op">=</span> np.polyfit(np.log10(combined.k_parts), np.log10(combined.total_counts), <span class="dv">1</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(linear_model)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>axis <span class="op">=</span> np.linspace(<span class="dv">1</span>, combined.k_parts.<span class="bu">max</span>(), endpoint<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, figsize<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">5</span>))</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>ax.scatter(combined.k_parts, combined.total_counts, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>ax.plot(axis, <span class="dv">10</span><span class="op">**</span>(np.poly1d(linear_model)(np.log10(axis))), linestyle<span class="op">=</span><span class="st">"--"</span>, color<span class="op">=</span><span class="st">"0.3"</span>,</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>         lw<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"Threads participated in "</span>)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"Total counts made"</span>)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>ax.set_yscale(<span class="st">"log"</span>)</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>ax.set_xscale(<span class="st">"log"</span>)</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>ax.set_xlim(left<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>ax.set_ylim(bottom<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1.32243542 0.71654434]</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div id="fig-parts-counts" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="index_files/figure-html/fig-parts-counts-output-2.png" width="674" height="431" class="figure-img"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;1: The relationship between the total number of counts for each user, and then number of threads they’ve participated in</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<p>You can see what that looks like on <a href="#fig-parts-counts">Figure&nbsp;1</a>. The dashed line is a linear fit on the log-log plot, and it has a slope of 1.3. In this model, that means that if you double the total number of threads participated in by a user, you would expect to multiply their total counts by 2.5.</p>
+</section>
+<section id="number-of-partners-and-effective-number-of-partners" class="level1">
+<h1>Number of partners and effective number of partners</h1>
+<p>As with the number of counts vs threads participated in, we can expect that different counters might have qualitatively different behaviour when it comes to how many counting partners they have, and how often they’ve counted with each one. Some counters might count a little bit with everybody, while others might run with only a few partners, and drop a count with others every now and then.</p>
+<p>To quantify how uneven the counting distribution is we can look at the <a href="https://en.wikipedia.org/wiki/Effective_number_of_parties">effective number of partners</a> of each counter, and compare with the actual number of partners.</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>sorted_counters <span class="op">=</span> counts.groupby(<span class="st">"username"</span>).size().sort_values(ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>top_counters <span class="op">=</span> [x <span class="cf">for</span> x <span class="kw">in</span> sorted_counters.index[:<span class="dv">35</span>] <span class="cf">if</span> <span class="kw">not</span> counters.is_banned_counter(x)][:<span class="dv">30</span>]</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>top <span class="op">=</span> sorted_counters.<span class="bu">filter</span>(items<span class="op">=</span>top_counters)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> counts.loc[counts[<span class="st">"username"</span>].isin(top_counters)].groupby([<span class="st">"username"</span>, <span class="st">"replying_to"</span>]).size()</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>effective_partners <span class="op">=</span> df.groupby(level<span class="op">=</span><span class="dv">0</span>).<span class="bu">apply</span>(analysis.effective_number_of_counters).to_frame()</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>partners <span class="op">=</span> df.groupby(level<span class="op">=</span><span class="dv">0</span>).count()</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>combined <span class="op">=</span> pd.concat([top, effective_partners, partners], axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>combined[<span class="st">"HOC rank"</span>] <span class="op">=</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="bu">len</span>(combined) <span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>combined.columns <span class="op">=</span> [<span class="st">"counts"</span>, <span class="st">"c_eff"</span>, <span class="st">"c"</span>, <span class="st">"rank"</span>]</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>combined <span class="op">=</span> combined[[<span class="st">"rank"</span>, <span class="st">"c"</span>, <span class="st">"c_eff"</span>]]</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>combined.c_eff <span class="op">=</span> combined.c_eff.<span class="bu">round</span>().astype(<span class="bu">int</span>)</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>combined.columns <span class="op">=</span> [<span class="st">"HOC rank"</span>, <span class="st">"N"</span>, <span class="st">"N_(effective)"</span>]</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>combined.index.name <span class="op">=</span> <span class="st">"Username"</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>combined.head(<span class="dv">20</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+
+<div>
+
+<table class="dataframe table table-sm table-striped">
+  <thead>
+    <tr>
+      <th></th>
+      <th>HOC rank</th>
+      <th>N</th>
+      <th>N_(effective)</th>
+    </tr>
+    <tr>
+      <th>Username</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Countletics</th>
+      <td>1</td>
+      <td>506</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>thephilsblogbar2</th>
+      <td>2</td>
+      <td>1312</td>
+      <td>11</td>
+    </tr>
+    <tr>
+      <th>davidjl123</th>
+      <td>3</td>
+      <td>1569</td>
+      <td>23</td>
+    </tr>
+    <tr>
+      <th>Antichess</th>
+      <td>4</td>
+      <td>741</td>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>GarlicoinAccount</th>
+      <td>5</td>
+      <td>388</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>Smartstocks</th>
+      <td>6</td>
+      <td>1048</td>
+      <td>29</td>
+    </tr>
+    <tr>
+      <th>nonsensy</th>
+      <td>7</td>
+      <td>261</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>TheNitromeFan</th>
+      <td>8</td>
+      <td>1879</td>
+      <td>33</td>
+    </tr>
+    <tr>
+      <th>atomicimploder</th>
+      <td>9</td>
+      <td>2419</td>
+      <td>32</td>
+    </tr>
+    <tr>
+      <th>qwertylool</th>
+      <td>10</td>
+      <td>371</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>Ezekiel134</th>
+      <td>11</td>
+      <td>893</td>
+      <td>13</td>
+    </tr>
+    <tr>
+      <th>Trial-Name</th>
+      <td>12</td>
+      <td>154</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>rideride</th>
+      <td>13</td>
+      <td>685</td>
+      <td>11</td>
+    </tr>
+    <tr>
+      <th>RandomRedditorWithNo</th>
+      <td>14</td>
+      <td>744</td>
+      <td>22</td>
+    </tr>
+    <tr>
+      <th>Urbul</th>
+      <td>15</td>
+      <td>1084</td>
+      <td>30</td>
+    </tr>
+    <tr>
+      <th>Mooraell</th>
+      <td>16</td>
+      <td>1185</td>
+      <td>23</td>
+    </tr>
+    <tr>
+      <th>qualw</th>
+      <td>17</td>
+      <td>267</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <th>kdiuro13</th>
+      <td>18</td>
+      <td>841</td>
+      <td>24</td>
+    </tr>
+    <tr>
+      <th>Removedpixel</th>
+      <td>19</td>
+      <td>1199</td>
+      <td>25</td>
+    </tr>
+    <tr>
+      <th>Adinida</th>
+      <td>20</td>
+      <td>300</td>
+      <td>9</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+<p>We can also get the replying-to and replied-by stats for a single user</p>
+<div class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>counter <span class="op">=</span> <span class="st">"thephilsblogbar2"</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>nick <span class="op">=</span> <span class="st">"phil"</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>subset <span class="op">=</span> counts.loc[counts[<span class="st">"username"</span>] <span class="op">==</span> counter].copy()</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>replied_by <span class="op">=</span> counts[<span class="st">'username'</span>].loc[subset.index <span class="op">+</span> <span class="dv">1</span>]</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>replied_by.index <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>subset[<span class="st">'replied_by'</span>] <span class="op">=</span> replied_by</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> pd.concat([subset.groupby(<span class="st">"replied_by"</span>).count().iloc[:, <span class="dv">0</span>].sort_values(ascending<span class="op">=</span><span class="va">False</span>),</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>                    subset.groupby(<span class="st">"replying_to"</span>).count().iloc[:, <span class="dv">0</span>].sort_values(ascending<span class="op">=</span><span class="va">False</span>)], axis<span class="op">=</span><span class="dv">1</span>).head(<span class="dv">10</span>)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>Markdown(result.to_markdown(headers<span class="op">=</span>[<span class="st">'Counting partner'</span>, <span class="ss">f'No. of replies by </span><span class="sc">{</span>nick<span class="sc">}</span><span class="ss">'</span>, <span class="ss">f'No. of replies to </span><span class="sc">{</span>nick<span class="sc">}</span><span class="ss">'</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+<div id="tbl-replying" class="anchored">
+<table class="table table-sm table-striped">
+<caption>Table&nbsp;1: The most popular counting partners of a single user</caption>
+<colgroup>
+<col style="width: 28%">
+<col style="width: 35%">
+<col style="width: 35%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Counting partner</th>
+<th style="text-align: right;">No.&nbsp;of replies by phil</th>
+<th style="text-align: right;">No.&nbsp;of replies to phil</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">GarlicoinAccount</td>
+<td style="text-align: right;">98821</td>
+<td style="text-align: right;">98844</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Countletics</td>
+<td style="text-align: right;">34363</td>
+<td style="text-align: right;">34432</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ClockButTakeOutTheL</td>
+<td style="text-align: right;">20737</td>
+<td style="text-align: right;">20739</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">TheNitromeFan</td>
+<td style="text-align: right;">16095</td>
+<td style="text-align: right;">16193</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Antichess</td>
+<td style="text-align: right;">14992</td>
+<td style="text-align: right;">15118</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Trial-Name</td>
+<td style="text-align: right;">11522</td>
+<td style="text-align: right;">11553</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">nonsensy</td>
+<td style="text-align: right;">10535</td>
+<td style="text-align: right;">10513</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LeMinerWithCheese</td>
+<td style="text-align: right;">10047</td>
+<td style="text-align: right;">10037</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">colby6666</td>
+<td style="text-align: right;">10028</td>
+<td style="text-align: right;">10022</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">CutOnBumInBandHere9</td>
+<td style="text-align: right;">9109</td>
+<td style="text-align: right;">9204</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</section>
+<section id="oldest-counters" class="level1">
+<h1>Oldest counters</h1>
+<p>We can see who the oldest still-active counters are</p>
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>  cutoff_date <span class="op">=</span> pd.to_datetime(<span class="st">'today'</span>) <span class="op">-</span> pd.Timedelta(<span class="st">'180d'</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  active_counters <span class="op">=</span> counts.loc[counts[<span class="st">'date'</span>] <span class="op">&gt;</span> cutoff_date].groupby(<span class="st">"username"</span>).groups.keys()</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  counts.loc[counts[<span class="st">'username'</span>].isin(active_counters)].groupby(<span class="st">"username"</span>)[<span class="st">"date"</span>].<span class="bu">min</span>().sort_values().head(<span class="dv">30</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<pre><code>username
+949paintball           2012-06-15 18:18:21
+kdiuro13               2013-04-07 15:59:25
+Aschebescher           2013-06-24 15:00:33
+sudofox                2013-12-13 01:20:41
+CoStCo19               2013-12-13 08:00:30
+KingCaspianX           2014-01-18 23:39:46
+atomicimploder         2014-02-26 14:06:29
+SThor                  2014-03-10 12:14:35
+rideride               2014-04-07 02:32:20
+Gregsquatch            2014-04-27 22:10:20
+rschaosid              2014-04-27 23:29:36
+NoBreadsticks          2014-05-15 02:07:53
+davidjl123             2014-07-16 23:49:25
+Mooraell               2015-01-04 19:46:47
+Maniac_34              2015-01-12 18:15:21
+TheNitromeFan          2015-01-20 06:51:30
+fake_robot             2015-06-06 02:25:03
+FartyMcNarty           2015-07-18 10:37:28
+a-username-for-me      2015-08-06 03:26:48
+Sharpeye468            2015-09-20 17:23:11
+Smartstocks            2015-10-13 23:20:23
+-Albus-                2015-12-11 06:41:59
+MegaUltraSonic         2016-01-03 14:45:21
+randomusername123458   2016-01-21 06:28:29
+None                   2016-02-04 19:10:57
+RandomRedditorWithNo   2016-02-06 04:42:58
+Ynax                   2016-03-04 09:59:18
+LikeItsYourJob         2016-03-18 20:06:43
+Nekyiia                2016-04-27 09:34:33
+nonsensy               2016-04-27 11:01:31
+Name: date, dtype: datetime64[ns]</code></pre>
+</div>
+</div>
+</section>
+<section id="gets-and-streaks" class="level1">
+<h1>Gets and streaks</h1>
+<p>Similarly to the oldest counters, we can see what the longest difference between a counter’s first and last get is:</p>
+<div class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>  gets.groupby(<span class="st">'username'</span>).agg(<span class="kw">lambda</span> x: x.index[<span class="op">-</span><span class="dv">1</span>] <span class="op">-</span> x.index[<span class="dv">0</span>]).iloc[:, <span class="dv">0</span>].sort_values(ascending<span class="op">=</span><span class="va">False</span>).head(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="10">
+<pre><code>username
+atomicimploder    4644
+musicbuilder      4515
+Pookah            4500
+Maniac_34         4446
+FartyMcNarty      4373
+TheNitromeFan     4305
+davidjl123        4111
+Smartstocks       4083
+kdiuro13          3997
+rideride          3958
+Name: submission_id, dtype: int64</code></pre>
+</div>
+</div>
+<p>Some counters have been active for quite a while!</p>
+<p>We can also calculate what the longest get streaks are.</p>
+<div class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> gets[<span class="st">'username'</span>]</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>groups <span class="op">=</span> gets.groupby((y <span class="op">!=</span> y.shift()).cumsum())</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>columns <span class="op">=</span> [<span class="st">'username'</span>, <span class="st">'submission_id'</span>, <span class="st">'basecount'</span>]</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>length <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>indices <span class="op">=</span> (<span class="op">-</span>groups.size()).sort_values(kind<span class="op">=</span><span class="st">'mergesort'</span>).index</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>old <span class="op">=</span> groups.first().loc[indices, columns]</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>new <span class="op">=</span> groups.last().loc[indices, columns]</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>combined <span class="op">=</span> old.join(new, rsuffix<span class="op">=</span><span class="st">'_new'</span>)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>combined <span class="op">=</span> combined.loc[<span class="op">~</span>combined[<span class="st">'username'</span>].<span class="bu">apply</span>(counters.is_banned_counter)].head(length).reset_index(drop<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>combined[<span class="st">'old_link'</span>] <span class="op">=</span> combined.<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="ss">f'[</span><span class="sc">{</span><span class="bu">int</span>(x.basecount <span class="op">/</span> <span class="dv">1000</span>) <span class="op">+</span> <span class="dv">1</span><span class="sc">}</span><span class="ss">K](https://reddit.com/comments/</span><span class="sc">{</span>x<span class="sc">.</span>submission_id<span class="sc">}</span><span class="ss">/)'</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>combined[<span class="st">'new_link'</span>] <span class="op">=</span> combined.<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="ss">f'[</span><span class="sc">{</span><span class="bu">int</span>(x.basecount_new <span class="op">/</span> <span class="dv">1000</span>) <span class="op">+</span> <span class="dv">1</span><span class="sc">}</span><span class="ss">K](https://reddit.com/comments/</span><span class="sc">{</span>x<span class="sc">.</span>submission_id_new<span class="sc">}</span><span class="ss">/)'</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>combined[<span class="st">'streak'</span>] <span class="op">=</span> <span class="dv">1</span> <span class="op">+</span> (combined[<span class="st">'basecount_new'</span>] <span class="op">-</span> combined[<span class="st">'basecount'</span>]) <span class="op">//</span> <span class="dv">1000</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>combined.index <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>combined.index.name <span class="op">=</span> <span class="st">"Rank"</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>Markdown(combined[[<span class="st">'username'</span>, <span class="st">'old_link'</span>, <span class="st">'new_link'</span>, <span class="st">'streak'</span>]].to_markdown(headers<span class="op">=</span>[<span class="st">'**Rank**'</span>, <span class="st">'**username**'</span>, <span class="st">'**First Get**'</span>, <span class="st">'**Last Get**'</span>, <span class="st">'**Streak Length**'</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="11">
+<div id="tbl-streaks" class="anchored">
+<table class="table table-sm table-striped">
+<caption>Table&nbsp;2: The longest streak</caption>
+<thead>
+<tr class="header">
+<th style="text-align: right;"><strong>Rank</strong></th>
+<th style="text-align: left;"><strong>username</strong></th>
+<th style="text-align: left;"><strong>First Get</strong></th>
+<th style="text-align: left;"><strong>Last Get</strong></th>
+<th style="text-align: right;"><strong>Streak Length</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">Countletics</td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/d6ejhp/">2896K</a></td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/d8i49y/">2914K</a></td>
+<td style="text-align: right;">19</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">LeMinerWithCheese</td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/s23sey/">4570K</a></td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/s6e6na/">4584K</a></td>
+<td style="text-align: right;">15</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">davidjl123</td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/dkt3pu/">3038K</a></td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/dkvgzx/">3047K</a></td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">Countletics</td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/dmo0fq/">3091K</a></td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/dmse0i/">3100K</a></td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">5</td>
+<td style="text-align: left;">Countletics</td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/dz9obt/">3190K</a></td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/dze0bv/">3199K</a></td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">6</td>
+<td style="text-align: left;">Countletics</td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/npkaf9/">4384K</a></td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/nqnf52/">4393K</a></td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">7</td>
+<td style="text-align: left;">qualw</td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/7nsvsl/">2042K</a></td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/7os5n7/">2049K</a></td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">davidjl123</td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/ghlau4/">3726K</a></td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/ghzrel/">3733K</a></td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">9</td>
+<td style="text-align: left;">qwertylool</td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/ohscxq/">4440K</a></td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/omdypw/">4447K</a></td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">10</td>
+<td style="text-align: left;">countmeister</td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/2i7pto/">290K</a></td>
+<td style="text-align: left;"><a href="https://reddit.com/comments/2j009t/">296K</a></td>
+<td style="text-align: right;">7</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p>The core of the extraction is the line that says <code>groups = gets.groupby((y != y.shift()).cumsum())</code>. Let’s unpack it:</p>
+<ul>
+<li><code>y != y.shift()</code> assigns a value of True to all threads with a username that’s different from their predecessor</li>
+<li><code>.cumsum()</code> sums up all these True values. The net result is that each get streak is given its own unique number</li>
+<li><code>.groupby()</code> extracts these groups for later use</li>
+</ul>
+<p>The groups are then sorted according to size, and the largest ones are shown in <a href="#tbl-streaks">Table&nbsp;2</a></p>
+
+
+<!-- -->
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  let localAlternateSentinel = 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  const viewSource = window.document.getElementById('quarto-view-source') ||
+                     window.document.getElementById('quarto-code-tools-source');
+  if (viewSource) {
+    const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+    viewSource.addEventListener("click", function(e) {
+      if (sourceUrl) {
+        // rstudio viewer pane
+        if (/\bcapabilities=\b/.test(window.location)) {
+          window.open(sourceUrl);
+        } else {
+          window.location.href = sourceUrl;
+        }
+      } else {
+        const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+        modal.show();
+      }
+      return false;
+    });
+  }
+  function toggleCodeHandler(show) {
+    return function(e) {
+      const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+      for (let i=0; i<detailsSrc.length; i++) {
+        const details = detailsSrc[i].parentElement;
+        if (show) {
+          details.open = true;
+        } else {
+          details.removeAttribute("open");
+        }
+      }
+      const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+      const fromCls = show ? "hidden" : "unhidden";
+      const toCls = show ? "unhidden" : "hidden";
+      for (let i=0; i<cellCodeDivs.length; i++) {
+        const codeDiv = cellCodeDivs[i];
+        if (codeDiv.classList.contains(fromCls)) {
+          codeDiv.classList.remove(fromCls);
+          codeDiv.classList.add(toCls);
+        } 
+      }
+      return false;
+    }
+  }
+  const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+  if (hideAllCode) {
+    hideAllCode.addEventListener("click", toggleCodeHandler(false));
+  }
+  const showAllCode = window.document.getElementById("quarto-show-all-code");
+  if (showAllCode) {
+    showAllCode.addEventListener("click", toggleCodeHandler(true));
+  }
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="sourceCode" id="cb16" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Initial Analysis"</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>Here's a page highlighting some of the analysis I've done of the counts made on r/counting using the database of counts I've acquired. Most of the figures and tables here have also been posted on the subreddit, but I wanted to have them in a central place</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="fu"># Imports and initialization</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>We start with some imports, which isn't particularly interesting, and thus it's folded below</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="co">#| code-fold: true</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sqlite3</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> rcounting <span class="im">import</span> side_threads, counters, analysis, thread_navigation <span class="im">as</span> tn, parsing</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> rcounting.reddit_interface <span class="im">import</span> reddit</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>sns.set_theme()</span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> IPython.display <span class="im">import</span> Markdown</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>data_directory <span class="op">=</span> Path(<span class="st">'../../data'</span>)</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>After that we can connect to the sqlite database of counts.</span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>db <span class="op">=</span> sqlite3.<span class="ex">connect</span>(data_directory <span class="op">/</span> <span class="st">"counting.sqlite"</span>)</span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a><span class="fu"># Loading Data</span></span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>Then we load some data, both the counts and the gets. We convert the timestamp to a date column, and add a "replying to" column, since some of what we'll be doing later needs it.</span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>counts <span class="op">=</span> pd.read_sql(<span class="st">"select comments.username, comments.submission_id, comments.timestamp "</span></span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"from comments join submissions "</span></span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"on comments.submission_id = submissions.submission_id "</span></span>
+<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"where comments.position &gt; 0 "</span></span>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"order by submissions.timestamp, comments.position"</span>, db)</span>
+<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a>counts[<span class="st">'date'</span>] <span class="op">=</span> pd.to_datetime(counts[<span class="st">'timestamp'</span>], unit<span class="op">=</span><span class="st">'s'</span>)</span>
+<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a>counts[<span class="st">"username"</span>] <span class="op">=</span> counts[<span class="st">"username"</span>].<span class="bu">apply</span>(counters.apply_alias)</span>
+<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a>counts.drop(<span class="st">'timestamp'</span>, inplace<span class="op">=</span><span class="va">True</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a>counts[<span class="st">"replying_to"</span>] <span class="op">=</span> counts[<span class="st">"username"</span>].shift(<span class="dv">1</span>)</span>
+<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"There are </span><span class="sc">{</span><span class="bu">len</span>(counts)<span class="sc">}</span><span class="ss"> comments logged on main"</span>)</span>
+<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a>gets <span class="op">=</span> counts.groupby(<span class="st">"submission_id"</span>).last().sort_values(<span class="st">'date'</span>).reset_index()</span>
+<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a>gets[<span class="st">'basecount'</span>] <span class="op">=</span> (gets.index <span class="op">+</span> <span class="dv">15</span>) <span class="op">*</span> <span class="dv">1000</span></span>
+<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a>gets.loc[[<span class="dv">0</span>, <span class="dv">1</span>], [<span class="st">'basecount'</span>]] <span class="op">=</span> [<span class="dv">0</span>, <span class="dv">16691</span>]</span>
+<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a><span class="fu"># Counting progress over time</span></span>
+<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a>A first bit of analysis is to visualize the progress of r/counting over time. We can do that as follows:</span>
+<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-label: fig-progress</span></span>
+<span id="cb16-64"><a href="#cb16-64" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: Cumulative counts made on /r/counting as a function of time</span></span>
+<span id="cb16-67"><a href="#cb16-67" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-68"><a href="#cb16-68" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> gets.set_index(<span class="st">'date'</span>)</span>
+<span id="cb16-69"><a href="#cb16-69" aria-hidden="true" tabindex="-1"></a>resampled <span class="op">=</span> data.resample(<span class="st">'30d'</span>).mean()</span>
+<span id="cb16-70"><a href="#cb16-70" aria-hidden="true" tabindex="-1"></a>resampled[<span class="st">'basecount'</span>] <span class="op">/=</span> <span class="fl">1e6</span></span>
+<span id="cb16-71"><a href="#cb16-71" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> resampled[[<span class="st">'basecount'</span>]].plot(ylabel<span class="op">=</span><span class="st">'Current count [millions]'</span>, xlabel<span class="op">=</span><span class="st">'Date'</span>)</span>
+<span id="cb16-72"><a href="#cb16-72" aria-hidden="true" tabindex="-1"></a>h, l <span class="op">=</span> ax.get_legend_handles_labels()</span>
+<span id="cb16-73"><a href="#cb16-73" aria-hidden="true" tabindex="-1"></a>ax.legend(h[:<span class="dv">1</span>],[<span class="st">'count'</span>])</span>
+<span id="cb16-74"><a href="#cb16-74" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'Counting progress over time'</span>)</span>
+<span id="cb16-75"><a href="#cb16-75" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb16-76"><a href="#cb16-76" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-77"><a href="#cb16-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-78"><a href="#cb16-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-79"><a href="#cb16-79" aria-hidden="true" tabindex="-1"></a>You can see that the counting rate varies quite a bit over time, with signifcant peaks and lulls in activity. Whether or not there are active runners really changes how fast the count is progressing!</span>
+<span id="cb16-80"><a href="#cb16-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-81"><a href="#cb16-81" aria-hidden="true" tabindex="-1"></a><span class="fu"># Total counts vs k_parts</span></span>
+<span id="cb16-82"><a href="#cb16-82" aria-hidden="true" tabindex="-1"></a>We can try plotting thread participation vs total counts. The expectation is that generally, people who've made more total counts will also have counted in more threads. However, some users might have periods where they make a count every now and then but never do any runs, leading to comparatively more k_parts. On the other hand, some counters might only do runs, giving a counts/thread of up to 500.</span>
+<span id="cb16-83"><a href="#cb16-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-84"><a href="#cb16-84" aria-hidden="true" tabindex="-1"></a>We'll start by extracting the number of counts and the threads participated in, using the groupby functionality of <span class="in">`pandas`</span></span>
+<span id="cb16-87"><a href="#cb16-87" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-88"><a href="#cb16-88" aria-hidden="true" tabindex="-1"></a>  groups <span class="op">=</span> counts.groupby(<span class="st">"username"</span>)[<span class="st">"submission_id"</span>]</span>
+<span id="cb16-89"><a href="#cb16-89" aria-hidden="true" tabindex="-1"></a>  k_parts <span class="op">=</span> groups.nunique()</span>
+<span id="cb16-90"><a href="#cb16-90" aria-hidden="true" tabindex="-1"></a>  hoc <span class="op">=</span> groups.count()</span>
+<span id="cb16-91"><a href="#cb16-91" aria-hidden="true" tabindex="-1"></a>  combined <span class="op">=</span> pd.concat([k_parts, hoc], axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb16-92"><a href="#cb16-92" aria-hidden="true" tabindex="-1"></a>  combined.columns <span class="op">=</span> [<span class="st">"k_parts"</span>, <span class="st">"total_counts"</span>]</span>
+<span id="cb16-93"><a href="#cb16-93" aria-hidden="true" tabindex="-1"></a>  combined <span class="op">=</span> combined.query(<span class="st">"k_parts &gt;= 10"</span>)</span>
+<span id="cb16-94"><a href="#cb16-94" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-95"><a href="#cb16-95" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-96"><a href="#cb16-96" aria-hidden="true" tabindex="-1"></a>We can make a polynomial fit of this (well, a linear fit of the log-log quantities), and use matplotlib to plot that</span>
+<span id="cb16-99"><a href="#cb16-99" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-100"><a href="#cb16-100" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-parts-counts</span></span>
+<span id="cb16-101"><a href="#cb16-101" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: The relationship between the total number of counts for each user, and then number of threads they've participated in</span></span>
+<span id="cb16-102"><a href="#cb16-102" aria-hidden="true" tabindex="-1"></a>linear_model <span class="op">=</span> np.polyfit(np.log10(combined.k_parts), np.log10(combined.total_counts), <span class="dv">1</span>)</span>
+<span id="cb16-103"><a href="#cb16-103" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(linear_model)</span>
+<span id="cb16-104"><a href="#cb16-104" aria-hidden="true" tabindex="-1"></a>axis <span class="op">=</span> np.linspace(<span class="dv">1</span>, combined.k_parts.<span class="bu">max</span>(), endpoint<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb16-105"><a href="#cb16-105" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, figsize<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">5</span>))</span>
+<span id="cb16-106"><a href="#cb16-106" aria-hidden="true" tabindex="-1"></a>ax.scatter(combined.k_parts, combined.total_counts, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
+<span id="cb16-107"><a href="#cb16-107" aria-hidden="true" tabindex="-1"></a>ax.plot(axis, <span class="dv">10</span><span class="op">**</span>(np.poly1d(linear_model)(np.log10(axis))), linestyle<span class="op">=</span><span class="st">"--"</span>, color<span class="op">=</span><span class="st">"0.3"</span>,</span>
+<span id="cb16-108"><a href="#cb16-108" aria-hidden="true" tabindex="-1"></a>         lw<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb16-109"><a href="#cb16-109" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"Threads participated in "</span>)</span>
+<span id="cb16-110"><a href="#cb16-110" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"Total counts made"</span>)</span>
+<span id="cb16-111"><a href="#cb16-111" aria-hidden="true" tabindex="-1"></a>ax.set_yscale(<span class="st">"log"</span>)</span>
+<span id="cb16-112"><a href="#cb16-112" aria-hidden="true" tabindex="-1"></a>ax.set_xscale(<span class="st">"log"</span>)</span>
+<span id="cb16-113"><a href="#cb16-113" aria-hidden="true" tabindex="-1"></a>ax.set_xlim(left<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb16-114"><a href="#cb16-114" aria-hidden="true" tabindex="-1"></a>ax.set_ylim(bottom<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb16-115"><a href="#cb16-115" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb16-116"><a href="#cb16-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-117"><a href="#cb16-117" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-118"><a href="#cb16-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-119"><a href="#cb16-119" aria-hidden="true" tabindex="-1"></a>You can see what that looks like on @fig-parts-counts. The dashed line is a linear fit on the log-log plot, and it has a slope of 1.3. In this model, that means that if you double the total number of threads participated in by a user, you would expect to multiply their total counts by 2.5.</span>
+<span id="cb16-120"><a href="#cb16-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-121"><a href="#cb16-121" aria-hidden="true" tabindex="-1"></a><span class="fu"># Number of partners and effective number of partners</span></span>
+<span id="cb16-122"><a href="#cb16-122" aria-hidden="true" tabindex="-1"></a>As with the number of counts vs threads participated in, we can expect that different counters might have qualitatively different behaviour when it comes to how many counting partners they have, and how often they've counted with each one. Some counters might count a little bit with everybody, while others might run with only a few partners, and drop a count with others every now and then.</span>
+<span id="cb16-123"><a href="#cb16-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-124"><a href="#cb16-124" aria-hidden="true" tabindex="-1"></a>To quantify how uneven the counting distribution is we can look at the <span class="co">[</span><span class="ot">effective number of partners</span><span class="co">](https://en.wikipedia.org/wiki/Effective_number_of_parties)</span> of each counter, and compare with the actual number of partners.</span>
+<span id="cb16-125"><a href="#cb16-125" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-128"><a href="#cb16-128" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-129"><a href="#cb16-129" aria-hidden="true" tabindex="-1"></a>sorted_counters <span class="op">=</span> counts.groupby(<span class="st">"username"</span>).size().sort_values(ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb16-130"><a href="#cb16-130" aria-hidden="true" tabindex="-1"></a>top_counters <span class="op">=</span> [x <span class="cf">for</span> x <span class="kw">in</span> sorted_counters.index[:<span class="dv">35</span>] <span class="cf">if</span> <span class="kw">not</span> counters.is_banned_counter(x)][:<span class="dv">30</span>]</span>
+<span id="cb16-131"><a href="#cb16-131" aria-hidden="true" tabindex="-1"></a>top <span class="op">=</span> sorted_counters.<span class="bu">filter</span>(items<span class="op">=</span>top_counters)</span>
+<span id="cb16-132"><a href="#cb16-132" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> counts.loc[counts[<span class="st">"username"</span>].isin(top_counters)].groupby([<span class="st">"username"</span>, <span class="st">"replying_to"</span>]).size()</span>
+<span id="cb16-133"><a href="#cb16-133" aria-hidden="true" tabindex="-1"></a>effective_partners <span class="op">=</span> df.groupby(level<span class="op">=</span><span class="dv">0</span>).<span class="bu">apply</span>(analysis.effective_number_of_counters).to_frame()</span>
+<span id="cb16-134"><a href="#cb16-134" aria-hidden="true" tabindex="-1"></a>partners <span class="op">=</span> df.groupby(level<span class="op">=</span><span class="dv">0</span>).count()</span>
+<span id="cb16-135"><a href="#cb16-135" aria-hidden="true" tabindex="-1"></a>combined <span class="op">=</span> pd.concat([top, effective_partners, partners], axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb16-136"><a href="#cb16-136" aria-hidden="true" tabindex="-1"></a>combined[<span class="st">"HOC rank"</span>] <span class="op">=</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="bu">len</span>(combined) <span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb16-137"><a href="#cb16-137" aria-hidden="true" tabindex="-1"></a>combined.columns <span class="op">=</span> [<span class="st">"counts"</span>, <span class="st">"c_eff"</span>, <span class="st">"c"</span>, <span class="st">"rank"</span>]</span>
+<span id="cb16-138"><a href="#cb16-138" aria-hidden="true" tabindex="-1"></a>combined <span class="op">=</span> combined[[<span class="st">"rank"</span>, <span class="st">"c"</span>, <span class="st">"c_eff"</span>]]</span>
+<span id="cb16-139"><a href="#cb16-139" aria-hidden="true" tabindex="-1"></a>combined.c_eff <span class="op">=</span> combined.c_eff.<span class="bu">round</span>().astype(<span class="bu">int</span>)</span>
+<span id="cb16-140"><a href="#cb16-140" aria-hidden="true" tabindex="-1"></a>combined.columns <span class="op">=</span> [<span class="st">"HOC rank"</span>, <span class="st">"N"</span>, <span class="st">"N_(effective)"</span>]</span>
+<span id="cb16-141"><a href="#cb16-141" aria-hidden="true" tabindex="-1"></a>combined.index.name <span class="op">=</span> <span class="st">"Username"</span></span>
+<span id="cb16-142"><a href="#cb16-142" aria-hidden="true" tabindex="-1"></a>combined.head(<span class="dv">20</span>)</span>
+<span id="cb16-143"><a href="#cb16-143" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-144"><a href="#cb16-144" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-145"><a href="#cb16-145" aria-hidden="true" tabindex="-1"></a>We can also get the replying-to and replied-by stats for a single user</span>
+<span id="cb16-148"><a href="#cb16-148" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-149"><a href="#cb16-149" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: tbl-replying</span></span>
+<span id="cb16-150"><a href="#cb16-150" aria-hidden="true" tabindex="-1"></a><span class="co">#| tbl-cap: The most popular counting partners of a single user</span></span>
+<span id="cb16-151"><a href="#cb16-151" aria-hidden="true" tabindex="-1"></a>counter <span class="op">=</span> <span class="st">"thephilsblogbar2"</span></span>
+<span id="cb16-152"><a href="#cb16-152" aria-hidden="true" tabindex="-1"></a>nick <span class="op">=</span> <span class="st">"phil"</span></span>
+<span id="cb16-153"><a href="#cb16-153" aria-hidden="true" tabindex="-1"></a>subset <span class="op">=</span> counts.loc[counts[<span class="st">"username"</span>] <span class="op">==</span> counter].copy()</span>
+<span id="cb16-154"><a href="#cb16-154" aria-hidden="true" tabindex="-1"></a>replied_by <span class="op">=</span> counts[<span class="st">'username'</span>].loc[subset.index <span class="op">+</span> <span class="dv">1</span>]</span>
+<span id="cb16-155"><a href="#cb16-155" aria-hidden="true" tabindex="-1"></a>replied_by.index <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb16-156"><a href="#cb16-156" aria-hidden="true" tabindex="-1"></a>subset[<span class="st">'replied_by'</span>] <span class="op">=</span> replied_by</span>
+<span id="cb16-157"><a href="#cb16-157" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> pd.concat([subset.groupby(<span class="st">"replied_by"</span>).count().iloc[:, <span class="dv">0</span>].sort_values(ascending<span class="op">=</span><span class="va">False</span>),</span>
+<span id="cb16-158"><a href="#cb16-158" aria-hidden="true" tabindex="-1"></a>                    subset.groupby(<span class="st">"replying_to"</span>).count().iloc[:, <span class="dv">0</span>].sort_values(ascending<span class="op">=</span><span class="va">False</span>)], axis<span class="op">=</span><span class="dv">1</span>).head(<span class="dv">10</span>)</span>
+<span id="cb16-159"><a href="#cb16-159" aria-hidden="true" tabindex="-1"></a>Markdown(result.to_markdown(headers<span class="op">=</span>[<span class="st">'Counting partner'</span>, <span class="ss">f'No. of replies by </span><span class="sc">{</span>nick<span class="sc">}</span><span class="ss">'</span>, <span class="ss">f'No. of replies to </span><span class="sc">{</span>nick<span class="sc">}</span><span class="ss">'</span>]))</span>
+<span id="cb16-160"><a href="#cb16-160" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-161"><a href="#cb16-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-162"><a href="#cb16-162" aria-hidden="true" tabindex="-1"></a><span class="fu"># Oldest counters</span></span>
+<span id="cb16-163"><a href="#cb16-163" aria-hidden="true" tabindex="-1"></a>We can see who the oldest still-active counters are</span>
+<span id="cb16-166"><a href="#cb16-166" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-167"><a href="#cb16-167" aria-hidden="true" tabindex="-1"></a>  cutoff_date <span class="op">=</span> pd.to_datetime(<span class="st">'today'</span>) <span class="op">-</span> pd.Timedelta(<span class="st">'180d'</span>)</span>
+<span id="cb16-168"><a href="#cb16-168" aria-hidden="true" tabindex="-1"></a>  active_counters <span class="op">=</span> counts.loc[counts[<span class="st">'date'</span>] <span class="op">&gt;</span> cutoff_date].groupby(<span class="st">"username"</span>).groups.keys()</span>
+<span id="cb16-169"><a href="#cb16-169" aria-hidden="true" tabindex="-1"></a>  counts.loc[counts[<span class="st">'username'</span>].isin(active_counters)].groupby(<span class="st">"username"</span>)[<span class="st">"date"</span>].<span class="bu">min</span>().sort_values().head(<span class="dv">30</span>)</span>
+<span id="cb16-170"><a href="#cb16-170" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-171"><a href="#cb16-171" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-172"><a href="#cb16-172" aria-hidden="true" tabindex="-1"></a><span class="fu"># Gets and streaks</span></span>
+<span id="cb16-173"><a href="#cb16-173" aria-hidden="true" tabindex="-1"></a>Similarly to the oldest counters, we can see what the longest difference between a counter's first and last get is:</span>
+<span id="cb16-176"><a href="#cb16-176" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-177"><a href="#cb16-177" aria-hidden="true" tabindex="-1"></a>  gets.groupby(<span class="st">'username'</span>).agg(<span class="kw">lambda</span> x: x.index[<span class="op">-</span><span class="dv">1</span>] <span class="op">-</span> x.index[<span class="dv">0</span>]).iloc[:, <span class="dv">0</span>].sort_values(ascending<span class="op">=</span><span class="va">False</span>).head(<span class="dv">10</span>)</span>
+<span id="cb16-178"><a href="#cb16-178" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-179"><a href="#cb16-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-180"><a href="#cb16-180" aria-hidden="true" tabindex="-1"></a>Some counters have been active for quite a while!</span>
+<span id="cb16-181"><a href="#cb16-181" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-182"><a href="#cb16-182" aria-hidden="true" tabindex="-1"></a>We can also calculate what the longest get streaks are.</span>
+<span id="cb16-185"><a href="#cb16-185" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-186"><a href="#cb16-186" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: tbl-streaks</span></span>
+<span id="cb16-187"><a href="#cb16-187" aria-hidden="true" tabindex="-1"></a><span class="co">#| tbl-cap: The longest streak</span></span>
+<span id="cb16-188"><a href="#cb16-188" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> gets[<span class="st">'username'</span>]</span>
+<span id="cb16-189"><a href="#cb16-189" aria-hidden="true" tabindex="-1"></a>groups <span class="op">=</span> gets.groupby((y <span class="op">!=</span> y.shift()).cumsum())</span>
+<span id="cb16-190"><a href="#cb16-190" aria-hidden="true" tabindex="-1"></a>columns <span class="op">=</span> [<span class="st">'username'</span>, <span class="st">'submission_id'</span>, <span class="st">'basecount'</span>]</span>
+<span id="cb16-191"><a href="#cb16-191" aria-hidden="true" tabindex="-1"></a>length <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb16-192"><a href="#cb16-192" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-193"><a href="#cb16-193" aria-hidden="true" tabindex="-1"></a>indices <span class="op">=</span> (<span class="op">-</span>groups.size()).sort_values(kind<span class="op">=</span><span class="st">'mergesort'</span>).index</span>
+<span id="cb16-194"><a href="#cb16-194" aria-hidden="true" tabindex="-1"></a>old <span class="op">=</span> groups.first().loc[indices, columns]</span>
+<span id="cb16-195"><a href="#cb16-195" aria-hidden="true" tabindex="-1"></a>new <span class="op">=</span> groups.last().loc[indices, columns]</span>
+<span id="cb16-196"><a href="#cb16-196" aria-hidden="true" tabindex="-1"></a>combined <span class="op">=</span> old.join(new, rsuffix<span class="op">=</span><span class="st">'_new'</span>)</span>
+<span id="cb16-197"><a href="#cb16-197" aria-hidden="true" tabindex="-1"></a>combined <span class="op">=</span> combined.loc[<span class="op">~</span>combined[<span class="st">'username'</span>].<span class="bu">apply</span>(counters.is_banned_counter)].head(length).reset_index(drop<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb16-198"><a href="#cb16-198" aria-hidden="true" tabindex="-1"></a>combined[<span class="st">'old_link'</span>] <span class="op">=</span> combined.<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="ss">f'[</span><span class="sc">{</span><span class="bu">int</span>(x.basecount <span class="op">/</span> <span class="dv">1000</span>) <span class="op">+</span> <span class="dv">1</span><span class="sc">}</span><span class="ss">K](https://reddit.com/comments/</span><span class="sc">{</span>x<span class="sc">.</span>submission_id<span class="sc">}</span><span class="ss">/)'</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb16-199"><a href="#cb16-199" aria-hidden="true" tabindex="-1"></a>combined[<span class="st">'new_link'</span>] <span class="op">=</span> combined.<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="ss">f'[</span><span class="sc">{</span><span class="bu">int</span>(x.basecount_new <span class="op">/</span> <span class="dv">1000</span>) <span class="op">+</span> <span class="dv">1</span><span class="sc">}</span><span class="ss">K](https://reddit.com/comments/</span><span class="sc">{</span>x<span class="sc">.</span>submission_id_new<span class="sc">}</span><span class="ss">/)'</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb16-200"><a href="#cb16-200" aria-hidden="true" tabindex="-1"></a>combined[<span class="st">'streak'</span>] <span class="op">=</span> <span class="dv">1</span> <span class="op">+</span> (combined[<span class="st">'basecount_new'</span>] <span class="op">-</span> combined[<span class="st">'basecount'</span>]) <span class="op">//</span> <span class="dv">1000</span></span>
+<span id="cb16-201"><a href="#cb16-201" aria-hidden="true" tabindex="-1"></a>combined.index <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb16-202"><a href="#cb16-202" aria-hidden="true" tabindex="-1"></a>combined.index.name <span class="op">=</span> <span class="st">"Rank"</span></span>
+<span id="cb16-203"><a href="#cb16-203" aria-hidden="true" tabindex="-1"></a>Markdown(combined[[<span class="st">'username'</span>, <span class="st">'old_link'</span>, <span class="st">'new_link'</span>, <span class="st">'streak'</span>]].to_markdown(headers<span class="op">=</span>[<span class="st">'**Rank**'</span>, <span class="st">'**username**'</span>, <span class="st">'**First Get**'</span>, <span class="st">'**Last Get**'</span>, <span class="st">'**Streak Length**'</span>]))</span>
+<span id="cb16-204"><a href="#cb16-204" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-205"><a href="#cb16-205" aria-hidden="true" tabindex="-1"></a> The core of the extraction is the line that says <span class="in">`groups = gets.groupby((y != y.shift()).cumsum())`</span>. Let's unpack it:</span>
+<span id="cb16-206"><a href="#cb16-206" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-207"><a href="#cb16-207" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`y != y.shift()`</span> assigns a value of True to all threads with a username that's different from their predecessor</span>
+<span id="cb16-208"><a href="#cb16-208" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`.cumsum()`</span> sums up all these True values. The net result is that each get streak is given its own unique number</span>
+<span id="cb16-209"><a href="#cb16-209" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`.groupby()`</span> extracts these groups for later use</span>
+<span id="cb16-210"><a href="#cb16-210" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-211"><a href="#cb16-211" aria-hidden="true" tabindex="-1"></a>The groups are then sorted according to size, and the largest ones are shown in @tbl-streaks</span>
+<span id="cb16-212"><a href="#cb16-212" aria-hidden="true" tabindex="-1"></a></span>
+</code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+      <div class="nav-footer-center">
+        <ul class="footer-items list-unstyled">
+    <li class="nav-item">
+    <a class="nav-link" href="./about.html">About</a>
+  </li>  
+    <li class="nav-item">
+    <a class="nav-link" href="https://github.com/cutonbuminband/rcounting">Github</a>
+  </li>  
+</ul>
+      </div>
+  </div>
+</footer>
+
+
+
+</body></html>
