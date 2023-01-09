@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>rcounting - Analysis</title>
+<title>rcounting - Initial Analysis</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -98,10 +98,12 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark.min.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -135,7 +137,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <header id="quarto-header" class="headroom fixed-top">
   <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
     <div class="container-fluid d-flex justify-content-between">
-      <h1 class="quarto-secondary-nav-title">Analysis</h1>
+      <h1 class="quarto-secondary-nav-title">Initial Analysis</h1>
       <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
         <i class="bi bi-chevron-right"></i>
       </button>
@@ -149,23 +151,41 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     <div class="pt-lg-2 mt-2 text-left sidebar-header">
     <div class="sidebar-title mb-0 py-0">
       <a href="./">rcounting</a> 
+        <div class="sidebar-tools-main">
+  <a href="" class="quarto-color-scheme-toggle sidebar-tool" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
     </div>
       </div>
     <div class="sidebar-menu-container"> 
     <ul class="list-unstyled mt-1">
-        <li class="sidebar-item">
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">Analysis</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./analysis.html" class="sidebar-item-text sidebar-link active">Analysis</a>
+  <a href="./analysis.html" class="sidebar-item-text sidebar-link active">Initial Analysis</a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./separators.html" class="sidebar-item-text sidebar-link">The use of separators</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./runs.html" class="sidebar-item-text sidebar-link">Longest runs</a>
+  </div>
+</li>
+      </ul>
+  </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./examples.html" class="sidebar-item-text sidebar-link">Examples</a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./about.html" class="sidebar-item-text sidebar-link">About</a>
   </div>
 </li>
     </ul>
@@ -184,7 +204,6 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <li><a href="#number-of-partners-and-effective-number-of-partners" id="toc-number-of-partners-and-effective-number-of-partners" class="nav-link" data-scroll-target="#number-of-partners-and-effective-number-of-partners">Number of partners and effective number of partners</a></li>
   <li><a href="#oldest-counters" id="toc-oldest-counters" class="nav-link" data-scroll-target="#oldest-counters">Oldest counters</a></li>
   <li><a href="#gets-and-streaks" id="toc-gets-and-streaks" class="nav-link" data-scroll-target="#gets-and-streaks">Gets and streaks</a></li>
-  <li><a href="#the-use-of-separators" id="toc-the-use-of-separators" class="nav-link" data-scroll-target="#the-use-of-separators">The use of separators</a></li>
   </ul>
 </nav>
     </div>
@@ -193,7 +212,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title d-none d-lg-block">Analysis</h1>
+<div class="quarto-title-block"><div><h1 class="title d-none d-lg-block">Initial Analysis</h1><button type="button" class="btn code-tools-button dropdown-toggle" id="quarto-code-tools-menu" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi"></i> Code</button><ul class="dropdown-menu dropdown-menu-end" aria-labelelledby="quarto-code-tools-menu"><li><a id="quarto-show-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Show All Code</a></li><li><a id="quarto-hide-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Hide All Code</a></li><li><hr class="dropdown-divider"></li><li><a id="quarto-view-source" class="dropdown-item" href="javascript:void(0)" role="button">View Source</a></li></ul></div></div>
 </div>
 
 
@@ -218,17 +237,16 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sqlite3</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> rcounting <span class="im">import</span> side_threads, counters, analysis, thread_navigation <span class="im">as</span> tn, parsing</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> rcounting.reddit_interface <span class="im">import</span> reddit</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>sns.set_theme()</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> IPython.display <span class="im">import</span> Markdown</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>data_directory <span class="op">=</span> Path(<span class="st">'../../data'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sqlite3</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> rcounting <span class="im">import</span> side_threads, counters, analysis, thread_navigation <span class="im">as</span> tn, parsing</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> rcounting.reddit_interface <span class="im">import</span> reddit</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>sns.set_theme()</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> IPython.display <span class="im">import</span> Markdown</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>data_directory <span class="op">=</span> Path(<span class="st">'../../data'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <p>After that we can connect to the sqlite database of counts.</p>
@@ -240,7 +258,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h1>Loading Data</h1>
 <p>Then we load some data, both the counts and the gets. We convert the timestamp to a date column, and add a “replying to” column, since some of what we’ll be doing later needs it.</p>
 <div class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>counts <span class="op">=</span> pd.read_sql(<span class="st">"select comments.username, comments.submission_id, comments.body, comments.timestamp "</span></span>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>counts <span class="op">=</span> pd.read_sql(<span class="st">"select comments.username, comments.submission_id, comments.timestamp "</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"from comments join submissions "</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"on comments.submission_id = submissions.submission_id "</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"where comments.position &gt; 0 "</span></span>
@@ -744,63 +762,9 @@ Name: submission_id, dtype: int64</code></pre>
 <li><code>.groupby()</code> extracts these groups for later use</li>
 </ul>
 <p>The groups are then sorted according to size, and the largest ones are shown in <a href="#tbl-streaks">Table&nbsp;2</a></p>
-</section>
-<section id="the-use-of-separators" class="level1">
-<h1>The use of separators</h1>
-<p>We have access to the body of each comment, so it’s possible to do a bit of analysis on those. For example, we can determine whether a count is comma separated, space separated or has no separator by using regular expressions.</p>
-<p>The rules are as follows:</p>
-<ul>
-<li>Comma separated counts look like [digit]<em>{1-3}(,[digit]</em>3)*</li>
-<li>Space separated counts are the same, with the comma replaced by a space</li>
-<li>No separated counts are defined as one of
-<ul>
-<li>Counts with only one digit</li>
-<li>Counts with no separators between their first and last digit, with separators defined fairly broadly.</li>
-</ul></li>
-</ul>
-<p>Now in this case, we need access to every comment (since we are determining the type of every comment), and so we’ll just proceed with the counts dataframe defined earlier. This gets fairly memory intensive, so care should be used.</p>
-<div class="cell" data-execution_count="12">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> counts.set_index(<span class="st">'date'</span>)</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>data[<span class="st">'body'</span>] <span class="op">=</span> data[<span class="st">'body'</span>].<span class="bu">apply</span>(parsing.strip_markdown_links)</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>comma_regex <span class="op">=</span> re.<span class="bu">compile</span>(<span class="vs">r'\d{1,3}(?:,\d</span><span class="sc">{3}</span><span class="vs">)+'</span>)</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>data[<span class="st">'is_comma_separated'</span>] <span class="op">=</span> data[<span class="st">'body'</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="bu">bool</span>(re.search(comma_regex, x)))</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>space_regex <span class="op">=</span> re.<span class="bu">compile</span>(<span class="vs">r'\d{1,3}(?: \d</span><span class="sc">{3}</span><span class="vs">)+'</span>)</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>data[<span class="st">'is_space_separated'</span>] <span class="op">=</span> data[<span class="st">'body'</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="bu">bool</span>(re.search(space_regex, x)))</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> no_separators(body):</span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    body <span class="op">=</span> body.split(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>)[<span class="dv">0</span>]</span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    separators <span class="op">=</span> re.escape(<span class="st">"' , .*/"</span>)</span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    regex <span class="op">=</span> (<span class="vs">rf"(?:^[^\d]*\d[^\d]*$)|"</span></span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>             <span class="vs">rf"(?:^[^\d]*\d[^</span><span class="sc">{</span>separators<span class="sc">}</span><span class="vs">]*\d[^\d]*$)"</span>)</span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    regex <span class="op">=</span> re.<span class="bu">compile</span>(regex)</span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> re.search(regex, body)</span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">bool</span>(result)</span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>data[<span class="st">'no_separators'</span>] <span class="op">=</span> data[<span class="st">'body'</span>].<span class="bu">apply</span>(no_separators)</span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>data.sort_index(inplace<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>Once we have the data, we can get a 14-day rolling average, and resample the points to nice 6h intervals. The resampling makes plotting with pandas look nicer, since it can more easily deal with the x-axis.</p>
-<div class="cell" data-execution_count="13">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>resampled <span class="op">=</span> (data[[<span class="st">'is_comma_separated'</span>, <span class="st">'is_space_separated'</span>, <span class="st">'no_separators'</span>]].rolling(<span class="st">'14d'</span>).mean().resample(<span class="st">'6h'</span>).mean() <span class="op">*</span> <span class="dv">100</span>)</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, figsize <span class="op">=</span> (<span class="dv">12</span>, <span class="dv">8</span>))</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>resampled.plot(ax<span class="op">=</span>ax, ylabel<span class="op">=</span><span class="st">'Percentage of counts'</span>, lw<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>h, l <span class="op">=</span> ax.get_legend_handles_labels()</span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>ax.legend(h[:<span class="dv">3</span>],[<span class="st">"commas"</span>, <span class="st">"spaces"</span>, <span class="st">"no separator"</span>])</span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>ax.set_ylim([<span class="dv">0</span>, <span class="dv">100</span>])</span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">''</span>)</span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<div id="fig-separators" class="quarto-figure quarto-figure-center anchored">
-<figure class="figure">
-<p><img src="analysis_files/figure-html/fig-separators-output-1.png" width="973" height="632" class="figure-img"></p>
-<p></p><figcaption class="figure-caption">Figure&nbsp;2: The separators used on r/counting over time</figcaption><p></p>
-</figure>
-</div>
-</div>
-</div>
-<p>The result is shown on figure <a href="#fig-separators">Figure&nbsp;2</a></p>
-<p>Notice you can clearly see when the count crossed 100k: that’s when the ‘no separators’ line drops from being the majority to being a clear minority of counts. That was followed by the era of commas, when the default format was just to use commas as separators. The last two years have been significantly more noisy and muddy, with spaces as separators sometimes overtaking commas. Pretty neat!</p>
 
+
+<!-- -->
 
 </section>
 
@@ -825,6 +789,121 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
   }
   toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  let localAlternateSentinel = 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
   const icon = "";
   const anchorJS = new window.AnchorJS();
   anchorJS.options = {
@@ -870,6 +949,57 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     // clear code selection
     e.clearSelection();
   });
+  const viewSource = window.document.getElementById('quarto-view-source') ||
+                     window.document.getElementById('quarto-code-tools-source');
+  if (viewSource) {
+    const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+    viewSource.addEventListener("click", function(e) {
+      if (sourceUrl) {
+        // rstudio viewer pane
+        if (/\bcapabilities=\b/.test(window.location)) {
+          window.open(sourceUrl);
+        } else {
+          window.location.href = sourceUrl;
+        }
+      } else {
+        const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+        modal.show();
+      }
+      return false;
+    });
+  }
+  function toggleCodeHandler(show) {
+    return function(e) {
+      const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+      for (let i=0; i<detailsSrc.length; i++) {
+        const details = detailsSrc[i].parentElement;
+        if (show) {
+          details.open = true;
+        } else {
+          details.removeAttribute("open");
+        }
+      }
+      const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+      const fromCls = show ? "hidden" : "unhidden";
+      const toCls = show ? "unhidden" : "hidden";
+      for (let i=0; i<cellCodeDivs.length; i++) {
+        const codeDiv = cellCodeDivs[i];
+        if (codeDiv.classList.contains(fromCls)) {
+          codeDiv.classList.remove(fromCls);
+          codeDiv.classList.add(toCls);
+        } 
+      }
+      return false;
+    }
+  }
+  const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+  if (hideAllCode) {
+    hideAllCode.addEventListener("click", toggleCodeHandler(false));
+  }
+  const showAllCode = window.document.getElementById("quarto-show-all-code");
+  if (showAllCode) {
+    showAllCode.addEventListener("click", toggleCodeHandler(true));
+  }
   function tippyHover(el, contentFn) {
     const config = {
       allowHTML: true,
@@ -937,7 +1067,197 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
   }
 });
-</script>
+</script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="sourceCode" id="cb16" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Initial Analysis"</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>Here's a page highlighting some of the analysis I've done of the counts made on r/counting using the database of counts I've acquired. Most of the figures and tables here have also been posted on the subreddit, but I wanted to have them in a central place</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="fu"># Imports and initialization</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>We start with some imports, which isn't particularly interesting, and thus it's folded below</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="co">#| code-fold: true</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sqlite3</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> rcounting <span class="im">import</span> side_threads, counters, analysis, thread_navigation <span class="im">as</span> tn, parsing</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> rcounting.reddit_interface <span class="im">import</span> reddit</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>sns.set_theme()</span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> IPython.display <span class="im">import</span> Markdown</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>data_directory <span class="op">=</span> Path(<span class="st">'../../data'</span>)</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>After that we can connect to the sqlite database of counts.</span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>db <span class="op">=</span> sqlite3.<span class="ex">connect</span>(data_directory <span class="op">/</span> <span class="st">"counting.sqlite"</span>)</span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a><span class="fu"># Loading Data</span></span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>Then we load some data, both the counts and the gets. We convert the timestamp to a date column, and add a "replying to" column, since some of what we'll be doing later needs it.</span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>counts <span class="op">=</span> pd.read_sql(<span class="st">"select comments.username, comments.submission_id, comments.timestamp "</span></span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"from comments join submissions "</span></span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"on comments.submission_id = submissions.submission_id "</span></span>
+<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"where comments.position &gt; 0 "</span></span>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"order by submissions.timestamp, comments.position"</span>, db)</span>
+<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a>counts[<span class="st">'date'</span>] <span class="op">=</span> pd.to_datetime(counts[<span class="st">'timestamp'</span>], unit<span class="op">=</span><span class="st">'s'</span>)</span>
+<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a>counts[<span class="st">"username"</span>] <span class="op">=</span> counts[<span class="st">"username"</span>].<span class="bu">apply</span>(counters.apply_alias)</span>
+<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a>counts.drop(<span class="st">'timestamp'</span>, inplace<span class="op">=</span><span class="va">True</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a>counts[<span class="st">"replying_to"</span>] <span class="op">=</span> counts[<span class="st">"username"</span>].shift(<span class="dv">1</span>)</span>
+<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"There are </span><span class="sc">{</span><span class="bu">len</span>(counts)<span class="sc">}</span><span class="ss"> comments logged on main"</span>)</span>
+<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a>gets <span class="op">=</span> counts.groupby(<span class="st">"submission_id"</span>).last().sort_values(<span class="st">'date'</span>).reset_index()</span>
+<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a>gets[<span class="st">'basecount'</span>] <span class="op">=</span> (gets.index <span class="op">+</span> <span class="dv">15</span>) <span class="op">*</span> <span class="dv">1000</span></span>
+<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a>gets.loc[[<span class="dv">0</span>, <span class="dv">1</span>], [<span class="st">'basecount'</span>]] <span class="op">=</span> [<span class="dv">0</span>, <span class="dv">16691</span>]</span>
+<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a><span class="fu"># Counting progress over time</span></span>
+<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a>A first bit of analysis is to visualize the progress of r/counting over time. We can do that as follows:</span>
+<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-label: fig-progress</span></span>
+<span id="cb16-64"><a href="#cb16-64" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: Cumulative counts made on /r/counting as a function of time</span></span>
+<span id="cb16-67"><a href="#cb16-67" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-68"><a href="#cb16-68" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> gets.set_index(<span class="st">'date'</span>)</span>
+<span id="cb16-69"><a href="#cb16-69" aria-hidden="true" tabindex="-1"></a>resampled <span class="op">=</span> data.resample(<span class="st">'30d'</span>).mean()</span>
+<span id="cb16-70"><a href="#cb16-70" aria-hidden="true" tabindex="-1"></a>resampled[<span class="st">'basecount'</span>] <span class="op">/=</span> <span class="fl">1e6</span></span>
+<span id="cb16-71"><a href="#cb16-71" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> resampled[[<span class="st">'basecount'</span>]].plot(ylabel<span class="op">=</span><span class="st">'Current count [millions]'</span>, xlabel<span class="op">=</span><span class="st">'Date'</span>)</span>
+<span id="cb16-72"><a href="#cb16-72" aria-hidden="true" tabindex="-1"></a>h, l <span class="op">=</span> ax.get_legend_handles_labels()</span>
+<span id="cb16-73"><a href="#cb16-73" aria-hidden="true" tabindex="-1"></a>ax.legend(h[:<span class="dv">1</span>],[<span class="st">'count'</span>])</span>
+<span id="cb16-74"><a href="#cb16-74" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'Counting progress over time'</span>)</span>
+<span id="cb16-75"><a href="#cb16-75" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb16-76"><a href="#cb16-76" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-77"><a href="#cb16-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-78"><a href="#cb16-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-79"><a href="#cb16-79" aria-hidden="true" tabindex="-1"></a>You can see that the counting rate varies quite a bit over time, with signifcant peaks and lulls in activity. Whether or not there are active runners really changes how fast the count is progressing!</span>
+<span id="cb16-80"><a href="#cb16-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-81"><a href="#cb16-81" aria-hidden="true" tabindex="-1"></a><span class="fu"># Total counts vs k_parts</span></span>
+<span id="cb16-82"><a href="#cb16-82" aria-hidden="true" tabindex="-1"></a>We can try plotting thread participation vs total counts. The expectation is that generally, people who've made more total counts will also have counted in more threads. However, some users might have periods where they make a count every now and then but never do any runs, leading to comparatively more k_parts. On the other hand, some counters might only do runs, giving a counts/thread of up to 500.</span>
+<span id="cb16-83"><a href="#cb16-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-84"><a href="#cb16-84" aria-hidden="true" tabindex="-1"></a>We'll start by extracting the number of counts and the threads participated in, using the groupby functionality of <span class="in">`pandas`</span></span>
+<span id="cb16-87"><a href="#cb16-87" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-88"><a href="#cb16-88" aria-hidden="true" tabindex="-1"></a>  groups <span class="op">=</span> counts.groupby(<span class="st">"username"</span>)[<span class="st">"submission_id"</span>]</span>
+<span id="cb16-89"><a href="#cb16-89" aria-hidden="true" tabindex="-1"></a>  k_parts <span class="op">=</span> groups.nunique()</span>
+<span id="cb16-90"><a href="#cb16-90" aria-hidden="true" tabindex="-1"></a>  hoc <span class="op">=</span> groups.count()</span>
+<span id="cb16-91"><a href="#cb16-91" aria-hidden="true" tabindex="-1"></a>  combined <span class="op">=</span> pd.concat([k_parts, hoc], axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb16-92"><a href="#cb16-92" aria-hidden="true" tabindex="-1"></a>  combined.columns <span class="op">=</span> [<span class="st">"k_parts"</span>, <span class="st">"total_counts"</span>]</span>
+<span id="cb16-93"><a href="#cb16-93" aria-hidden="true" tabindex="-1"></a>  combined <span class="op">=</span> combined.query(<span class="st">"k_parts &gt;= 10"</span>)</span>
+<span id="cb16-94"><a href="#cb16-94" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-95"><a href="#cb16-95" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-96"><a href="#cb16-96" aria-hidden="true" tabindex="-1"></a>We can make a polynomial fit of this (well, a linear fit of the log-log quantities), and use matplotlib to plot that</span>
+<span id="cb16-99"><a href="#cb16-99" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-100"><a href="#cb16-100" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-parts-counts</span></span>
+<span id="cb16-101"><a href="#cb16-101" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: The relationship between the total number of counts for each user, and then number of threads they've participated in</span></span>
+<span id="cb16-102"><a href="#cb16-102" aria-hidden="true" tabindex="-1"></a>linear_model <span class="op">=</span> np.polyfit(np.log10(combined.k_parts), np.log10(combined.total_counts), <span class="dv">1</span>)</span>
+<span id="cb16-103"><a href="#cb16-103" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(linear_model)</span>
+<span id="cb16-104"><a href="#cb16-104" aria-hidden="true" tabindex="-1"></a>axis <span class="op">=</span> np.linspace(<span class="dv">1</span>, combined.k_parts.<span class="bu">max</span>(), endpoint<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb16-105"><a href="#cb16-105" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, figsize<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">5</span>))</span>
+<span id="cb16-106"><a href="#cb16-106" aria-hidden="true" tabindex="-1"></a>ax.scatter(combined.k_parts, combined.total_counts, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
+<span id="cb16-107"><a href="#cb16-107" aria-hidden="true" tabindex="-1"></a>ax.plot(axis, <span class="dv">10</span><span class="op">**</span>(np.poly1d(linear_model)(np.log10(axis))), linestyle<span class="op">=</span><span class="st">"--"</span>, color<span class="op">=</span><span class="st">"0.3"</span>,</span>
+<span id="cb16-108"><a href="#cb16-108" aria-hidden="true" tabindex="-1"></a>         lw<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb16-109"><a href="#cb16-109" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"Threads participated in "</span>)</span>
+<span id="cb16-110"><a href="#cb16-110" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"Total counts made"</span>)</span>
+<span id="cb16-111"><a href="#cb16-111" aria-hidden="true" tabindex="-1"></a>ax.set_yscale(<span class="st">"log"</span>)</span>
+<span id="cb16-112"><a href="#cb16-112" aria-hidden="true" tabindex="-1"></a>ax.set_xscale(<span class="st">"log"</span>)</span>
+<span id="cb16-113"><a href="#cb16-113" aria-hidden="true" tabindex="-1"></a>ax.set_xlim(left<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb16-114"><a href="#cb16-114" aria-hidden="true" tabindex="-1"></a>ax.set_ylim(bottom<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb16-115"><a href="#cb16-115" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb16-116"><a href="#cb16-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-117"><a href="#cb16-117" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-118"><a href="#cb16-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-119"><a href="#cb16-119" aria-hidden="true" tabindex="-1"></a>You can see what that looks like on @fig-parts-counts. The dashed line is a linear fit on the log-log plot, and it has a slope of 1.3. In this model, that means that if you double the total number of threads participated in by a user, you would expect to multiply their total counts by 2.5.</span>
+<span id="cb16-120"><a href="#cb16-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-121"><a href="#cb16-121" aria-hidden="true" tabindex="-1"></a><span class="fu"># Number of partners and effective number of partners</span></span>
+<span id="cb16-122"><a href="#cb16-122" aria-hidden="true" tabindex="-1"></a>As with the number of counts vs threads participated in, we can expect that different counters might have qualitatively different behaviour when it comes to how many counting partners they have, and how often they've counted with each one. Some counters might count a little bit with everybody, while others might run with only a few partners, and drop a count with others every now and then.</span>
+<span id="cb16-123"><a href="#cb16-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-124"><a href="#cb16-124" aria-hidden="true" tabindex="-1"></a>To quantify how uneven the counting distribution is we can look at the <span class="co">[</span><span class="ot">effective number of partners</span><span class="co">](https://en.wikipedia.org/wiki/Effective_number_of_parties)</span> of each counter, and compare with the actual number of partners.</span>
+<span id="cb16-125"><a href="#cb16-125" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-128"><a href="#cb16-128" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-129"><a href="#cb16-129" aria-hidden="true" tabindex="-1"></a>sorted_counters <span class="op">=</span> counts.groupby(<span class="st">"username"</span>).size().sort_values(ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb16-130"><a href="#cb16-130" aria-hidden="true" tabindex="-1"></a>top_counters <span class="op">=</span> [x <span class="cf">for</span> x <span class="kw">in</span> sorted_counters.index[:<span class="dv">35</span>] <span class="cf">if</span> <span class="kw">not</span> counters.is_banned_counter(x)][:<span class="dv">30</span>]</span>
+<span id="cb16-131"><a href="#cb16-131" aria-hidden="true" tabindex="-1"></a>top <span class="op">=</span> sorted_counters.<span class="bu">filter</span>(items<span class="op">=</span>top_counters)</span>
+<span id="cb16-132"><a href="#cb16-132" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> counts.loc[counts[<span class="st">"username"</span>].isin(top_counters)].groupby([<span class="st">"username"</span>, <span class="st">"replying_to"</span>]).size()</span>
+<span id="cb16-133"><a href="#cb16-133" aria-hidden="true" tabindex="-1"></a>effective_partners <span class="op">=</span> df.groupby(level<span class="op">=</span><span class="dv">0</span>).<span class="bu">apply</span>(analysis.effective_number_of_counters).to_frame()</span>
+<span id="cb16-134"><a href="#cb16-134" aria-hidden="true" tabindex="-1"></a>partners <span class="op">=</span> df.groupby(level<span class="op">=</span><span class="dv">0</span>).count()</span>
+<span id="cb16-135"><a href="#cb16-135" aria-hidden="true" tabindex="-1"></a>combined <span class="op">=</span> pd.concat([top, effective_partners, partners], axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb16-136"><a href="#cb16-136" aria-hidden="true" tabindex="-1"></a>combined[<span class="st">"HOC rank"</span>] <span class="op">=</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="bu">len</span>(combined) <span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb16-137"><a href="#cb16-137" aria-hidden="true" tabindex="-1"></a>combined.columns <span class="op">=</span> [<span class="st">"counts"</span>, <span class="st">"c_eff"</span>, <span class="st">"c"</span>, <span class="st">"rank"</span>]</span>
+<span id="cb16-138"><a href="#cb16-138" aria-hidden="true" tabindex="-1"></a>combined <span class="op">=</span> combined[[<span class="st">"rank"</span>, <span class="st">"c"</span>, <span class="st">"c_eff"</span>]]</span>
+<span id="cb16-139"><a href="#cb16-139" aria-hidden="true" tabindex="-1"></a>combined.c_eff <span class="op">=</span> combined.c_eff.<span class="bu">round</span>().astype(<span class="bu">int</span>)</span>
+<span id="cb16-140"><a href="#cb16-140" aria-hidden="true" tabindex="-1"></a>combined.columns <span class="op">=</span> [<span class="st">"HOC rank"</span>, <span class="st">"N"</span>, <span class="st">"N_(effective)"</span>]</span>
+<span id="cb16-141"><a href="#cb16-141" aria-hidden="true" tabindex="-1"></a>combined.index.name <span class="op">=</span> <span class="st">"Username"</span></span>
+<span id="cb16-142"><a href="#cb16-142" aria-hidden="true" tabindex="-1"></a>combined.head(<span class="dv">20</span>)</span>
+<span id="cb16-143"><a href="#cb16-143" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-144"><a href="#cb16-144" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-145"><a href="#cb16-145" aria-hidden="true" tabindex="-1"></a>We can also get the replying-to and replied-by stats for a single user</span>
+<span id="cb16-148"><a href="#cb16-148" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-149"><a href="#cb16-149" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: tbl-replying</span></span>
+<span id="cb16-150"><a href="#cb16-150" aria-hidden="true" tabindex="-1"></a><span class="co">#| tbl-cap: The most popular counting partners of a single user</span></span>
+<span id="cb16-151"><a href="#cb16-151" aria-hidden="true" tabindex="-1"></a>counter <span class="op">=</span> <span class="st">"thephilsblogbar2"</span></span>
+<span id="cb16-152"><a href="#cb16-152" aria-hidden="true" tabindex="-1"></a>nick <span class="op">=</span> <span class="st">"phil"</span></span>
+<span id="cb16-153"><a href="#cb16-153" aria-hidden="true" tabindex="-1"></a>subset <span class="op">=</span> counts.loc[counts[<span class="st">"username"</span>] <span class="op">==</span> counter].copy()</span>
+<span id="cb16-154"><a href="#cb16-154" aria-hidden="true" tabindex="-1"></a>replied_by <span class="op">=</span> counts[<span class="st">'username'</span>].loc[subset.index <span class="op">+</span> <span class="dv">1</span>]</span>
+<span id="cb16-155"><a href="#cb16-155" aria-hidden="true" tabindex="-1"></a>replied_by.index <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb16-156"><a href="#cb16-156" aria-hidden="true" tabindex="-1"></a>subset[<span class="st">'replied_by'</span>] <span class="op">=</span> replied_by</span>
+<span id="cb16-157"><a href="#cb16-157" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> pd.concat([subset.groupby(<span class="st">"replied_by"</span>).count().iloc[:, <span class="dv">0</span>].sort_values(ascending<span class="op">=</span><span class="va">False</span>),</span>
+<span id="cb16-158"><a href="#cb16-158" aria-hidden="true" tabindex="-1"></a>                    subset.groupby(<span class="st">"replying_to"</span>).count().iloc[:, <span class="dv">0</span>].sort_values(ascending<span class="op">=</span><span class="va">False</span>)], axis<span class="op">=</span><span class="dv">1</span>).head(<span class="dv">10</span>)</span>
+<span id="cb16-159"><a href="#cb16-159" aria-hidden="true" tabindex="-1"></a>Markdown(result.to_markdown(headers<span class="op">=</span>[<span class="st">'Counting partner'</span>, <span class="ss">f'No. of replies by </span><span class="sc">{</span>nick<span class="sc">}</span><span class="ss">'</span>, <span class="ss">f'No. of replies to </span><span class="sc">{</span>nick<span class="sc">}</span><span class="ss">'</span>]))</span>
+<span id="cb16-160"><a href="#cb16-160" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-161"><a href="#cb16-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-162"><a href="#cb16-162" aria-hidden="true" tabindex="-1"></a><span class="fu"># Oldest counters</span></span>
+<span id="cb16-163"><a href="#cb16-163" aria-hidden="true" tabindex="-1"></a>We can see who the oldest still-active counters are</span>
+<span id="cb16-166"><a href="#cb16-166" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-167"><a href="#cb16-167" aria-hidden="true" tabindex="-1"></a>  cutoff_date <span class="op">=</span> pd.to_datetime(<span class="st">'today'</span>) <span class="op">-</span> pd.Timedelta(<span class="st">'180d'</span>)</span>
+<span id="cb16-168"><a href="#cb16-168" aria-hidden="true" tabindex="-1"></a>  active_counters <span class="op">=</span> counts.loc[counts[<span class="st">'date'</span>] <span class="op">&gt;</span> cutoff_date].groupby(<span class="st">"username"</span>).groups.keys()</span>
+<span id="cb16-169"><a href="#cb16-169" aria-hidden="true" tabindex="-1"></a>  counts.loc[counts[<span class="st">'username'</span>].isin(active_counters)].groupby(<span class="st">"username"</span>)[<span class="st">"date"</span>].<span class="bu">min</span>().sort_values().head(<span class="dv">30</span>)</span>
+<span id="cb16-170"><a href="#cb16-170" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-171"><a href="#cb16-171" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-172"><a href="#cb16-172" aria-hidden="true" tabindex="-1"></a><span class="fu"># Gets and streaks</span></span>
+<span id="cb16-173"><a href="#cb16-173" aria-hidden="true" tabindex="-1"></a>Similarly to the oldest counters, we can see what the longest difference between a counter's first and last get is:</span>
+<span id="cb16-176"><a href="#cb16-176" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-177"><a href="#cb16-177" aria-hidden="true" tabindex="-1"></a>  gets.groupby(<span class="st">'username'</span>).agg(<span class="kw">lambda</span> x: x.index[<span class="op">-</span><span class="dv">1</span>] <span class="op">-</span> x.index[<span class="dv">0</span>]).iloc[:, <span class="dv">0</span>].sort_values(ascending<span class="op">=</span><span class="va">False</span>).head(<span class="dv">10</span>)</span>
+<span id="cb16-178"><a href="#cb16-178" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-179"><a href="#cb16-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-180"><a href="#cb16-180" aria-hidden="true" tabindex="-1"></a>Some counters have been active for quite a while!</span>
+<span id="cb16-181"><a href="#cb16-181" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-182"><a href="#cb16-182" aria-hidden="true" tabindex="-1"></a>We can also calculate what the longest get streaks are.</span>
+<span id="cb16-185"><a href="#cb16-185" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb16-186"><a href="#cb16-186" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: tbl-streaks</span></span>
+<span id="cb16-187"><a href="#cb16-187" aria-hidden="true" tabindex="-1"></a><span class="co">#| tbl-cap: The longest streak</span></span>
+<span id="cb16-188"><a href="#cb16-188" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> gets[<span class="st">'username'</span>]</span>
+<span id="cb16-189"><a href="#cb16-189" aria-hidden="true" tabindex="-1"></a>groups <span class="op">=</span> gets.groupby((y <span class="op">!=</span> y.shift()).cumsum())</span>
+<span id="cb16-190"><a href="#cb16-190" aria-hidden="true" tabindex="-1"></a>columns <span class="op">=</span> [<span class="st">'username'</span>, <span class="st">'submission_id'</span>, <span class="st">'basecount'</span>]</span>
+<span id="cb16-191"><a href="#cb16-191" aria-hidden="true" tabindex="-1"></a>length <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb16-192"><a href="#cb16-192" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-193"><a href="#cb16-193" aria-hidden="true" tabindex="-1"></a>indices <span class="op">=</span> (<span class="op">-</span>groups.size()).sort_values(kind<span class="op">=</span><span class="st">'mergesort'</span>).index</span>
+<span id="cb16-194"><a href="#cb16-194" aria-hidden="true" tabindex="-1"></a>old <span class="op">=</span> groups.first().loc[indices, columns]</span>
+<span id="cb16-195"><a href="#cb16-195" aria-hidden="true" tabindex="-1"></a>new <span class="op">=</span> groups.last().loc[indices, columns]</span>
+<span id="cb16-196"><a href="#cb16-196" aria-hidden="true" tabindex="-1"></a>combined <span class="op">=</span> old.join(new, rsuffix<span class="op">=</span><span class="st">'_new'</span>)</span>
+<span id="cb16-197"><a href="#cb16-197" aria-hidden="true" tabindex="-1"></a>combined <span class="op">=</span> combined.loc[<span class="op">~</span>combined[<span class="st">'username'</span>].<span class="bu">apply</span>(counters.is_banned_counter)].head(length).reset_index(drop<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb16-198"><a href="#cb16-198" aria-hidden="true" tabindex="-1"></a>combined[<span class="st">'old_link'</span>] <span class="op">=</span> combined.<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="ss">f'[</span><span class="sc">{</span><span class="bu">int</span>(x.basecount <span class="op">/</span> <span class="dv">1000</span>) <span class="op">+</span> <span class="dv">1</span><span class="sc">}</span><span class="ss">K](https://reddit.com/comments/</span><span class="sc">{</span>x<span class="sc">.</span>submission_id<span class="sc">}</span><span class="ss">/)'</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb16-199"><a href="#cb16-199" aria-hidden="true" tabindex="-1"></a>combined[<span class="st">'new_link'</span>] <span class="op">=</span> combined.<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="ss">f'[</span><span class="sc">{</span><span class="bu">int</span>(x.basecount_new <span class="op">/</span> <span class="dv">1000</span>) <span class="op">+</span> <span class="dv">1</span><span class="sc">}</span><span class="ss">K](https://reddit.com/comments/</span><span class="sc">{</span>x<span class="sc">.</span>submission_id_new<span class="sc">}</span><span class="ss">/)'</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb16-200"><a href="#cb16-200" aria-hidden="true" tabindex="-1"></a>combined[<span class="st">'streak'</span>] <span class="op">=</span> <span class="dv">1</span> <span class="op">+</span> (combined[<span class="st">'basecount_new'</span>] <span class="op">-</span> combined[<span class="st">'basecount'</span>]) <span class="op">//</span> <span class="dv">1000</span></span>
+<span id="cb16-201"><a href="#cb16-201" aria-hidden="true" tabindex="-1"></a>combined.index <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb16-202"><a href="#cb16-202" aria-hidden="true" tabindex="-1"></a>combined.index.name <span class="op">=</span> <span class="st">"Rank"</span></span>
+<span id="cb16-203"><a href="#cb16-203" aria-hidden="true" tabindex="-1"></a>Markdown(combined[[<span class="st">'username'</span>, <span class="st">'old_link'</span>, <span class="st">'new_link'</span>, <span class="st">'streak'</span>]].to_markdown(headers<span class="op">=</span>[<span class="st">'**Rank**'</span>, <span class="st">'**username**'</span>, <span class="st">'**First Get**'</span>, <span class="st">'**Last Get**'</span>, <span class="st">'**Streak Length**'</span>]))</span>
+<span id="cb16-204"><a href="#cb16-204" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-205"><a href="#cb16-205" aria-hidden="true" tabindex="-1"></a> The core of the extraction is the line that says <span class="in">`groups = gets.groupby((y != y.shift()).cumsum())`</span>. Let's unpack it:</span>
+<span id="cb16-206"><a href="#cb16-206" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-207"><a href="#cb16-207" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`y != y.shift()`</span> assigns a value of True to all threads with a username that's different from their predecessor</span>
+<span id="cb16-208"><a href="#cb16-208" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`.cumsum()`</span> sums up all these True values. The net result is that each get streak is given its own unique number</span>
+<span id="cb16-209"><a href="#cb16-209" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`.groupby()`</span> extracts these groups for later use</span>
+<span id="cb16-210"><a href="#cb16-210" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-211"><a href="#cb16-211" aria-hidden="true" tabindex="-1"></a>The groups are then sorted according to size, and the largest ones are shown in @tbl-streaks</span>
+<span id="cb16-212"><a href="#cb16-212" aria-hidden="true" tabindex="-1"></a></span>
+</code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div></div></div></div></div>
 </div> <!-- /content -->
 
 
