@@ -5,7 +5,7 @@ module_dir = os.path.dirname(__file__)
 
 with open(module_dir / Path("aliases.txt"), "r", encoding="utf8") as f:
     alias_list = f.readlines()
-alias_list = [x.strip().split(",") for x in alias_list]
+alias_list = [line.replace(" ", "").strip().split(",") for line in alias_list]
 alias_dict = {}
 for aliases in alias_list:
     for alias in aliases:
