@@ -9,11 +9,11 @@ alias_list = [line.replace(" ", "").strip().split(",") for line in alias_list]
 alias_dict = {}
 for aliases in alias_list:
     for alias in aliases:
-        alias_dict[alias] = aliases[0]
+        alias_dict[alias.lower()] = aliases[0]
 
 
 def apply_alias(username):
-    return alias_dict[username] if username in alias_dict else username
+    return alias_dict[username.lower()] if username.lower() in alias_dict else username
 
 
 mods = [
