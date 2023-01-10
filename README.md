@@ -1,4 +1,4 @@
-A collection of tools for getting data on the counting threads in /r/reddit.com/r/counting.
+A collection of tools for working with data on the counting threads in /r/reddit.com/r/counting.
 
 ## Description
 There's a [community on reddit](www.reddit.com/r/counting) that likes to count collaboratively. Any kind of count - if you can think of a sequence of numbers (or letters, or words) what could be fun to count in order, we've probably tried counting it.
@@ -63,7 +63,7 @@ Some of the threads from the last six months might not be in the directory (yet)
 If you run the script with no parameters it takes around 15 minutes to run, depending on how out of date the directory pages are. That's an unavoidable consequence of the rate-limiting that reddit does.
 
 ## Data analysis
-Using the scripts here (and an archive supplied by members of r/counting), I've scraped every comment in the main counting chain, including the comment bodies. There are a number of interesting plots and tables that can be made using this data; here's a list of [examples](doc/examples.org) of working with the data.
+Using the scripts here (and an archive supplied by members of r/counting), I've scraped every comment in the main counting chain, including the comment bodies. There are a number of interesting plots and tables that can be made using this data; here's a list of [examples](https://cutonbuminband.github.io/counting-analysis/) of working with the data.
 
 ## Dependencies
 
