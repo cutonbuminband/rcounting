@@ -90,7 +90,7 @@ class ThreadLogger:
         if not self.sql:
             return
         newest_submission = pd.read_sql(
-            "select submission_id from submissions order by integer_id", self.db
+            "select submission_id from submissions order by timestamp", self.db
         ).iloc[-1]
         newest_submission.name = "submission_id"
         newest_submission.to_sql("last_submission", self.db, index=False, if_exists="append")
