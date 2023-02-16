@@ -17,4 +17,4 @@ jobs:
           cache: 'pip' # caching pip dependencies
       - run: pip install -e .
       - name: directory
-        run: python3 rcounting/scripts/update_thread_directory.py -q
+        run: python3 rcounting/scripts/update_thread_directory.py -v
