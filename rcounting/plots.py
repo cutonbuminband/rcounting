@@ -77,7 +77,7 @@ def speedrun_histogram(df, n=3):
     bins = np.arange(0, 21)
     df = df.copy()
     df["dt"] = df["timestamp"].diff()
-    counters = df.query("dt < 20").groupby("username").mean()["dt"].sort_values().index
+    counters = df.query("dt < 20").groupby("username")["dt"].mean().sort_values().index
     fig, axes = plt.subplots(n, sharex=True, sharey=True)
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     for idx, counter in enumerate(counters[:n]):
