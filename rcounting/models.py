@@ -18,6 +18,7 @@ class Comment:
         self.comment = comment
         self.tree = tree
         self.created_utc = comment.created_utc
+        self.removed = comment.removed
         self.body = comment.body
         self.id = comment.id
         self.link_id = comment.link_id
@@ -236,12 +237,24 @@ class CommentTree(Tree):
                 node.walk_up_tree()
 
     def find_children(self, node):
+        """
+        Return a sorted list of comments that are the direct children of
+        `node`. The list is sorted so that all removed comments appear after
+        all non-removed comments; after that so that all deleted comments
+        appear after all non-deleted comments; and finally by timestamp, so
+        that earlier comments appear ahead of later ones.
+
+        The goal is to play nice with a depth-first expansion of the comment tree.
+        """
         node_id = extract_id(node)
         children = [self.comment(x) for x in self.reversed_tree[node_id]]
         if not children and self.get_missing_replies:
             children = self.add_missing_replies(node_id)
-        by_date = sorted(children, key=lambda x: x.created_utc)
-        return sorted(by_date, key=lambda x: x.body in utils.deleted_phrases)
+
+        def comment_order(comment):
+            return (comment.removed, comment.body in utils.deleted_phrases, comment.created_utc)
+
+        return sorted(children, key=comment_order)
 
     def add_missing_replies(self, comment):
         comment_id = extract_id(comment)
