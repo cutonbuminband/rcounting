@@ -239,12 +239,12 @@ class CommentTree(Tree):
     def find_children(self, node):
         """
         Return a sorted list of comments that are the direct children of
-        `node`. The list is sorted so that all removed comments appear after
-        all non-removed comments; after that so that all deleted comments
-        appear after all non-deleted comments; and finally by timestamp, so
-        that earlier comments appear ahead of later ones.
+        `node`. The list is sorted so that all deleted comments appear after
+        all non-deleted comments and then by timestamp, so that earlier
+        comments appear ahead of later ones.
 
         The goal is to play nice with a depth-first expansion of the comment tree.
+
         """
         node_id = extract_id(node)
         children = [self.comment(x) for x in self.reversed_tree[node_id]]
@@ -252,7 +252,7 @@ class CommentTree(Tree):
             children = self.add_missing_replies(node_id)
 
         def comment_order(comment):
-            return (comment.removed, comment.body in utils.deleted_phrases, comment.created_utc)
+            return (comment.body in utils.deleted_phrases, comment.created_utc)
 
         return sorted(children, key=comment_order)
 
@@ -285,6 +285,9 @@ class CommentTree(Tree):
         queue = deque([(node, side_thread.get_history(node)) for node in nodes])
         while queue:
             node, history = queue.popleft()
+            if node.removed:
+                self.delete_subtree(node)
+                continue
             is_valid, new_history = side_thread.is_valid_count(node, history)
             if is_valid:
                 queue.extend([(x, new_history) for x in self.find_children(node)])
