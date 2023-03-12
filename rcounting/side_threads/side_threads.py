@@ -224,7 +224,7 @@ def permutation_order(word, alphabet, ordered=False, no_leading_zeros=False):
 @update_from_title
 def update_binary_coded_decimal(title):
     count = "".join(x for x in title.split("|")[-1] if x in ["0", "1"])
-    digits = [str(int("".join(y for y in x), 2)) for x in utils.chunked(4, count)]
+    digits = [str(int("".join(y for y in x), 2)) for x in utils.chunked(count, 4)]
     return int("".join(digits))
 
 
