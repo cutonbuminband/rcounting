@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict, deque
 
 from praw.exceptions import ClientException
+from praw.models import MoreComments
 from prawcore.exceptions import ServerError
 
 from rcounting import utils
@@ -265,9 +266,7 @@ class CommentTree(Tree):
             self.add_comments([praw_comment])
 
         praw_comment.refresh()
-        replies = praw_comment.replies
-        replies.replace_more(limit=None)
-        replies = replies.list()
+        replies = find_all_replies(praw_comment)
         if replies:
             self.add_comments(replies)
             return [self.comment(x.id) for x in replies]
@@ -360,3 +359,23 @@ def extract_id(node):
     if hasattr(node, "id"):
         return node.id
     return node
+
+
+def find_all_replies(comment):
+    """Return a list of all replies to a comment, with each `MoreComments`
+    instance expanded. The comments might be out of order, and due to reddit
+    weirdness a comment might appear multiple times. That's OK, since the tree
+    class can handle reconstructing the order and doesn't care about repeats."""
+
+    comments = comment.replies.list()
+    replies = []
+    submission = comment.submission
+    while comments:
+        item = comments.pop(0)
+        if isinstance(item, MoreComments):
+            if item.submission is None:
+                item.submission = submission
+            comments = item.comments(update=False).list() + comments
+        else:
+            replies.append(item)
+    return replies
