@@ -1,6 +1,8 @@
 import datetime
 import logging
 
+from praw.exceptions import DuplicateReplaceException
+
 from rcounting import models, parsing, reddit_interface
 
 printer = logging.getLogger(__name__)
@@ -87,7 +89,10 @@ def find_get_from_comment(comment):
     count, comment = search_up_from_gz(comment)
     comment.refresh()
     replies = comment.replies
-    replies.replace_more(limit=None)
+    try:
+        replies.replace_more(limit=None)
+    except DuplicateReplaceException:
+        pass
     while count % 1000 != 0:
         comment = comment.replies[0]
         count = parsing.post_to_count(comment)

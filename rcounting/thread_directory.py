@@ -4,8 +4,6 @@ import datetime
 import itertools
 import logging
 
-from praw.exceptions import DuplicateReplaceException
-
 from rcounting import models, parsing
 from rcounting import side_threads as st
 from rcounting import utils
@@ -239,10 +237,6 @@ class Paragraph:
             try:
                 row.update(tree)
                 result.add(row.submission_id)
-            except DuplicateReplaceException as e:
-                printer.warning(
-                    "Thread %s raised DuplicateReplaceException and was not updated.", row.title
-                )
             except Exception:  # pylint: disable=broad-except
                 printer.warning("Unable to update thread %s", row.title)
                 raise
