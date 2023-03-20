@@ -9,7 +9,12 @@ from rcounting import configure_logging
 
 printer = logging.getLogger("rcounting")
 
-incorrect_edges = [("r2h98h", "nyg22w")]
+# Sometimes people include spurious links in posts. Here's a list of
+# (link_from, link_to) which should be ignored.
+spurious_edges = [
+    ("r2h98h", "nyg22w"),
+    ("11va8n8", "11siye8"),
+]
 
 
 @click.command()
@@ -31,7 +36,7 @@ def update_directory(quiet, verbose, dry_run):
     start = datetime.datetime.now()
     printer.info("Getting history")
     tree, new_submissions = tn.fetch_counting_history(subreddit, datetime.timedelta(days=187))
-    for edge in incorrect_edges:
+    for edge in spurious_edges:
         tree.delete_edge(*edge)
 
     new_submission_ids = {tree.walk_down_tree(submission)[-1].id for submission in new_submissions}
