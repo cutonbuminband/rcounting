@@ -19,7 +19,7 @@ def find_previous_get(comment, validate_get=True):
     Frequently, even in those cases the get will be linked in a different
     top-level comment.
 
-    Parameterss:
+    Parameters:
 
     comment: A reddit comment instance in the child submission
     validate_get: Whether or not the prorgram should check that the linked comment ends in 000,
