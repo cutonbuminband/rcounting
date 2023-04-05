@@ -124,7 +124,7 @@ def fetch_counting_history(subreddit, time_limit):
         if count % 20 == 0:
             printer.debug("Processing reddit submission %s", submission.id)
         title = submission.title.lower()
-        author = submission.author.name.lower()
+        author = y.name.lower() if (y := submission.author) is not None else None
         if "tidbits" in title or "free talk friday" in title or author == "rcounting":
             continue
         submissions_dict[submission.id] = submission
