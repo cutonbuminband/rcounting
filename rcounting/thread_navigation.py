@@ -124,7 +124,8 @@ def fetch_counting_history(subreddit, time_limit):
         if count % 20 == 0:
             printer.debug("Processing reddit submission %s", submission.id)
         title = submission.title.lower()
-        if "tidbits" in title or "free talk friday" in title:
+        author = submission.author.name.lower()
+        if "tidbits" in title or "free talk friday" in title or author == "rcounting":
             continue
         submissions_dict[submission.id] = submission
         urls = parsing.find_urls_in_submission(submission)
