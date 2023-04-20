@@ -183,3 +183,15 @@ def simulate_alpha(color, alpha):
     """Find the average of the current color and pure white, weighted by alpha"""
     white = np.array((1, 1, 1))
     return tuple(np.array(mcolors.to_rgb(color)) * alpha + (1 - alpha) * white)
+
+
+def make_time_axis(ax):
+    """Take an x axis that runs from 0 to 86400 seconds and make ticks at
+    sensible intervals with sensible names
+
+    """
+    ticks, labels = zip(*[(x * HOUR, f"{x:02d}:00") for x in range(0, 25, 3)])
+    ax.set_xlim(0, DAY + 1)
+    ax.set_xticks(ticks)
+    ax.set_xticklabels(labels)
+    ax.set_ylim(bottom=0)
