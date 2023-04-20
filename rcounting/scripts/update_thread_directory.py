@@ -14,6 +14,7 @@ printer = logging.getLogger("rcounting")
 spurious_edges = [
     ("r2h98h", "nyg22w"),
     ("11va8n8", "11siye8"),
+    ("12p80i5", "11nouml"),
 ]
 
 
