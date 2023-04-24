@@ -17,6 +17,9 @@ spurious_edges = [
     ("12p80i5", "11nouml"),
 ]
 
+# And some posts just shouldn't be tracked - here's a hardcoded list of those
+spurious_nodes = ("12x4vpl",)
+
 
 @click.command()
 @click.option(
@@ -40,6 +43,9 @@ def update_directory(quiet, verbose, dry_run):
     for edge in spurious_edges:
         tree.delete_edge(*edge)
 
+    for node in spurious_nodes:
+        tree.delete_node(node)
+    new_submissions = [x for x in new_submissions if x.id not in spurious_nodes]
     new_submission_ids = {tree.walk_down_tree(submission)[-1].id for submission in new_submissions}
 
     directory = td.load_wiki_page(subreddit, "directory")
