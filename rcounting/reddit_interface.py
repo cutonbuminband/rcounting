@@ -6,6 +6,7 @@ import configparser
 import os
 import random
 import socket
+from importlib.metadata import version
 
 import praw
 
@@ -13,7 +14,7 @@ import praw
 # access. Once you've done that, they token will be stored in a file for future
 # use.
 _CLIENT_ID = "S2MLNKwl9tpgaS5jUtlIIQ"
-_USER_AGENT = "rcounting_tools/v0.5.8 by u/CutOnBumInBandHere9"
+_USER_AGENT = f"rcounting_tools/v{version('rcounting')} by u/CutOnBumInBandHere9"
 
 
 def get_refresh_token():
