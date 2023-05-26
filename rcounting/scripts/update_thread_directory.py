@@ -18,7 +18,7 @@ spurious_edges = [
 ]
 
 # And some posts just shouldn't be tracked - here's a hardcoded list of those
-spurious_nodes = ("12x4vpl",)
+spurious_nodes = ("12x4vpl", "13s4tu6")
 
 
 @click.command()
