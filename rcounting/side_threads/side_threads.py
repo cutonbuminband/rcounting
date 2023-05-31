@@ -671,6 +671,7 @@ no_validation = {
     "permutations - letters": None,
     "iterate each letter": None,
     "degrees": 900,
+    "beenary": 1024,
 }
 
 known_threads.update({k: SideThread(length=v) for k, v in no_validation.items()})
