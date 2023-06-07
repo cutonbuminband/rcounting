@@ -185,20 +185,28 @@ def update_from_title(update_function):
     return wrapper
 
 
-def update_by_ns(n):
-    @update_from_title
-    def update_function(title):
-        count = parsing.find_count_in_text(title.split("|")[-1])
+def make_title_updater(comment_to_count):
+    @functools.wraps(comment_to_count)
+    def wrapper(old_count, chain, was_revival=None):
+        chain = ignore_revivals(chain, was_revival)
+        title = chain[-1].title
+        comment = title.split("|")[-1]
+        return comment_to_count(comment)
+
+    return wrapper
+
+
+def by_ns_count(n):
+    def update_function(comment):
+        count = parsing.find_count_in_text(comment)
         return int(count // n)
 
     return update_function
 
 
-def update_base_n(n: int):
-    @update_from_title
-    def update_function(title):
-        count = "".join(x for x in title.split("|")[-1])
-        return parsing.find_count_in_text(count, base=n)
+def base_n_count(n: int):
+    def update_function(comment):
+        return parsing.find_count_in_text(comment, base=n)
 
     return update_function
 
@@ -221,34 +229,27 @@ def permutation_order(word, alphabet, ordered=False, no_leading_zeros=False):
     return first_place_counts + permutation_order(word[1:], new_alphabet, ordered=ordered)
 
 
-@update_from_title
-def update_binary_coded_decimal(title):
-    count = "".join(x for x in title.split("|")[-1] if x in ["0", "1"])
+def binary_coded_decimal_count(comment):
+    count = f"{parsing.find_count_in_text(comment, base=2):b}"
     digits = [str(int("".join(y for y in x), 2)) for x in utils.chunked(count, 4)]
     return int("".join(digits))
 
 
-@update_from_title
-def update_no_repeating(title):
-    count = parsing.find_count_in_text(title.split("|")[-1])
-    word = str(count)
-    result = 9 * sum(math.perm(9, i - 1) for i in range(1, len(word)))
-    return result + permutation_order(word, string.digits, no_leading_zeros=True)
+def no_repeating_count(comment):
+    normalized_comment = str(parsing.find_count_in_text(comment))
+    result = 9 * sum(math.perm(9, i - 1) for i in range(1, len(normalized_comment)))
+    return result + permutation_order(normalized_comment, string.digits, no_leading_zeros=True)
 
 
-@update_from_title
-def update_powerball(title):
-    count_string = title.split("|")[-1]
-    balls, powerball = count_string.split("+")
+def powerball_count(comment):
+    balls, powerball = comment.split("+")
     balls = balls.split()
     alphabet = [str(x) for x in range(1, 70)]
     return permutation_order(balls, alphabet, ordered=True) * 26 + int(powerball) - 1
 
 
-@update_from_title
-def update_no_successive(title):
-    count = parsing.find_count_in_text(title.split("|")[-1])
-    word = str(count)
+def no_successive_count(comment):
+    word = str(parsing.find_count_in_text(comment))
     result = sum(9**i for i in range(1, len(word)))
     previous_i = "0"
     for ix, i in enumerate(word[:-1]):
@@ -314,9 +315,8 @@ def triangle_n_dimension(n, value):
     return math.comb(value - 2 + n, n)
 
 
-@update_from_title
-def update_2i(title):
-    digits = title.split("|")[-1].strip()
+def gaussian_integer_count(comment):
+    digits = str(parsing.find_count_in_text(comment))
     corner = sum((-4) ** ix * int(digit) for ix, digit in enumerate(digits[::-2]))
     return (2 * corner + 1) ** 2
 
@@ -356,14 +356,24 @@ class SideThread:
       - Walking back through all the comments since the last checkpoint and adding them up
     """
 
-    def __init__(self, rule=default_rule, form=permissive, length=1000, update_function=None):
+    def __init__(
+        self,
+        rule=default_rule,
+        form=permissive,
+        length=1000,
+        comment_to_count=None,
+        update_function=None,
+    ):
         self.form = form
         self.rule = rule
         self.length = length
+        self.update_count = self.update_from_length
+        self.history = None
+        if comment_to_count is not None:
+            self.comment_to_count = comment_to_count
+            self.update_count = make_title_updater(comment_to_count)
         if update_function is not None:
             self.update_count = update_function
-        else:
-            self.update_count = self.update_from_length
 
     def update_from_length(self, old_count, chain, was_revival=None):
         chain = ignore_revivals(chain, was_revival)[1:]
@@ -392,6 +402,25 @@ class SideThread:
 
     def looks_like_count(self, comment):
         return comment.body in utils.deleted_phrases or self.form(comment.body)
+
+    def set_comment_to_count(self, f):
+        self.comment_to_count = f
+
+    def wrapped_comment_to_count(self, comment):
+        try:
+            return self.comment_to_count(comment)
+        except ValueError:
+            return np.nan
+
+    def find_errors(self, history):
+        if isinstance(history, str):
+            self.history = pd.DataFrame(tn.fetch_comments(history))
+            history = self.history
+
+        counts = history["body"].apply(self.wrapped_comment_to_count)
+        errors = counts - counts.iloc[0] != counts.index
+        mask = errors & (counts.diff() != 1) & (counts.diff(2) != 2)
+        return ~errors.iat[-1], history[mask]
 
 
 class OnlyRepeatingDigits(SideThread):
@@ -513,140 +542,140 @@ class OnlyRepeatingDigits(SideThread):
 
 
 known_threads = {
-    "roman": SideThread(form=roman_numeral),
+    "-illion": SideThread(form=illion_form),
+    "2d20 experimental v theoretical": SideThread(form=d20_form),
     "balanced ternary": SideThread(form=balanced_ternary, length=729),
     "base 16 roman": SideThread(form=roman_numeral),
-    "binary encoded hexadecimal": SideThread(form=base_n(2), length=1024),
-    "binary encoded decimal": SideThread(
-        form=base_n(2), update_function=update_binary_coded_decimal
-    ),
-    "base 2i": SideThread(form=base_n(4), update_function=update_2i),
+    "base 2i": SideThread(form=base_n(4), comment_to_count=gaussian_integer_count),
     "bijective base 2": SideThread(form=base_n(3), length=1024),
+    "binary encoded decimal": SideThread(
+        form=base_n(2), comment_to_count=binary_coded_decimal_count
+    ),
+    "binary encoded hexadecimal": SideThread(form=base_n(2), length=1024),
+    "by 3s in base 7": SideThread(form=base_n(7)),
+    "by 3s": SideThread(comment_to_count=by_ns_count(3)),
+    "by 4s": SideThread(comment_to_count=by_ns_count(4)),
+    "by 5s": SideThread(comment_to_count=by_ns_count(5)),
+    "by 7s": SideThread(comment_to_count=by_ns_count(7)),
+    "by 99s": SideThread(comment_to_count=by_ns_count(99)),
+    "collatz conjecture": SideThread(update_function=update_collatz, form=base_10),
+    "colored squares": SideThread(form=colored_squares_form, length=729),
     "cyclical bases": SideThread(form=base_n(16)),
-    "wait 2": SideThread(form=base_10, rule=CountingRule(wait_n=2)),
-    "wait 2 - letters": SideThread(rule=CountingRule(wait_n=2)),
-    "wait 3": SideThread(form=base_10, rule=CountingRule(wait_n=3)),
-    "wait 4": SideThread(form=base_10, rule=CountingRule(wait_n=4)),
-    "wait 9": SideThread(form=base_10, rule=CountingRule(wait_n=9)),
-    "wait 10": SideThread(form=base_10, rule=CountingRule(wait_n=10)),
+    "dates": SideThread(form=base_10, update_function=update_dates),
+    "decimal encoded sexagesimal": SideThread(length=900, form=base_10),
+    "dollars and cents": SideThread(form=base_n(4)),
+    "double increasing": SideThread(form=base_10, update_function=update_increasing_type(2)),
+    "fast or slow": SideThread(rule=FastOrSlow()),
+    "four fours": SideThread(form=validate_from_character_list("4")),
+    "increasing sequences": SideThread(form=base_10, update_function=update_increasing_type(1)),
+    "invisible numbers": SideThread(form=base_n(10, strip_links=False)),
+    "japanese": SideThread(form=validate_from_character_list("一二三四五六七八九十百千")),
+    "mayan numerals": SideThread(length=800, form=mayan_form),
+    "no repeating digits": SideThread(comment_to_count=no_repeating_count),
+    "no successive digits": SideThread(comment_to_count=no_successive_count, form=base_10),
     "once per thread": SideThread(form=base_10, rule=CountingRule(wait_n=None)),
-    "wait 5s": SideThread(form=base_10, rule=CountingRule(thread_time=5)),
+    "only double counting": SideThread(form=base_10, rule=OnlyDoubleCounting()),
+    "only repeating digits": OnlyRepeatingDigits(),
+    "parentheses": SideThread(form=parentheses_form),
+    "planetary octal": SideThread(length=1024, form=planetary_octal_form),
+    "powerball": SideThread(comment_to_count=powerball_count, form=base_10),
+    "rainbow": SideThread(length=1029, form=rainbow_form),
+    "reddit usernames": SideThread(length=722, form=reddit_username_form),
+    "roman progressbar": SideThread(form=roman_numeral),
+    "roman": SideThread(form=roman_numeral),
     "slow": SideThread(form=base_10, rule=CountingRule(thread_time=MINUTE)),
     "slower": SideThread(form=base_10, rule=CountingRule(user_time=HOUR)),
     "slowestest": SideThread(form=base_10, rule=CountingRule(thread_time=HOUR, user_time=DAY)),
-    "unicode": SideThread(form=base_n(16), length=1024),
-    "valid brainfuck programs": SideThread(form=brainfuck),
-    "only double counting": SideThread(form=base_10, rule=OnlyDoubleCounting()),
-    "mayan numerals": SideThread(length=800, form=mayan_form),
-    "reddit usernames": SideThread(length=722, form=reddit_username_form),
-    "twitter handles": SideThread(length=1369, form=twitter_form),
-    "wave": SideThread(form=base_10, update_function=update_wave),
-    "increasing sequences": SideThread(form=base_10, update_function=update_increasing_type(1)),
-    "double increasing": SideThread(form=base_10, update_function=update_increasing_type(2)),
-    "triple increasing": SideThread(form=base_10, update_function=update_increasing_type(3)),
-    "dates": SideThread(form=base_10, update_function=update_dates),
-    "invisible numbers": SideThread(form=base_n(10, strip_links=False)),
-    "parentheses": SideThread(form=parentheses_form),
-    "dollars and cents": SideThread(form=base_n(4)),
-    "throwaways": SideThread(form=throwaway_form),
-    "by 3s in base 7": SideThread(form=base_n(7)),
-    "unary": SideThread(form=validate_from_character_list("|")),
-    "four fours": SideThread(form=validate_from_character_list("4")),
-    "using 12345": SideThread(form=validate_from_character_list("12345")),
-    "japanese": SideThread(form=validate_from_character_list("一二三四五六七八九十百千")),
-    "roman progressbar": SideThread(form=roman_numeral),
     "symbols": SideThread(form=validate_from_character_list("!@#$%^&*()")),
-    "2d20 experimental v theoretical": SideThread(form=d20_form),
-    "no repeating digits": SideThread(update_function=update_no_repeating),
-    "powerball": SideThread(update_function=update_powerball, form=base_10),
-    "collatz conjecture": SideThread(update_function=update_collatz, form=base_10),
-    "only repeating digits": OnlyRepeatingDigits(),
-    "no successive digits": SideThread(update_function=update_no_successive, form=base_10),
-    "planetary octal": SideThread(length=1024, form=planetary_octal_form),
-    "decimal encoded sexagesimal": SideThread(length=900, form=base_10),
-    "-illion": SideThread(form=illion_form),
-    "colored squares": SideThread(form=colored_squares_form, length=729),
-    "by 3s": SideThread(update_function=update_by_ns(3)),
-    "by 4s": SideThread(update_function=update_by_ns(4)),
-    "by 5s": SideThread(update_function=update_by_ns(5)),
-    "by 7s": SideThread(update_function=update_by_ns(7)),
-    "by 99s": SideThread(update_function=update_by_ns(99)),
-    "rainbow": SideThread(length=1029, form=rainbow_form),
-    "fast or slow": SideThread(rule=FastOrSlow()),
+    "throwaways": SideThread(form=throwaway_form),
+    "triple increasing": SideThread(form=base_10, update_function=update_increasing_type(3)),
+    "twitter handles": SideThread(length=1369, form=twitter_form),
+    "unary": SideThread(form=validate_from_character_list("|")),
+    "unicode": SideThread(form=base_n(16), length=1024),
+    "using 12345": SideThread(form=validate_from_character_list("12345")),
+    "valid brainfuck programs": SideThread(form=brainfuck),
+    "wait 10": SideThread(form=base_10, rule=CountingRule(wait_n=10)),
+    "wait 2 - letters": SideThread(rule=CountingRule(wait_n=2)),
+    "wait 2": SideThread(form=base_10, rule=CountingRule(wait_n=2)),
+    "wait 3": SideThread(form=base_10, rule=CountingRule(wait_n=3)),
+    "wait 4": SideThread(form=base_10, rule=CountingRule(wait_n=4)),
+    "wait 5s": SideThread(form=base_10, rule=CountingRule(thread_time=5)),
+    "wait 9": SideThread(form=base_10, rule=CountingRule(wait_n=9)),
+    "wave": SideThread(form=base_10, update_function=update_wave),
 }
 
 
 base_n_threads = {
-    f"base {n}": SideThread(form=base_n(n), update_function=update_base_n(n)) for n in range(2, 37)
+    f"base {n}": SideThread(form=base_n(n), comment_to_count=base_n_count(n)) for n in range(2, 37)
 }
 known_threads.update(base_n_threads)
 
 # See: https://www.reddit.com/r/counting/comments/o7ko8r/free_talk_friday_304/h3c7433/?context=3
 
 default_threads = [
-    "decimal",
+    "10 at a time",
+    "3 or fewer palindromes",
+    "69, 420, or 666",
     "age",
-    "palindromes",
-    "rational numbers",
-    "n read as base n number",
-    "by 8s",
-    "by 69s",
-    "powers of 2",
-    "california license plates",
+    "all even or all odd",
     "by 0.02s",
-    "by 2s even",
-    "by one-hundredths",
-    "by 2s odd",
-    "by 3s",
-    "by 4s",
-    "by 5s",
-    "by 7s",
-    "by 8s",
     "by 10s",
+    "by 123s",
     "by 12s",
     "by 20s",
     "by 23s",
     "by 29s",
+    "by 2s even",
+    "by 2s odd",
+    "by 3s",
     "by 40s",
+    "by 4s",
     "by 50s",
+    "by 5s",
     "by 64s",
+    "by 69s",
+    "by 7s",
+    "by 8s",
+    "by 8s",
     "by 99s",
-    "by 123s",
     "by meters",
+    "by one-hundredths",
+    "california license plates",
+    "decimal",
+    "four squares",
+    "n read as base n number",
     "negative numbers",
+    "no consecutive digits",
+    "palindromes",
+    "powers of 2",
     "previous dates",
     "prime factorization",
-    "scientific notation",
-    "street view counting",
-    "3 or fewer palindromes",
-    "four squares",
-    "69, 420, or 666",
-    "all even or all odd",
-    "no consecutive digits",
-    "unordered consecutive digits",
     "prime numbers",
-    "triangular numbers",
-    "thread completion",
-    "sheep",
-    "top subreddits",
-    "william the conqueror",
-    "10 at a time",
+    "rational numbers",
     "rotational symmetry",
+    "scientific notation",
+    "sheep",
+    "street view counting",
+    "thread completion",
+    "top subreddits",
+    "triangular numbers",
+    "unordered consecutive digits",
+    "william the conqueror",
 ]
 known_threads.update(
     {thread_name: SideThread(form=base_10, length=1000) for thread_name in default_threads}
 )
 
 default_threads = {
-    "time": 900,
-    "permutations": 720,
-    "factoradic": 720,
-    "seconds minutes hours": 1200,
-    "feet and inches": 600,
-    "lucas numbers": 200,
-    "hoi4 states": 806,
     "eban": 800,
+    "factoradic": 720,
+    "feet and inches": 600,
+    "hoi4 states": 806,
     "ipv4": 1024,
+    "lucas numbers": 200,
+    "permutations": 720,
+    "seconds minutes hours": 1200,
+    "time": 900,
 }
 known_threads.update(
     {key: SideThread(form=base_10, length=length) for key, length in default_threads.items()}
@@ -654,52 +683,52 @@ known_threads.update(
 
 
 no_validation = {
+    "acronyms": 676,
     "base 40": 1600,
     "base 60": 900,
     "base 62": 992,
     "base 64": 1024,
     "base 93": 930,
-    "youtube": 1024,
-    "previous_dates": None,
-    "qwerty alphabet": 676,
-    "acronyms": 676,
-    "letters": 676,
-    "palindromes - letters": 676,
+    "beenary": 1024,
     "cards": 676,
+    "degrees": 900,
+    "iterate each letter": None,
+    "letters": 676,
     "musical notes": 1008,
     "octal letter stack": 1024,
+    "palindromes - letters": 676,
     "permutations - letters": None,
-    "iterate each letter": None,
-    "degrees": 900,
-    "beenary": 1024,
+    "previous_dates": None,
+    "qwerty alphabet": 676,
+    "youtube": 1024,
 }
 
 known_threads.update({k: SideThread(length=v) for k, v in no_validation.items()})
 
 default_thread_varying_length = [
-    "tug of war",
+    "2d tug of war",
+    "boost 5",
     "by day of the week",
     "by day of the year",
+    "by digits in total karma",
     "by gme increase/decrease",
     "by length of username",
     "by number of post upvotes",
+    "by random number (1-1000)",
     "by random number",
-    "by digits in total karma",
     "by timestamp seconds",
     "comment karma",
-    "post karma",
-    "total karma",
     "nim",
     "pick from five",
-    "2d tug of war",
-    "boost 5",
-    "by random number (1-1000)",
+    "post karma",
+    "total karma",
+    "tug of war",
 ]
 
 default_thread_unknown_length = [
     "base of previous digit",
-    "by number of digits squared",
     "by list size",
+    "by number of digits squared",
     "divisors",
 ]
 
