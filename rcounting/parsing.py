@@ -11,11 +11,12 @@ def find_count_in_text(body, base=10, raise_exceptions=True):
     """
     characters = "0123456789abcdefghijklmnopqrstuvwxyz"[:base]
     separators = "' , .*/"
+    first_line = normalize_comment(body)
     try:
         regex = (  # We strip characters from the start and then take digits and separators
             rf"^[^{characters}]*([{characters}{re.escape(separators)}]*)"
         )
-        count = re.findall(regex, body.lower())[0]
+        count = re.findall(regex, first_line.lower())[0]
         # We remove any separators, and try to convert the remainder to an int.
         stripped_count = count.translate(str.maketrans("", "", separators))
         return int(stripped_count, base)
@@ -63,6 +64,16 @@ def strip_markdown_links(body):
     return re.sub(regex, replacement, body)
 
 
+def body_from_title(title):
+    return "|".join(title.split("|")[1:])
+
+
+def normalize_comment(comment):
+    first_line = comment.split("\n")[0]
+    no_links = strip_markdown_links(first_line)
+    return no_links
+
+
 def parse_directory_page(directory_page):
     """Tag each paragraph of a directory page by whether it represents text or a table."""
     paragraphs = directory_page.split("\n\n")
@@ -96,17 +107,6 @@ def parse_row(markdown_row):
     comment_id = None if not comment_id else comment_id
     count = count.strip()
     return name, first_submission_id, title, submission_id, comment_id, count
-
-
-def parse_submission_title(title, regex):
-    """
-    Parse the current side thread state from a string.
-
-    Interpret the string as a '|'-separated list and use `regex` to match the last section
-    """
-    sections = [x.strip() for x in title.split("|")]
-    match = re.match(regex, sections[-1])
-    return [int(x) for x in match.groups()] if match is not None else match
 
 
 def find_urls_in_submission(submission):

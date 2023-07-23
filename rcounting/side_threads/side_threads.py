@@ -175,40 +175,29 @@ def ignore_revivals(chain, was_revival):
     return chain if was_revival is None else [x for x, y in zip(chain, was_revival) if not y]
 
 
-def update_from_title(update_function):
-    @functools.wraps(update_function)
-    def wrapper(old_count, chain, was_revival=None):
-        chain = ignore_revivals(chain, was_revival)
-        title = chain[-1].title
-        return update_function(title)
-
-    return wrapper
-
-
 def make_title_updater(comment_to_count):
     @functools.wraps(comment_to_count)
     def wrapper(old_count, chain, was_revival=None):
         chain = ignore_revivals(chain, was_revival)
         title = chain[-1].title
-        comment = title.split("|")[-1]
-        return comment_to_count(comment)
+        return comment_to_count(parsing.body_from_title(title))
 
     return wrapper
 
 
 def by_ns_count(n):
-    def update_function(comment):
+    def comment_to_count(comment):
         count = parsing.find_count_in_text(comment)
         return int(count // n)
 
-    return update_function
+    return comment_to_count
 
 
 def base_n_count(n: int):
-    def update_function(comment):
+    def comment_to_count(comment):
         return parsing.find_count_in_text(comment, base=n)
 
-    return update_function
+    return comment_to_count
 
 
 def permutation_order(word, alphabet, ordered=False, no_leading_zeros=False):
@@ -242,7 +231,7 @@ def no_repeating_count(comment):
 
 
 def powerball_count(comment):
-    balls, powerball = comment.split("+")
+    balls, powerball = parsing.normalize_comment(comment).split("+")
     balls = balls.split()
     alphabet = [str(x) for x in range(1, 70)]
     return permutation_order(balls, alphabet, ordered=True) * 26 + int(powerball) - 1
@@ -258,7 +247,7 @@ def no_successive_count(comment):
     return result
 
 
-u_squares = [11035, 65039, 129003, 129002, 128998, 129001, 129000, 128999, 128997, 11036, 65039]
+u_squares = [11035, 65039, 129003, 129002, 128998, 129001, 129000, 128999, 128997, 11036]
 colored_squares_form = validate_from_character_list([chr(x) for x in u_squares])
 
 collatz_dict = {}
@@ -274,11 +263,9 @@ def collatz(n):
     return 1 + collatz(3 * n + 1)
 
 
-@update_from_title
-def update_collatz(title):
-    regex = r".*\((.*)\)"
-    contents = re.match(regex, title).groups()[0]
-    current, steps = [int(x) for x in contents.split("|")]
+def collatz_count(comment):
+    regex = r".*\((\d+).*(\d+)\)"
+    current, steps = map(int, re.match(regex, comment).groups())
     return sum(collatz(i) for i in range(1, current)) + steps
 
 
@@ -289,24 +276,25 @@ wave_regex = r"(-?\d+).*\((\d+)[\+-]?\)"
 double_wave_regex = r"(-?\d+).*\((\d+)\).*\((\d+)\)"
 
 
-@update_from_title
-def update_wave(title):
-    a, b = parsing.parse_submission_title(title, wave_regex)
+def wave_count(comment):
+    comment = parsing.normalize_comment(comment)
+    match = re.match(wave_regex, comment)
+    a, b = [int(x) for x in match.groups()]
     return 2 * b**2 - a
 
 
-def update_increasing_type(n):
+def increasing_type_count(n):
     regex = r"(-?\d+)" + r".*\((\d+)\)" * n
 
-    @update_from_title
-    def update(title):
+    def count(comment):
+        comment = parsing.normalize_comment(comment)
         total = 0
-        values = parsing.parse_submission_title(title, regex)
+        values = [int(x) for x in re.match(regex, comment).groups()]
         for ix, value in enumerate(values):
             total += triangle_n_dimension(ix + 1, value)
         return total
 
-    return update
+    return count
 
 
 def triangle_n_dimension(n, value):
@@ -338,7 +326,7 @@ def update_from_traversal(old_count, chain, was_revival):
         urls = filter(
             lambda x, t=thread: x[0] == t.id, parsing.find_urls_in_text(new_thread.selftext)
         )
-        submission_id, comment_id = next(urls)
+        _, comment_id = next(urls)
         comments = tn.fetch_comments(comment_id)
         count += len(comments)
         new_thread = thread
@@ -346,34 +334,50 @@ def update_from_traversal(old_count, chain, was_revival):
 
 
 class SideThread:
-    """
-    A side thread class, which consists of a validation part and an update part
-    In addition to checking whether a collection of counts is valid according
-    to the side thread rule, the class can determine how many total counts have
+    """A side thread class, which consists of a validation part and an update
+    part In addition to checking whether a collection of counts is valid
+    according to the side thread rule, the class can take a mapping
+    comment->count and using this try and identify when errors were made in the
+    chain. The class will also attempt to determine how many total counts have
     been made in a given side thread using one of:
-      - A standard thread length
-      - A way of parsing titles to determine the current count
-      - Walking back through all the comments since the last checkpoint and adding them up
+
+    - The comment->count mapping to determine the current count, which is then
+    applied to the submission title
+
+    - The update_function parameter, which takes in the current state and
+    returns the total number of counts. Sensible approaches for doing this are
+    either parsing the current state from the title if it's different from the
+    comment->count mapping, or traversing the chain of comments until the last
+    known state is reached, and adding on all the comments encountered along
+    the way. This is useful for threads which don't have a constant number of
+    counts between gets, e.g. tug of war.
+
+    - A standard thread length
+
+    The approaches are listed in low->high priority, so if more than one
+    approach is supplied the highest priority one is used.
+
     """
 
     def __init__(
         self,
         rule=default_rule,
         form=permissive,
-        length=1000,
+        length=None,
         comment_to_count=None,
         update_function=None,
     ):
         self.form = form
         self.rule = rule
-        self.length = length
-        self.update_count = self.update_from_length
         self.history = None
         if comment_to_count is not None:
             self.comment_to_count = comment_to_count
             self.update_count = make_title_updater(comment_to_count)
         if update_function is not None:
             self.update_count = update_function
+        if length is not None or (comment_to_count is None and update_function is None):
+            self.length = length if length is not None else 1000
+            self.update_count = self.update_from_length
 
     def update_from_length(self, old_count, chain, was_revival=None):
         chain = ignore_revivals(chain, was_revival)[1:]
@@ -448,7 +452,7 @@ class OnlyRepeatingDigits(SideThread):
         self.lookup = {"0": "1", "1": "2", "2": "2"}
         self.indices = self._indices(self.n)
         self.transition_matrix = self.make_dfa()
-        super().__init__(rule=rule, form=form, update_function=self.update_function)
+        super().__init__(rule=rule, form=form, comment_to_count=self.count)
 
     def connections(self, i):
         base3 = np.base_repr(i, 3).zfill(self.n)
@@ -517,9 +521,8 @@ class OnlyRepeatingDigits(SideThread):
             result[index] = self.lookup[result[index]]
         return int("".join(result), 3)
 
-    def update_function(self, old_count, chain, was_revival=None):
-        chain = ignore_revivals(chain, was_revival)
-        count = parsing.find_count_in_text(chain[-1].title.split("|")[-1])
+    def count(self, comment):
+        count = parsing.find_count_in_text(comment)
         word = str(count)
         word_length = len(word)
         if word_length < 2:
@@ -542,8 +545,8 @@ class OnlyRepeatingDigits(SideThread):
 
 
 known_threads = {
-    "-illion": SideThread(form=illion_form),
-    "2d20 experimental v theoretical": SideThread(form=d20_form),
+    "-illion": SideThread(form=illion_form, length=1000),
+    "2d20 experimental v theoretical": SideThread(form=d20_form, length=1000),
     "balanced ternary": SideThread(form=balanced_ternary, length=729),
     "base 16 roman": SideThread(form=roman_numeral),
     "base 2i": SideThread(form=base_n(4), comment_to_count=gaussian_integer_count),
@@ -558,16 +561,16 @@ known_threads = {
     "by 5s": SideThread(comment_to_count=by_ns_count(5)),
     "by 7s": SideThread(comment_to_count=by_ns_count(7)),
     "by 99s": SideThread(comment_to_count=by_ns_count(99)),
-    "collatz conjecture": SideThread(update_function=update_collatz, form=base_10),
+    "collatz conjecture": SideThread(comment_to_count=collatz_count, form=base_10),
     "colored squares": SideThread(form=colored_squares_form, length=729),
     "cyclical bases": SideThread(form=base_n(16)),
     "dates": SideThread(form=base_10, update_function=update_dates),
     "decimal encoded sexagesimal": SideThread(length=900, form=base_10),
     "dollars and cents": SideThread(form=base_n(4)),
-    "double increasing": SideThread(form=base_10, update_function=update_increasing_type(2)),
+    "double increasing": SideThread(form=base_10, comment_to_count=increasing_type_count(2)),
     "fast or slow": SideThread(rule=FastOrSlow()),
     "four fours": SideThread(form=validate_from_character_list("4")),
-    "increasing sequences": SideThread(form=base_10, update_function=update_increasing_type(1)),
+    "increasing sequences": SideThread(form=base_10, comment_to_count=increasing_type_count(1)),
     "invisible numbers": SideThread(form=base_n(10, strip_links=False)),
     "japanese": SideThread(form=validate_from_character_list("一二三四五六七八九十百千")),
     "mayan numerals": SideThread(length=800, form=mayan_form),
@@ -588,7 +591,7 @@ known_threads = {
     "slowestest": SideThread(form=base_10, rule=CountingRule(thread_time=HOUR, user_time=DAY)),
     "symbols": SideThread(form=validate_from_character_list("!@#$%^&*()")),
     "throwaways": SideThread(form=throwaway_form),
-    "triple increasing": SideThread(form=base_10, update_function=update_increasing_type(3)),
+    "triple increasing": SideThread(form=base_10, comment_to_count=increasing_type_count(3)),
     "twitter handles": SideThread(length=1369, form=twitter_form),
     "unary": SideThread(form=validate_from_character_list("|")),
     "unicode": SideThread(form=base_n(16), length=1024),
@@ -601,7 +604,7 @@ known_threads = {
     "wait 4": SideThread(form=base_10, rule=CountingRule(wait_n=4)),
     "wait 5s": SideThread(form=base_10, rule=CountingRule(thread_time=5)),
     "wait 9": SideThread(form=base_10, rule=CountingRule(wait_n=9)),
-    "wave": SideThread(form=base_10, update_function=update_wave),
+    "wave": SideThread(form=base_10, comment_to_count=wave_count),
 }
 
 
@@ -738,7 +741,7 @@ def get_side_thread(thread_name):
     if thread_name in known_threads:
         return known_threads[thread_name]
     if thread_name in default_thread_unknown_length:
-        return SideThread(length=None, form=base_10)
+        return SideThread(form=base_10)
     if thread_name in default_thread_varying_length:
         return SideThread(update_function=update_from_traversal, form=base_10)
     if thread_name != "default":
