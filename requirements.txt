@@ -1,6 +1,6 @@
 matplotlib>=3.0
 pandas>=1.5
-praw>=7.6.0
+praw>=7.7.1
 tables>=3.6
 tabulate>=0.8
 scipy>=1.9
