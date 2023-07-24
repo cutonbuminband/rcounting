@@ -62,7 +62,10 @@ class Row:
         self.initial_submission_id = submission_id
         self.initial_comment_id = comment_id
         self.count_string = count
-        self.count = parsing.find_count_in_text(self.count_string.replace("-", "0"))
+        try:
+            self.count = parsing.find_count_in_text(self.count_string.replace("-", "0"))
+        except ValueError:
+            self.count = None
         self.is_approximate = self.count_string[0] == "~"
         self.starred_count = self.count_string[-1] == "*"
         self.thread_type = st.known_thread_ids.get(self.first_submission, fallback="default")
