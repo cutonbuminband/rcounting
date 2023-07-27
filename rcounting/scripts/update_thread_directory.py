@@ -27,7 +27,8 @@ spurious_nodes = ("12x4vpl", "13s4tu6")
 )
 @click.option("-v", "--verbose", count=True, help="Print more output")
 @click.option("-q", "--quiet", is_flag=True)
-def update_directory(quiet, verbose, dry_run):
+@click.option("--sleep", default=0)
+def update_directory(quiet, verbose, dry_run, sleep):
     """
     Update the thread directory located at reddit.com/r/counting/wiki/directory.
     """
@@ -51,7 +52,7 @@ def update_directory(quiet, verbose, dry_run):
     directory = td.load_wiki_page(subreddit, "directory")
     archive = td.load_wiki_page(subreddit, "directory/archive", kind="archive")
     directory.set_archive(archive)
-    directory.update(tree, new_submission_ids)
+    directory.update(tree, new_submission_ids, sleep)
 
     if not dry_run:
         subreddit.wiki["directory"].edit(content=str(directory), reason="Ran the update script")

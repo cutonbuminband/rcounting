@@ -3,6 +3,7 @@ import copy
 import datetime
 import itertools
 import logging
+import time
 
 from rcounting import models, parsing
 from rcounting import side_threads as st
@@ -232,7 +233,7 @@ class Paragraph:
             self.contents = [Row(*x) if hasattr(x, "__iter__") else x for x in self.contents]
         self.kind = kind
 
-    def update(self, tree):
+    def update(self, tree, sleep=0):
         result = set()
         if self.tag == "text":
             return result
@@ -240,6 +241,8 @@ class Paragraph:
             try:
                 row.update(tree)
                 result.add(row.submission_id)
+                if sleep:
+                    time.sleep(sleep)
             except Exception:  # pylint: disable=broad-except
                 printer.warning("Unable to update thread %s", row.title)
                 raise
@@ -305,9 +308,9 @@ class Directory:
         archive = {x.submission_id: x for x in archive.rows}
         self.archive = archive
 
-    def update(self, tree, new_submission_ids):
+    def update(self, tree, new_submission_ids, sleep=0):
         printer.info("Updating tables")
-        self.update_existing_rows(tree)
+        self.update_existing_rows(tree, sleep)
         self.add_last_table()
         printer.info("Updating new threads")
         new_submissions = self.find_new_submissions(tree, new_submission_ids)
@@ -320,11 +323,11 @@ class Directory:
             self.updated_archive = True
             self.archive.update({row.submission_id: row for row in archived_rows})
 
-    def update_existing_rows(self, tree):
+    def update_existing_rows(self, tree, sleep=0):
         """Update every row in the main directory page and sort the second table"""
         table_counter = 0
         for paragraph in self.paragraphs:
-            self.known_submissions |= paragraph.update(tree)
+            self.known_submissions |= paragraph.update(tree, sleep)
             if paragraph.tag != "text":
                 table_counter += 1
             if table_counter == 2:
