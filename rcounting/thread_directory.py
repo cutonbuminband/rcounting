@@ -257,9 +257,9 @@ class Paragraph:
             return self.contents
         labels = {"directory": "Current", "archive": "Last"}
         header = [
-            "⠀" * 7 + "Name &amp; Initial Thread" + "⠀" * 7,
-            "⠀" * 7 + f"{labels[self.kind]} Thread" + "⠀" * 7,
-            "⠀" * 2 + "# of Counts" + "⠀" * 2,
+            "⠀" * 6 + "Name &amp; Initial Thread" + "⠀" * 6,
+            "⠀" * 6 + f"{labels[self.kind]} Thread" + "⠀" * 6,
+            "⠀" * 1 + "# of Counts" + "⠀" * 1,
         ]
         header = [" | ".join(header), ":--:|:--:|--:"]
         rows = self.contents
