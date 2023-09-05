@@ -265,7 +265,7 @@ def collatz(n):
 
 def collatz_count(comment):
     regex = r".*\((\d+).*(\d+)\)"
-    current, steps = map(int, re.match(regex, comment).groups())
+    current, steps = map(int, re.search(regex, comment).groups())
     return sum(collatz(i) for i in range(1, current)) + steps
 
 
@@ -278,7 +278,7 @@ double_wave_regex = r"(-?\d+).*\((\d+)\).*\((\d+)\)"
 
 def wave_count(comment):
     comment = parsing.normalize_comment(comment)
-    match = re.match(wave_regex, comment)
+    match = re.search(wave_regex, comment)
     a, b = [int(x) for x in match.groups()]
     return 2 * b**2 - a
 
@@ -289,7 +289,7 @@ def increasing_type_count(n):
     def count(comment):
         comment = parsing.normalize_comment(comment)
         total = 0
-        values = [int(x) for x in re.match(regex, comment).groups()]
+        values = [int(x) for x in re.search(regex, comment).groups()]
         for ix, value in enumerate(values):
             total += triangle_n_dimension(ix + 1, value)
         return total
