@@ -8,6 +8,37 @@ from rcounting import models, parsing, reddit_interface
 printer = logging.getLogger(__name__)
 
 
+def find_previous_submission(submission):
+    """
+    Find the previous reddit submission in the chain of counts. The code
+    will look first in the body of the submission text and then in the top
+    level comments for everything that looks like a link to a reddit comment.
+    It will take the first comment link it finds and use that as the previous
+    submission in the chain. Failing that, it will take the first link to a
+    reddit submission it finds and use as the previous link in the chain.
+    Failing that, it will just fail.
+
+    """
+    urls = filter(
+        lambda x: int(x[0], 36) < int(submission.id, 36),
+        parsing.find_urls_in_submission(submission),
+    )
+    next_submission_id = None
+    new_submission_id, new_get_id = next(urls)
+    # This gets a bit silly but if the first link we found only had a
+    # submission id and not a comment id we scan through all the rest, and then
+    # take the first one that also has a comment id. If none of them do, we
+    # fall back to the first link we found
+    while not new_get_id:
+        try:
+            next_submission_id, new_get_id = next(urls)
+        except StopIteration:
+            break
+    if next_submission_id is not None and new_get_id:
+        return next_submission_id, new_get_id
+    return new_submission_id, new_get_id
+
+
 def find_previous_get(comment, validate_get=True):
     """
     Find the get of the previous reddit submission in the chain of counts.
@@ -26,23 +57,13 @@ def find_previous_get(comment, validate_get=True):
     and if not, try to find a nearby comment that does.
     """
     reddit = reddit_interface.reddit
-
     try:
         submission = comment.submission
     except AttributeError:
         comment = reddit.comment(comment)
         submission = comment.submission
-    urls = filter(
-        lambda x: int(x[0], 36) < int(submission.id, 36),
-        parsing.find_urls_in_submission(submission),
-    )
-    new_submission_id, new_get_id = next(urls)
 
-    while not new_get_id:
-        try:
-            new_submission_id, new_get_id = next(urls)
-        except StopIteration:
-            break
+    new_submission_id, new_get_id = find_previous_submission(submission)
     if not new_get_id:
         new_get_id = find_deepest_comment(new_submission_id, reddit)
     comment = reddit.comment(new_get_id)
