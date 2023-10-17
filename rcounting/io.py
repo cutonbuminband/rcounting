@@ -51,16 +51,17 @@ class ThreadLogger:
         self.last_checkpoint = last_checkpoint
         self.known_submissions = known_submissions
 
-    def is_already_logged(self, comment):
+    def is_already_logged(self, submission):
         """
         Determine whether a submission has already been logged based on its first
         comment. It's important to do it this way because fetching a whole submission
         is expensive, so we want to avoid having to do that.
         """
         if self.sql:
-            return comment.submission.id in self.known_submissions
+            return submission.id in self.known_submissions
+        comment = submission.comments[0]
         body = parsing.strip_markdown_links(comment.body)
-        basecount = parsing.find_count_in_text(body) - 1000
+        basecount = parsing.find_count_in_text(body)
         hoc_path = self.output_directory / Path(f"{basecount}.csv")
         return os.path.isfile(hoc_path)
 

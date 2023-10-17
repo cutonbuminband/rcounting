@@ -19,6 +19,7 @@ def find_previous_submission(submission):
     Failing that, it will just fail.
 
     """
+
     urls = filter(
         lambda x: int(x[0], 36) < int(submission.id, 36),
         parsing.find_urls_in_submission(submission),
@@ -39,7 +40,24 @@ def find_previous_submission(submission):
     return new_submission_id, new_get_id
 
 
-def find_previous_get(comment, validate_get=True):
+def find_get_in_submission(submission_id, get_id, validate_get=True):
+    reddit = reddit_interface.reddit
+    if not get_id:
+        get_id = find_deepest_comment(submission_id, reddit)
+    comment = reddit.comment(get_id)
+    if validate_get:
+        get = find_get_from_comment(comment)
+    else:
+        get = reddit.comment(get_id)
+    printer.debug(
+        "Found previous get at: http://reddit.com/comments/%s/_/%s/",
+        get.submission,
+        get.id,
+    )
+    return get
+
+
+def find_previous_get(submission, validate_get=True):
     """
     Find the get of the previous reddit submission in the chain of counts.
 
@@ -52,31 +70,14 @@ def find_previous_get(comment, validate_get=True):
 
     Parameters:
 
-    comment: A reddit comment instance in the child submission
+    submission: A reddit submission instance for which we want to find the parent
     validate_get: Whether or not the prorgram should check that the linked comment ends in 000,
-    and if not, try to find a nearby comment that does.
+    and if it doesn't, try to find a nearby comment that does.
     """
     reddit = reddit_interface.reddit
-    try:
-        submission = comment.submission
-    except AttributeError:
-        comment = reddit.comment(comment)
-        submission = comment.submission
-
+    submission = submission if hasattr(submission, "id") else reddit.submission(submission)
     new_submission_id, new_get_id = find_previous_submission(submission)
-    if not new_get_id:
-        new_get_id = find_deepest_comment(new_submission_id, reddit)
-    comment = reddit.comment(new_get_id)
-    if validate_get:
-        new_get = find_get_from_comment(comment)
-    else:
-        new_get = reddit.comment(new_get_id)
-    printer.debug(
-        "Found previous get at: http://reddit.com/comments/%s/_/%s/",
-        new_get.submission,
-        new_get.id,
-    )
-    return new_get
+    return find_get_in_submission(new_submission_id, new_get_id, validate_get)
 
 
 def find_deepest_comment(submission, reddit):

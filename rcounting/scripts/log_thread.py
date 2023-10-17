@@ -83,7 +83,7 @@ def log(
     directory = td.load_wiki_page(subreddit, "directory")
 
     if not leaf_comment_id:
-        comment = tn.find_previous_get(reddit.comment(directory.rows[0].comment_id))
+        comment = tn.find_previous_get(directory.rows[0].submission_id)
     else:
         comment = reddit.comment(leaf_comment_id)
     printer.debug(
@@ -96,26 +96,32 @@ def log(
     threadlogger = ThreadLogger(sql, output_directory, filename, not side_thread)
     completed = 0
 
+    submission = comment.submission
+    submission_id = None
+    comment_id = comment.id
     while (not all_counts and (completed < n_threads)) or (
-        all_counts and comment.submission.id != threadlogger.last_checkpoint
+        all_counts and submission.id != threadlogger.last_checkpoint
     ):
         printer.info("Logging %s", comment.submission.title)
         completed += 1
-        if not threadlogger.is_already_logged(comment):
+        if not threadlogger.is_already_logged(submission):
+            if submission_id is not None:
+                comment = tn.find_get_in_submission(submission_id, comment_id)
             df = pd.DataFrame(tn.fetch_comments(comment))
             threadlogger.log(comment, df)
         else:
             printer.info("Submission %s has already been logged!", comment.submission.title)
 
-        if comment.submission.id in directory.first_submissions:
+        if submission.id in directory.first_submissions:
             break
 
-        comment = tn.find_previous_get(comment, validate_get=not side_thread)
+        submission_id, comment_id = tn.find_previous_submission(submission)
+        submission = reddit.submission(submission_id)
 
     if completed:
         if sql:
             update_counters_table(threadlogger.db)
-        if comment.submission.id in directory.first_submissions + [threadlogger.last_checkpoint]:
+        if submission.id in directory.first_submissions + [threadlogger.last_checkpoint]:
             threadlogger.update_checkpoint()
     else:
         printer.info("The database is already up to date!")
