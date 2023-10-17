@@ -5,7 +5,7 @@ from praw.exceptions import ClientException
 from praw.models import MoreComments
 from prawcore.exceptions import ServerError
 
-from rcounting import utils
+from rcounting import parsing, utils
 
 printer = logging.getLogger(__name__)
 
@@ -347,12 +347,8 @@ def submission_to_dict(submission):
     }
 
 
-def find_body(post):
-    return post.body if hasattr(post, "body") else post.selftext
-
-
 def normalise(body):
-    return body.split("\n")[0]
+    return parsing.strip_markdown_links(body.split("\n")[0])
 
 
 def extract_id(node):
