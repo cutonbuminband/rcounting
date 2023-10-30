@@ -45,7 +45,8 @@ def update_directory(quiet, verbose, dry_run, sleep):
         tree.delete_edge(*edge)
 
     for node in spurious_nodes:
-        tree.delete_node(node)
+        if node in tree:
+            tree.delete_node(node)
     new_submissions = [x for x in new_submissions if x.id not in spurious_nodes]
     new_submission_ids = {tree.walk_down_tree(submission)[-1].id for submission in new_submissions}
 

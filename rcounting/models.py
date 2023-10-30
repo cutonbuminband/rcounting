@@ -49,6 +49,13 @@ class Tree:
         self.nodes = nodes
         self.depths = {}
 
+    def __contains__(self, node):
+        node_id = extract_id(node)
+        return node_id in self.tree.keys() or node_id in self.tree.values()
+
+    def __len__(self):
+        return len(self.tree.keys())
+
     @property
     def reversed_tree(self):
         return edges_to_tree([(parent, child) for child, parent in self.tree.items()])
@@ -94,9 +101,6 @@ class Tree:
             result.append(node)
         return result
 
-    def __len__(self):
-        return len(self.tree.keys())
-
     def node(self, node_id):
         return self.nodes[node_id]
 
@@ -107,8 +111,14 @@ class Tree:
             del self.tree[child_id]
 
     def delete_node(self, node):
+        """Given a node id, this will delete the node from the tree if it is
+        present. That means deleting it from the list of known nodes and (if
+        the node is not a root node) deleting it from the child -> parent
+        dictionary. If the node is not present, an exception will be raised."""
+
         node_id = extract_id(node)
-        del self.nodes[node_id]
+        if node_id in self.nodes:
+            del self.nodes[node_id]
         if node_id in self.tree:
             del self.tree[node_id]
 
