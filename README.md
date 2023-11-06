@@ -1,3 +1,7 @@
+[![PyPI](https://img.shields.io/pypi/v/rcounting.svg)](https://pypi.org/project/rcounting/)
+![GitHub](https://img.shields.io/github/license/cutonbuminband/rcounting)
+
+
 A collection of tools for working with data on the counting threads in /r/reddit.com/r/counting.
 
 ## Description
