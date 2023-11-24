@@ -370,6 +370,7 @@ class SideThread:
         self.form = form
         self.rule = rule
         self.history = None
+        self.comment_to_count = None
         if comment_to_count is not None:
             self.comment_to_count = comment_to_count
             self.update_count = make_title_updater(comment_to_count)
@@ -411,20 +412,57 @@ class SideThread:
         self.comment_to_count = f
 
     def wrapped_comment_to_count(self, comment):
+        comment_to_count = (
+            self.comment_to_count if self.comment_to_count is not None else base_n_count(10)
+        )
         try:
-            return self.comment_to_count(comment)
+            return comment_to_count(comment)
         except ValueError:
             return np.nan
 
     def find_errors(self, history):
+        """Find points in the history of a side thread where an incorrect count was posted.
+
+        Parameters:
+          - history: Either a string representing the comment id of
+            the leaf comment in the thread to be investigated, or a pandas
+            dataframe with (at least) a "body" column that contains the markdown
+            string of each comment in the thread.
+
+        Returns:
+          - The comments in the history where an uncorrected error was introduced
+
+        In order to do this, we need to use the `comment_to_count` member of
+        the side thread to go from the string representation of a comment to
+        the corresponding count. This is potentially different for each side
+        thread.
+
+        Errors are defined narrowly to avoid having too many false positives. A
+        comment is considered to introduce an error if:
+
+          - Its count is not one more than the previous count AND
+          - Its count is not two more than the last but one count AND
+          - Its count doesn't match where the count should be according to the
+            position in the thread.
+
+        The last criterion means that counts which correct previous errrors won't be included.
+
+        Additionally, to avoid rehashing errors which have already been
+        corrected, only comments after the last correct count in the thread
+        will be considered.
+
+        """
         if isinstance(history, str):
             self.history = pd.DataFrame(tn.fetch_comments(history))
             history = self.history
 
         counts = history["body"].apply(self.wrapped_comment_to_count)
+        # Errors are points where the count doesn't match the index difference
         errors = counts - counts.iloc[0] != counts.index
+        # But only errors after the last correct value are interesting
+        errors[: errors.where((~errors)).last_valid_index()] = False
         mask = errors & (counts.diff() != 1) & (counts.diff(2) != 2)
-        return ~errors.iat[-1], history[mask]
+        return history[mask]
 
 
 class OnlyRepeatingDigits(SideThread):

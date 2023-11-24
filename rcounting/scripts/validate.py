@@ -14,6 +14,7 @@ rule_dict = {
     "slowestest": "slowestest",
     "only_double_counting": "only double counting",
     "fast_or_slow": "fast or slow",
+    "no_repeating": "no repeating digits",
 }
 
 
@@ -40,6 +41,14 @@ def validate(comment_id, rule):
     result = side_thread.is_valid_thread(comments)
     if result[0]:
         print("All counts were valid")
+        errors = side_thread.find_errors(comments)
+        if errors.empty:
+            print("The last count in the the thread has the correct value")
+        else:
+            print(
+                f"The last count in the thread has an incorrect value. "
+                f"Earlier errors can be found at {errors}"
+            )
     else:
         print(f"Invalid count found at http://reddit.com{reddit.comment(result[1]).permalink}!")
 
