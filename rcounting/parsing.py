@@ -12,20 +12,18 @@ def find_count_in_text(body, base=10, raise_exceptions=True):
     Try to account for various strategies for separating thousands digits.
     """
     characters = "0123456789abcdefghijklmnopqrstuvwxyz"[:base]
-    separators = "' , .*/"
-    first_line = normalize_comment(body)
-    try:
-        regex = (  # We strip characters from the start and then take digits and separators
-            rf"^[^{characters}]*([{characters}{re.escape(separators)}]*)"
-        )
-        count = re.findall(regex, first_line.lower())[0]
-        # We remove any separators, and try to convert the remainder to an int.
-        stripped_count = count.translate(str.maketrans("", "", separators))
-        return int(stripped_count, base)
-    except ValueError as e:
-        if raise_exceptions:
-            raise ValueError(f"Unable to extract count from comment body: {body}") from e
-        return float("nan")
+    separators = "' ,.*/"  # non-whitespace separators people have used
+    first_line = "".join(normalize_comment(body).split()).translate(
+        str.maketrans("", "", separators)
+    )
+
+    match = re.search(f"[{characters}]+", first_line.lower())
+    if match is not None:
+        return int(match.group(), base)
+
+    if raise_exceptions:
+        raise ValueError(f"Unable to extract count in base {base} from comment body: {body}")
+    return float("nan")
 
 
 def find_urls_in_text(body):
