@@ -1,6 +1,8 @@
 """A collection of functions for parsing texts and extracting urls and counts"""
 import re
 
+import requests
+
 
 def find_body(post):
     return post.body if hasattr(post, "body") else post.selftext
@@ -27,14 +29,29 @@ def find_count_in_text(body, base=10, raise_exceptions=True):
 
 
 def find_urls_in_text(body):
-    """Extract all substrings of a string that look like '/comments/id/stuff/id'"""
+    """Extract all substrings of a string that look like '/comments/id/stuff/id'
+
+    Returns a list of (submission_id, comment_id) tuples; the `comment_id`
+    field is potentially blank, if someone accidentally linked to just a
+    submission rather than a comment.
+    """
     # reddit lets you link to comments and posts with just /comments/stuff,
     # so everything before that is optional. We only capture the bit after
     # r/counting/comments, since that's what has the information we are
     # interested in.
     url_regex = r"/comments/([\w]+)(?:/[^/]*/([\w]*)|)"
     urls = re.findall(url_regex, body)
-    return urls
+
+    # reddit has introduced new short links which are completely opaque to the
+    # api. If one of those is detected, we need to send a request to reddit,
+    # which will redirect us to the right page and then grab the url and parse.
+    # Sigh.
+    new_url_regex = "reddit.com/r/counting/s/([A-Za-z0-9]+)"
+    new_links = re.findall(new_url_regex, body)
+    new_url_prefix = "https://www.reddit.com/r/counting/s/"
+    new_urls = [requests.get(new_url_prefix + link, timeout=10).url for link in new_links]
+    new_urls = [re.search(url_regex, url).groups() for url in new_urls]
+    return urls + new_urls
 
 
 def post_to_count(reddit_post):
