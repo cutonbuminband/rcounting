@@ -49,9 +49,16 @@ def find_urls_in_text(body):
     new_url_regex = "reddit.com/r/counting/s/([A-Za-z0-9]+)"
     new_links = re.findall(new_url_regex, body)
     new_url_prefix = "https://www.reddit.com/r/counting/s/"
-    new_urls = [requests.get(new_url_prefix + link, timeout=10).url for link in new_links]
-    new_urls = [re.search(url_regex, url).groups() for url in new_urls]
-    return urls + new_urls
+    responses = [requests.get(new_url_prefix + link, timeout=100) for link in new_links]
+    new_urls = [response.url for response in responses]
+    try:
+        extra_urls = [re.search(url_regex, url).groups() for url in new_urls]
+    except AttributeError:
+        print(new_links)
+        print(new_urls)
+        print([response.status_code for response in responses])
+        raise
+    return urls + extra_urls
 
 
 def post_to_count(reddit_post):
