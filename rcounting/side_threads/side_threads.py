@@ -319,17 +319,11 @@ def update_dates(count, chain, was_revival=None):
     return count
 
 
-def update_from_traversal(old_count, chain, was_revival):
-    new_thread = chain[-1]
-    count = old_count
-    for thread in chain[:-1][::-1]:
-        urls = filter(
-            lambda x, t=thread: x[0] == t.id, parsing.find_urls_in_text(new_thread.selftext)
-        )
-        _, comment_id = next(urls)
-        comments = tn.fetch_comments(comment_id)
+def update_from_traversal(count, chain, was_revival):
+    for thread in chain[1:]:
+        _, get_id = tn.find_previous_submission(thread)
+        comments = tn.fetch_comments(get_id)
         count += len(comments)
-        new_thread = thread
     return count
 
 
