@@ -78,16 +78,22 @@ def permutation_order(word, alphabet, ordered=False, no_leading_zeros=False):
     return first_place_counts + permutation_order(word[1:], new_alphabet, ordered=ordered)
 
 
-def binary_coded_decimal_count(comment):
+def bcd_count(comment):
     count = f"{parsing.find_count_in_text(comment, base=2):b}"
     digits = [str(int("".join(y for y in x), 2)) for x in utils.chunked(count, 4)]
     return int("".join(digits))
 
 
-def no_repeating_count(comment):
+def nrd_count(comment):
     normalized_comment = str(parsing.find_count_in_text(comment))
     result = 9 * sum(math.perm(9, i - 1) for i in range(1, len(normalized_comment)))
     return result + permutation_order(normalized_comment, string.digits, no_leading_zeros=True)
+
+
+def nrl_count(comment):
+    line = comment.split("\n")[0].strip().lower()
+    shorter_words = sum(math.perm(26, i) for i in range(1, len(line)))
+    return shorter_words + permutation_order(line, string.ascii_lowercase)
 
 
 def powerball_count(comment):
@@ -192,9 +198,7 @@ known_threads = {
     "base 16 roman": SideThread(form=roman_numeral),
     "base 2i": SideThread(form=base_n(4), comment_to_count=gaussian_integer_count),
     "bijective base 2": SideThread(form=base_n(3), length=1024),
-    "binary encoded decimal": SideThread(
-        form=base_n(2), comment_to_count=binary_coded_decimal_count
-    ),
+    "binary encoded decimal": SideThread(form=base_n(2), comment_to_count=bcd_count),
     "binary encoded hexadecimal": SideThread(form=base_n(2), length=1024),
     "by 3s in base 7": SideThread(form=base_n(7)),
     "by 3s": SideThread(comment_to_count=by_ns_count(3)),
@@ -216,8 +220,10 @@ known_threads = {
     "isenary": SideThread(form=isenary_form, comment_to_count=isenary_count),
     "japanese": SideThread(form=validate_from_character_list("一二三四五六七八九十百千")),
     "mayan numerals": SideThread(length=800, form=mayan_form),
-    "no repeating digits": SideThread(comment_to_count=no_repeating_count),
+    "no repeating digits": SideThread(comment_to_count=nrd_count, form=base_10),
+    "no_repeating_letters": SideThread(comment_to_count=nrl_count),
     "no successive digits": SideThread(comment_to_count=no_successive_count, form=base_10),
+    "o/l binary": SideThread(form=validate_from_character_list("ol"), length=1024),
     "once per thread": SideThread(form=base_10, rule=CountingRule(wait_n=None)),
     "only double counting": SideThread(form=base_10, rule=OnlyDoubleCounting()),
     "only repeating digits": OnlyRepeatingDigits(),
@@ -263,8 +269,12 @@ default_threads = [
     "69, 420, or 666",
     "age",
     "all even or all odd",
+    "by 0.025s",
     "by 0.02s",
+    "by 0.05s",
+    "by 1000s",
     "by 10s",
+    "by 11s",
     "by 123s",
     "by 12s",
     "by 20s",
@@ -272,17 +282,12 @@ default_threads = [
     "by 29s",
     "by 2s even",
     "by 2s odd",
-    "by 3s",
     "by 40s",
-    "by 4s",
     "by 50s",
-    "by 5s",
     "by 64s",
     "by 69s",
-    "by 7s",
+    "by 6s",
     "by 8s",
-    "by 8s",
-    "by 99s",
     "by meters",
     "by one-hundredths",
     "california license plates",
@@ -354,11 +359,14 @@ default_thread_varying_length = [
     "2d tug of war",
     "boost 5",
     "by battery percentage",
+    "by coad rank",
+    "by comment karma",
     "by counters met irl",
     "by day of the week",
     "by day of the year",
     "by digits in total karma",
     "by gme increase/decrease",
+    "by hoc rank",
     "by how well your day is going",
     "by length of username",
     "by number of post upvotes",
@@ -366,7 +374,6 @@ default_thread_varying_length = [
     "by random number",
     "by timestamp seconds",
     "check-in streak",
-    "comment karma",
     "nim",
     "pick from five",
     "post karma",
