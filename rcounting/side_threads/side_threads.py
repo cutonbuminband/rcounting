@@ -165,13 +165,6 @@ def illion_form(comment_body):
     return fuzz.partial_ratio("illion", comment_body) > 80
 
 
-planets = ["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]
-planetary_octal_form = validate_from_character_list(planets)
-
-colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"]
-rainbow_form = validate_from_character_list(colors)
-
-
 def ignore_revivals(chain, was_revival):
     return chain if was_revival is None else [x for x, y in zip(chain, was_revival) if not y]
 
@@ -223,10 +216,18 @@ def count_from_word_list(
 
 
 isenary = {"they're": 1, "taking": 2, "the": 3, "hobbits": 4, "to": 5, "isengard": 0, "gard": 0}
+isenary_form = validate_from_character_list(list(isenary.keys()))
 isenary_count = functools.partial(
     count_from_word_list, alphabet=isenary, base=6, ignored_chars="!>"
 )
-isenary_form = validate_from_character_list(valid_characters=list(isenary.keys()))
+
+planets = ["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]
+planetary_form = validate_from_character_list(planets)
+planetary_count = functools.partial(count_from_word_list, alphabet=planets, base=8)
+
+colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"]
+rainbow_form = validate_from_character_list(colors)
+rainbow_count = functools.partial(count_from_word_list, alphabet=colors, base=7)
 
 
 def permutation_order(word, alphabet, ordered=False, no_leading_zeros=False):
@@ -642,9 +643,9 @@ known_threads = {
     "only double counting": SideThread(form=base_10, rule=OnlyDoubleCounting()),
     "only repeating digits": OnlyRepeatingDigits(),
     "parentheses": SideThread(form=parentheses_form),
-    "planetary octal": SideThread(length=1024, form=planetary_octal_form),
+    "planetary octal": SideThread(comment_to_count=planetary_count, form=planetary_form),
     "powerball": SideThread(comment_to_count=powerball_count, form=base_10),
-    "rainbow": SideThread(length=1029, form=rainbow_form),
+    "rainbow": SideThread(comment_to_count=rainbow_count, form=rainbow_form),
     "reddit usernames": SideThread(length=722, form=reddit_username_form),
     "roman progressbar": SideThread(form=roman_numeral),
     "roman": SideThread(form=roman_numeral),
