@@ -23,7 +23,7 @@ rule_dict = {
     "--rule",
     help="Which rule to apply. Default is no double counting",
     default="default",
-    type=click.Choice(rule_dict.keys(), case_sensitive=False),
+    type=click.Choice(list(rule_dict.keys()), case_sensitive=False),
 )
 @click.argument("comment_id")
 def validate(comment_id, rule):
