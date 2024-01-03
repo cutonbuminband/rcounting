@@ -16,17 +16,17 @@ from rcounting.units import DAY, HOUR, MINUTE
 from .rules import CountingRule, FastOrSlow, OnlyDoubleCounting
 from .side_threads import OnlyRepeatingDigits, SideThread, ignore_revivals
 from .validate_count import base_n_count, by_ns_count, count_from_word_list
-from .validate_form import base_n, validate_from_character_list
+from .validate_form import base_n, validate_from_tokens
 
 printer = logging.getLogger(__name__)
 
 base_10 = base_n(10)
-balanced_ternary = validate_from_character_list("T-0+")
-brainfuck = validate_from_character_list("><+-.,[]")
-roman_numeral = validate_from_character_list("IVXLCDMↁↂↇ")
-mayan_form = validate_from_character_list("Ø1234|-")
-twitter_form = validate_from_character_list("@")
-parentheses_form = validate_from_character_list("()")
+balanced_ternary = validate_from_tokens("T-0+")
+brainfuck = validate_from_tokens("><+-.,[]")
+roman_numeral = validate_from_tokens("IVXLCDMↁↂↇ")
+mayan_form = validate_from_tokens("Ø1234|-")
+twitter_form = validate_from_tokens("@")
+parentheses_form = validate_from_tokens("()")
 
 
 def d20_form(comment_body):
@@ -46,17 +46,17 @@ def illion_form(comment_body):
 
 
 isenary = {"they're": 1, "taking": 2, "the": 3, "hobbits": 4, "to": 5, "isengard": 0, "gard": 0}
-isenary_form = validate_from_character_list(list(isenary.keys()))
+isenary_form = validate_from_tokens(list(isenary.keys()))
 isenary_count = functools.partial(
     count_from_word_list, alphabet=isenary, base=6, ignored_chars="!>"
 )
 
 planets = ["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]
-planetary_form = validate_from_character_list(planets)
+planetary_form = validate_from_tokens(planets)
 planetary_count = functools.partial(count_from_word_list, alphabet=planets, base=8)
 
 colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"]
-rainbow_form = validate_from_character_list(colors)
+rainbow_form = validate_from_tokens(colors)
 rainbow_count = functools.partial(count_from_word_list, alphabet=colors, base=7)
 
 
@@ -114,7 +114,7 @@ def no_successive_count(comment):
 
 
 u_squares = [11035, 65039, 129003, 129002, 128998, 129001, 129000, 128999, 128997, 11036]
-colored_squares_form = validate_from_character_list([chr(x) for x in u_squares])
+colored_squares_form = validate_from_tokens([chr(x) for x in u_squares])
 
 collatz_dict = {}
 
@@ -214,16 +214,16 @@ known_threads = {
     "dollars and cents": SideThread(form=base_n(4)),
     "double increasing": SideThread(form=base_10, comment_to_count=increasing_type_count(2)),
     "fast or slow": SideThread(rule=FastOrSlow()),
-    "four fours": SideThread(form=validate_from_character_list("4")),
+    "four fours": SideThread(form=validate_from_tokens("4")),
     "increasing sequences": SideThread(form=base_10, comment_to_count=increasing_type_count(1)),
     "invisible numbers": SideThread(form=base_n(10, strip_links=False)),
     "isenary": SideThread(form=isenary_form, comment_to_count=isenary_count),
-    "japanese": SideThread(form=validate_from_character_list("一二三四五六七八九十百千")),
+    "japanese": SideThread(form=validate_from_tokens("一二三四五六七八九十百千")),
     "mayan numerals": SideThread(length=800, form=mayan_form),
     "no repeating digits": SideThread(comment_to_count=nrd_count, form=base_10),
     "no_repeating_letters": SideThread(comment_to_count=nrl_count),
     "no successive digits": SideThread(comment_to_count=no_successive_count, form=base_10),
-    "o/l binary": SideThread(form=validate_from_character_list("ol"), length=1024),
+    "o/l binary": SideThread(form=validate_from_tokens("ol"), length=1024),
     "once per thread": SideThread(form=base_10, rule=CountingRule(wait_n=None)),
     "only double counting": SideThread(form=base_10, rule=OnlyDoubleCounting()),
     "only repeating digits": OnlyRepeatingDigits(),
@@ -237,13 +237,13 @@ known_threads = {
     "slow": SideThread(form=base_10, rule=CountingRule(thread_time=MINUTE)),
     "slower": SideThread(form=base_10, rule=CountingRule(user_time=HOUR)),
     "slowestest": SideThread(form=base_10, rule=CountingRule(thread_time=HOUR, user_time=DAY)),
-    "symbols": SideThread(form=validate_from_character_list("!@#$%^&*()")),
+    "symbols": SideThread(form=validate_from_tokens("!@#$%^&*()")),
     "throwaways": SideThread(form=throwaway_form),
     "triple increasing": SideThread(form=base_10, comment_to_count=increasing_type_count(3)),
     "twitter handles": SideThread(length=1369, form=twitter_form),
-    "unary": SideThread(form=validate_from_character_list("|")),
+    "unary": SideThread(form=validate_from_tokens("|")),
     "unicode": SideThread(form=base_n(16), length=1024),
-    "using 12345": SideThread(form=validate_from_character_list("12345")),
+    "using 12345": SideThread(form=validate_from_tokens("12345")),
     "valid brainfuck programs": SideThread(form=brainfuck),
     "wait 10": SideThread(form=base_10, rule=CountingRule(wait_n=10)),
     "wait 2 - letters": SideThread(rule=CountingRule(wait_n=2)),
