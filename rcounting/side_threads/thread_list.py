@@ -173,14 +173,20 @@ def gaussian_integer_count(comment):
     return (2 * corner + 1) ** 2
 
 
-def update_dates(count, chain, was_revival=None):
-    chain = ignore_revivals(chain, was_revival)[:-1]
+def update_dates(count, chain, was_revival=None, previous=False):
+    if previous:
+        chain = ignore_revivals(chain, was_revival)[1:]
+    else:
+        chain = ignore_revivals(chain, was_revival)[:-1]
     regex = r"([,\d]+)$"  # All digits at the end of the line, plus optional separators
     for submission in chain:
         year = int(re.search(regex, submission.title).group().replace(",", ""))
         length = 1095 + any(map(utils.is_leap_year, range(year, year + 3)))
         count += length
     return count
+
+
+update_previous_dates = functools.partial(update_dates, previous=True)
 
 
 def update_from_traversal(count, chain, was_revival):
@@ -197,6 +203,7 @@ known_threads = {
     "balanced ternary": SideThread(form=balanced_ternary, length=729),
     "base 16 roman": SideThread(form=roman_numeral),
     "base 2i": SideThread(form=base_n(4), comment_to_count=gaussian_integer_count),
+    "beenary": SideThread(length=1024, form=validate_from_tokens(["bee", "movie"])),
     "bijective base 2": SideThread(form=base_n(3), length=1024),
     "binary encoded decimal": SideThread(form=base_n(2), comment_to_count=bcd_count),
     "binary encoded hexadecimal": SideThread(form=base_n(2), length=1024),
@@ -228,6 +235,7 @@ known_threads = {
     "only double counting": SideThread(form=base_10, rule=OnlyDoubleCounting()),
     "only repeating digits": OnlyRepeatingDigits(),
     "parentheses": SideThread(form=parentheses_form),
+    "previous dates": SideThread(form=base_10, update_function=update_previous_dates),
     "planetary octal": SideThread(comment_to_count=planetary_count, form=planetary_form),
     "powerball": SideThread(comment_to_count=powerball_count, form=base_10),
     "rainbow": SideThread(comment_to_count=rainbow_count, form=rainbow_form),
@@ -311,6 +319,7 @@ default_threads = [
     "triangular numbers",
     "unordered consecutive digits",
     "william the conqueror",
+    "word association",
 ]
 known_threads.update(
     {thread_name: SideThread(form=base_10, length=1000) for thread_name in default_threads}
@@ -339,7 +348,7 @@ no_validation = {
     "base 62": 992,
     "base 64": 1024,
     "base 93": 930,
-    "beenary": 1024,
+    "bijective base 205": 1025,
     "cards": 676,
     "degrees": 900,
     "iterate each letter": None,
