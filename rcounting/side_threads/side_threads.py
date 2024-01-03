@@ -6,6 +6,7 @@ import math
 import os
 import re
 import string
+from typing import Iterable, Mapping
 
 import numpy as np
 import pandas as pd
@@ -198,6 +199,34 @@ def base_n_count(n: int):
         return parsing.find_count_in_text(comment, base=n)
 
     return comment_to_count
+
+
+def count_from_word_list(
+    comment_body: str,
+    alphabet: str | Iterable[str] | Mapping[str, int] = "0123456789",
+    base: int = 10,
+    ignored_chars: str = ">",
+    threshold: int = 80,
+) -> int:
+    if not isinstance(alphabet, dict):
+        alphabet = {k: p for p, k in enumerate(alphabet)}
+    line = comment_body.split("\n")[0]
+    line = "".join(char for char in line if char not in ignored_chars)
+    words = line.upper().strip().split()
+    candidates = [max((fuzz.ratio(key, word), key) for key in alphabet) for word in words]
+    s = ""
+    for candidate in candidates:
+        if candidate[0] < threshold:
+            break
+        s += str(alphabet[candidate[1]])
+    return int(s, base)
+
+
+isenary = {"THEY'RE": 1, "TAKING": 2, "THE": 3, "HOBBITS": 4, "TO": 5, "ISENGARD": 0, "GARD": 0}
+isenary_count = functools.partial(
+    count_from_word_list, alphabet=isenary, base=6, ignored_chars="!>"
+)
+isenary_form = validate_from_character_list(valid_characters=list(isenary.keys()))
 
 
 def permutation_order(word, alphabet, ordered=False, no_leading_zeros=False):
@@ -604,6 +633,7 @@ known_threads = {
     "four fours": SideThread(form=validate_from_character_list("4")),
     "increasing sequences": SideThread(form=base_10, comment_to_count=increasing_type_count(1)),
     "invisible numbers": SideThread(form=base_n(10, strip_links=False)),
+    "isenary": SideThread(form=isenary_form, comment_to_count=isenary_count),
     "japanese": SideThread(form=validate_from_character_list("一二三四五六七八九十百千")),
     "mayan numerals": SideThread(length=800, form=mayan_form),
     "no repeating digits": SideThread(comment_to_count=no_repeating_count),
