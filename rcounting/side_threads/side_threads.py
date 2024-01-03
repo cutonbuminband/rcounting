@@ -21,7 +21,7 @@ from rcounting.units import DAY, HOUR, MINUTE
 
 printer = logging.getLogger(__name__)
 
-alphanumeric = string.digits + string.ascii_uppercase
+alphanumeric = string.digits + string.ascii_lowercase
 
 
 class CountingRule:
@@ -122,12 +122,12 @@ class OnlyDoubleCounting:
         return pd.DataFrame([comment_to_dict(x) for x in comments])
 
 
-def validate_from_character_list(valid_characters, strip_links=True):
-    def looks_like_count(comment_body):
-        body = comment_body.upper()
+def validate_from_character_list(valid_characters: str | Iterable[str], strip_links=True):
+    def looks_like_count(comment_body: str) -> bool:
+        body = comment_body.lower()
         if strip_links:
             body = parsing.strip_markdown_links(body)
-        return any(character in body for character in valid_characters)
+        return any(character.lower() in body for character in valid_characters)
 
     return looks_like_count
 
@@ -165,10 +165,10 @@ def illion_form(comment_body):
     return fuzz.partial_ratio("illion", comment_body) > 80
 
 
-planets = ["MERCURY", "VENUS", "EARTH", "MARS", "JUPITER", "SATURN", "URANUS", "NEPTUNE"]
+planets = ["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]
 planetary_octal_form = validate_from_character_list(planets)
 
-colors = ["RED", "ORANGE", "YELLOW", "GREEN", "BLUE", "INDIGO", "VIOLET"]
+colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"]
 rainbow_form = validate_from_character_list(colors)
 
 
@@ -212,7 +212,7 @@ def count_from_word_list(
         alphabet = {k: p for p, k in enumerate(alphabet)}
     line = comment_body.split("\n")[0]
     line = "".join(char for char in line if char not in ignored_chars)
-    words = line.upper().strip().split()
+    words = line.lower().strip().split()
     candidates = [max((fuzz.ratio(key, word), key) for key in alphabet) for word in words]
     s = ""
     for candidate in candidates:
@@ -222,7 +222,7 @@ def count_from_word_list(
     return int(s, base)
 
 
-isenary = {"THEY'RE": 1, "TAKING": 2, "THE": 3, "HOBBITS": 4, "TO": 5, "ISENGARD": 0, "GARD": 0}
+isenary = {"they're": 1, "taking": 2, "the": 3, "hobbits": 4, "to": 5, "isengard": 0, "gard": 0}
 isenary_count = functools.partial(
     count_from_word_list, alphabet=isenary, base=6, ignored_chars="!>"
 )
@@ -597,7 +597,7 @@ class OnlyRepeatingDigits(SideThread):
         current_matrix = scipy.sparse.identity(3**self.n, dtype="int", format="csr")
         for i in range(word_length - 1, 0, -1):
             prefix = word[:i]
-            current_char = word[i].upper()
+            current_char = word[i].lower()
             suffixes = alphanumeric[: alphanumeric.index(current_char)]
             states = [self.get_state(prefix + suffix) for suffix in suffixes]
             result += sum(current_matrix[state, self.indices].sum() for state in states)
