@@ -569,7 +569,7 @@ class OnlyRepeatingDigits(SideThread):
         for i in range(word_length - 1, 0, -1):
             prefix = word[:i]
             current_char = word[i].upper()
-            suffixes = alphanumeric[: string.digits.index(current_char)]
+            suffixes = alphanumeric[: alphanumeric.index(current_char)]
             states = [self.get_state(prefix + suffix) for suffix in suffixes]
             result += sum(current_matrix[state, self.indices].sum() for state in states)
             current_matrix *= self.transition_matrix
