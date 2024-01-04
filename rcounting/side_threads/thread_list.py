@@ -241,7 +241,7 @@ known_threads = {
     "letter permutations": SideThread(comment_to_count=letter_permutation_count),
     "mayan numerals": SideThread(length=800, form=mayan_form),
     "no repeating digits": SideThread(comment_to_count=nrd_count, form=base_10),
-    "no_repeating_letters": SideThread(comment_to_count=nrl_count),
+    "no repeating letters": SideThread(comment_to_count=nrl_count),
     "no successive digits": SideThread(comment_to_count=no_successive_count, form=base_10),
     "o/l binary": SideThread(form=validate_from_tokens("ol"), length=1024),
     "once per thread": SideThread(form=base_10, rule=CountingRule(wait_n=None)),
