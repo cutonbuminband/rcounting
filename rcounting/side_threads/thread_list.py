@@ -78,6 +78,18 @@ def permutation_order(word, alphabet, ordered=False, no_leading_zeros=False):
     return first_place_counts + permutation_order(word[1:], new_alphabet, ordered=ordered)
 
 
+def _permutation_count(comment_body, alphabet) -> int:
+    alphabet = alphabet.lower()
+    word = "".join(x for x in comment_body.split("\n")[0].lower() if x in alphabet)
+    l = len(word)
+    shorter_words = sum(math.factorial(i) for i in range(1, l))
+    return shorter_words + permutation_order(word, alphabet[:l]) - 1
+
+
+permutation_count = functools.partial(_permutation_count, alphabet="123456789")
+letter_permutation_count = functools.partial(_permutation_count, alphabet=string.ascii_lowercase)
+
+
 def bcd_count(comment):
     count = f"{parsing.find_count_in_text(comment, base=2):b}"
     digits = [str(int("".join(y for y in x), 2)) for x in utils.chunked(count, 4)]
@@ -226,6 +238,7 @@ known_threads = {
     "invisible numbers": SideThread(form=base_n(10, strip_links=False)),
     "isenary": SideThread(form=isenary_form, comment_to_count=isenary_count),
     "japanese": SideThread(form=validate_from_tokens("一二三四五六七八九十百千")),
+    "letter permutations": SideThread(comment_to_count=letter_permutation_count),
     "mayan numerals": SideThread(length=800, form=mayan_form),
     "no repeating digits": SideThread(comment_to_count=nrd_count, form=base_10),
     "no_repeating_letters": SideThread(comment_to_count=nrl_count),
@@ -235,6 +248,7 @@ known_threads = {
     "only double counting": SideThread(form=base_10, rule=OnlyDoubleCounting()),
     "only repeating digits": OnlyRepeatingDigits(),
     "parentheses": SideThread(form=parentheses_form),
+    "permutations": SideThread(form=base_10, comment_to_count=permutation_count),
     "previous dates": SideThread(form=base_10, update_function=update_previous_dates),
     "planetary octal": SideThread(comment_to_count=planetary_count, form=planetary_form),
     "powerball": SideThread(comment_to_count=powerball_count, form=base_10),
@@ -332,7 +346,6 @@ default_threads = {
     "hoi4 states": 806,
     "ipv4": 1024,
     "lucas numbers": 200,
-    "permutations": 720,
     "seconds minutes hours": 1200,
     "time": 900,
 }
