@@ -18,6 +18,7 @@ from .side_threads import OnlyRepeatingDigits, SideThread, ignore_revivals
 from .validate_count import base_n_count, by_ns_count, count_from_word_list
 from .validate_form import base_n, validate_from_tokens
 
+module_dir = os.path.dirname(__file__)
 printer = logging.getLogger(__name__)
 
 base_10 = base_n(10)
@@ -47,17 +48,28 @@ def illion_form(comment_body):
 
 isenary = {"they're": 1, "taking": 2, "the": 3, "hobbits": 4, "to": 5, "isengard": 0, "gard": 0}
 isenary_form = validate_from_tokens(list(isenary.keys()))
-isenary_count = functools.partial(
-    count_from_word_list, alphabet=isenary, base=6, ignored_chars="!>"
-)
+isenary_count = functools.partial(count_from_word_list, alphabet=isenary, ignored_chars="!>")
 
 planets = ["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]
 planetary_form = validate_from_tokens(planets)
-planetary_count = functools.partial(count_from_word_list, alphabet=planets, base=8)
+planetary_count = functools.partial(count_from_word_list, alphabet=planets)
 
 colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"]
 rainbow_form = validate_from_tokens(colors)
-rainbow_count = functools.partial(count_from_word_list, alphabet=colors, base=7)
+rainbow_count = functools.partial(count_from_word_list, alphabet=colors)
+
+with open(os.path.join(module_dir, "elements.txt"), encoding="utf8") as f:
+    elements = [x.strip() for x in f.readlines()]
+element_form = validate_from_tokens(elements)
+
+
+def element_tokenize(comment_body, _):
+    return re.findall("[A-Z][^A-Z]*", comment_body.split("\n")[0])
+
+
+element_count = functools.partial(
+    count_from_word_list, alphabet=elements, tokenize=element_tokenize, bijective=True
+)
 
 
 def permutation_order(word, alphabet, ordered=False, no_leading_zeros=False):
@@ -248,6 +260,7 @@ known_threads = {
     "only double counting": SideThread(form=base_10, rule=OnlyDoubleCounting()),
     "only repeating digits": OnlyRepeatingDigits(),
     "parentheses": SideThread(form=parentheses_form),
+    "periodic table": SideThread(form=element_form, comment_to_count=element_count),
     "permutations": SideThread(form=base_10, comment_to_count=permutation_count),
     "previous dates": SideThread(form=base_10, update_function=update_previous_dates),
     "planetary octal": SideThread(comment_to_count=planetary_count, form=planetary_form),
@@ -430,7 +443,6 @@ def get_side_thread(thread_name):
     return SideThread()
 
 
-module_dir = os.path.dirname(__file__)
 config = configparser.ConfigParser()
 config.read(os.path.join(module_dir, "side_threads.ini"))
 known_thread_ids = config["threads"]
