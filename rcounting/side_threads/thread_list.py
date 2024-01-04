@@ -326,6 +326,7 @@ default_threads = [
     "by meters",
     "by one-hundredths",
     "california license plates",
+    "chess matches",
     "decimal",
     "four squares",
     "n read as base n number",
@@ -425,7 +426,7 @@ default_thread_unknown_length = [
 
 
 def get_side_thread(thread_name):
-    """Return the properties of the side thread with first post thread_id"""
+    """Return the properties of the side thread with name thread_name"""
     if thread_name in known_threads:
         return known_threads[thread_name]
     if thread_name in default_thread_unknown_length:
