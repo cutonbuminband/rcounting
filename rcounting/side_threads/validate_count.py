@@ -1,3 +1,4 @@
+import functools
 from typing import Iterable, Mapping
 
 from fuzzywuzzy import fuzz
@@ -26,16 +27,17 @@ def count_from_word_list(
     base: int = 10,
     ignored_chars: str = ">",
     threshold: int = 80,
+    bijective=False,
 ) -> int:
     if not isinstance(alphabet, dict):
-        alphabet = {k: p for p, k in enumerate(alphabet)}
+        alphabet = {k: p + int(bijective) for p, k in enumerate(alphabet)}
     line = comment_body.split("\n")[0]
     line = "".join(char for char in line if char not in ignored_chars)
     words = line.lower().strip().split()
     candidates = [max((fuzz.ratio(key, word), key) for key in alphabet) for word in words]
-    s = ""
+    values = []
     for candidate in candidates:
         if candidate[0] < threshold:
             break
-        s += str(alphabet[candidate[1]])
-    return int(s, base)
+        values.append(alphabet[candidate[1]])
+    return functools.reduce(lambda x, y: base * x + y, values)
