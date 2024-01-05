@@ -203,6 +203,25 @@ def gaussian_integer_count(comment):
     return (2 * corner + 1) ** 2
 
 
+def get_base_powers(n, b):
+    r = []
+    while n:
+        r.append(n % b)
+        n = n // b
+    return r[::-1]
+
+
+def palindrome_count(comment_body: str, b=10) -> int:
+    count = parsing.find_count_in_text(comment_body, b)
+    digits = get_base_powers(count, b)
+    l = math.ceil(len(digits) / 2)
+    return functools.reduce(lambda x, y: b * x + y, digits[:l]) + b ** (l - len(digits) % 2)
+
+
+binary_palindrome_count = functools.partial(palindrome_count, b=2)
+hex_palindrome_count = functools.partial(palindrome_count, b=16)
+
+
 def update_dates(count, chain, was_revival=None, previous=False):
     if previous:
         chain = ignore_revivals(chain, was_revival)[1:]
@@ -237,6 +256,7 @@ known_threads = {
     "bijective base 2": SideThread(form=base_n(3), length=1024),
     "binary encoded decimal": SideThread(form=base_n(2), comment_to_count=bcd_count),
     "binary encoded hexadecimal": SideThread(form=base_n(2), length=1024),
+    "binary palindromes": SideThread(form=base_n(2), comment_to_count=binary_palindrome_count),
     "by 3s in base 7": SideThread(form=base_n(7)),
     "by 3s": SideThread(comment_to_count=by_ns_count(3)),
     "by 4s": SideThread(comment_to_count=by_ns_count(4)),
@@ -252,6 +272,7 @@ known_threads = {
     "double increasing": SideThread(form=base_10, comment_to_count=increasing_type_count(2)),
     "fast or slow": SideThread(rule=FastOrSlow()),
     "four fours": SideThread(form=validate_from_tokens("4")),
+    "hexadecimal palindromes": SideThread(form=base_n(16), comment_to_count=hex_palindrome_count),
     "increasing sequences": SideThread(form=base_10, comment_to_count=increasing_type_count(1)),
     "invisible numbers": SideThread(form=base_n(10, strip_links=False)),
     "isenary": SideThread(form=isenary_form, comment_to_count=isenary_count),
@@ -266,6 +287,7 @@ known_threads = {
     "only double counting": SideThread(form=base_10, rule=OnlyDoubleCounting()),
     "only repeating digits": OnlyRepeatingDigits(),
     "ordered pairs": SideThread(form=base_10, comment_to_count=ordered_pairs_count),
+    "palindromes": SideThread(form=base_10, comment_to_count=palindrome_count),
     "parentheses": SideThread(form=parentheses_form),
     "periodic table": SideThread(form=element_form, comment_to_count=element_count),
     "permutations": SideThread(form=base_10, comment_to_count=permutation_count),
@@ -339,7 +361,6 @@ default_threads = [
     "n read as base n number",
     "negative numbers",
     "no consecutive digits",
-    "palindromes",
     "powers of 2",
     "previous dates",
     "prime factorization",
