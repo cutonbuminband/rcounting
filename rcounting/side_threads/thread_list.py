@@ -142,14 +142,11 @@ def no_successive_count(comment):
 u_squares = [11035, 65039, 129003, 129002, 128998, 129001, 129000, 128999, 128997, 11036]
 colored_squares_form = validate_from_tokens([chr(x) for x in u_squares])
 
-collatz_dict = {}
 
-
+@functools.cache
 def collatz(n):
     if n == 1:
         return 1
-    if n in collatz_dict:
-        return collatz_dict[n]
     if n % 2 == 0:
         return 1 + collatz(n // 2)
     return 1 + collatz(3 * n + 1)
