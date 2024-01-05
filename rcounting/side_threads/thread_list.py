@@ -92,7 +92,7 @@ def permutation_order(word, alphabet, ordered=False, no_leading_zeros=False):
 
 def _permutation_count(comment_body, alphabet) -> int:
     alphabet = alphabet.lower()
-    word = "".join(x for x in comment_body.split("\n")[0].lower() if x in alphabet)
+    word = "".join(x for x in parsing.normalize_comment(comment_body).lower() if x in alphabet)
     l = len(word)
     shorter_words = sum(math.factorial(i) for i in range(1, l))
     return shorter_words + permutation_order(word, alphabet[:l]) - 1
@@ -115,7 +115,9 @@ def nrd_count(comment):
 
 
 def nrl_count(comment):
-    line = comment.split("\n")[0].strip().lower()
+    line = "".join(
+        x for x in parsing.normalize_comment(comment).lower() if x in string.ascii_lowercase
+    )
     shorter_words = sum(math.perm(26, i) for i in range(1, len(line)))
     return shorter_words + permutation_order(line, string.ascii_lowercase)
 

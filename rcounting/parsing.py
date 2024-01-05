@@ -95,7 +95,7 @@ def body_from_title(title):
 def normalize_comment(comment):
     first_line = comment.split("\n")[0]
     no_links = strip_markdown_links(first_line)
-    return no_links
+    return no_links.strip()
 
 
 def parse_directory_page(directory_page):
