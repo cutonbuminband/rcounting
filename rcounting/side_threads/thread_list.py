@@ -159,6 +159,13 @@ def collatz_count(comment):
     return sum(collatz(i) for i in range(1, current)) + steps
 
 
+def ordered_pairs_count(comment_body):
+    # A set of brackets containing two integers, separated by at least one non-integer
+    regex = r"\(([0-9]+)[^0-9]+([0-9]+)\)"
+    x, y = map(int, re.search(regex, comment_body).groups())
+    return x**2 + y if y <= x else y**2 + 2 * y - x
+
+
 # an int, then a bracketed int, maybe with a plus or a minus after it
 wave_regex = r"(-?\d+).*\((\d+)[\+-]?\)"
 double_wave_regex = r"(-?\d+).*\((\d+)\).*\((\d+)\)"
@@ -259,6 +266,7 @@ known_threads = {
     "once per thread": SideThread(form=base_10, rule=CountingRule(wait_n=None)),
     "only double counting": SideThread(form=base_10, rule=OnlyDoubleCounting()),
     "only repeating digits": OnlyRepeatingDigits(),
+    "ordered pairs": SideThread(form=base_10, comment_to_count=ordered_pairs_count),
     "parentheses": SideThread(form=parentheses_form),
     "periodic table": SideThread(form=element_form, comment_to_count=element_count),
     "permutations": SideThread(form=base_10, comment_to_count=permutation_count),
