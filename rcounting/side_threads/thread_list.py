@@ -108,13 +108,13 @@ letter_permutation_count = functools.partial(_permutation_count, alphabet=string
 
 
 def bcd_count(comment):
-    count = f"{parsing.find_count_in_text(comment, base=2):b}"
+    count = parsing.extract_count_string(comment, base=2)
     digits = [str(int("".join(y for y in x), 2)) for x in utils.chunked(count, 4)]
     return int("".join(digits))
 
 
 def nrd_count(comment):
-    normalized_comment = str(parsing.find_count_in_text(comment))
+    normalized_comment = parsing.extract_count_string(comment)
     result = 9 * sum(math.perm(9, i - 1) for i in range(1, len(normalized_comment)))
     return result + permutation_order(normalized_comment, string.digits, no_leading_zeros=True)
 
@@ -135,7 +135,7 @@ def powerball_count(comment):
 
 
 def no_successive_count(comment):
-    word = str(parsing.find_count_in_text(comment))
+    word = parsing.extract_count_string(comment)
     result = sum(9**i for i in range(1, len(word)))
     previous_i = "0"
     for ix, i in enumerate(word[:-1]):
@@ -203,7 +203,7 @@ def triangle_n_dimension(n, value):
 
 
 def gaussian_integer_count(comment):
-    digits = str(parsing.find_count_in_text(comment))
+    digits = parsing.extract_count_string(comment, base=4)
     corner = sum((-4) ** ix * int(digit) for ix, digit in enumerate(digits[::-2]))
     return (2 * corner + 1) ** 2
 

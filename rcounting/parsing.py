@@ -8,9 +8,9 @@ def find_body(post):
     return post.body if hasattr(post, "body") else post.selftext
 
 
-def find_count_in_text(body: str, base: int = 10):
+def extract_count_string(body: str, base: int = 10):
     """
-    Extract an integer from a textual representation of a count in base n.
+    Extract a normalized base n representation of an integer from a messy comment.
     Try to account for various strategies for separating thousands digits.
     """
     characters = "0123456789abcdefghijklmnopqrstuvwxyz"[:base]
@@ -18,12 +18,15 @@ def find_count_in_text(body: str, base: int = 10):
     first_line = "".join(normalize_comment(body).split()).translate(
         str.maketrans("", "", separators)
     )
-
     match = re.search(f"[{characters}]+", first_line.lower())
     if match is not None:
-        return int(match.group(), base)
-
+        return match.group()
     raise ValueError(f"Unable to extract count in base {base} from comment body: {body}")
+
+
+def find_count_in_text(body: str, base: int = 10):
+    """Extract a base n integeger from a string, relying on `extract_count_string`"""
+    return int(extract_count_string(body, base), base)
 
 
 def wrapped_count_in_text(body: str, base: int = 10):
