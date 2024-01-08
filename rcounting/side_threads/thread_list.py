@@ -58,6 +58,11 @@ colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"]
 rainbow_form = validate_from_tokens(colors)
 rainbow_count = functools.partial(count_from_word_list, alphabet=colors)
 
+with open(os.path.join(module_dir, "us_states.txt"), encoding="utf8") as f:
+    us_states = [x.strip().lower() for x in f.readlines()]
+us_states_form = validate_from_tokens(us_states)
+us_states_count = functools.partial(count_from_word_list, alphabet=us_states, bijective=True)
+
 with open(os.path.join(module_dir, "elements.txt"), encoding="utf8") as f:
     elements = [x.strip() for x in f.readlines()]
 element_form = validate_from_tokens(elements)
@@ -307,6 +312,7 @@ known_threads = {
     "twitter handles": SideThread(length=1369, form=twitter_form),
     "unary": SideThread(form=validate_from_tokens("|")),
     "unicode": SideThread(form=base_n(16), length=1024),
+    "us states": SideThread(form=us_states_form, comment_to_count=us_states_count),
     "using 12345": SideThread(form=validate_from_tokens("12345")),
     "valid brainfuck programs": SideThread(form=brainfuck),
     "wait 10": SideThread(form=base_10, rule=CountingRule(wait_n=10)),
