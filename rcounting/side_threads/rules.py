@@ -78,7 +78,7 @@ class FastOrSlow(CountingRule):
         return valid_time
 
 
-class OnlyDoubleCounting:
+class OnlyDoubleCounting(CountingRule):
     """
     Only double counting is sufficiently strange that it gets its own class.
 

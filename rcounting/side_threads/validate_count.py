@@ -15,8 +15,8 @@ def by_ns_count(n):
 
 
 def base_n_count(n: int):
-    def comment_to_count(comment):
-        return parsing.find_count_in_text(comment, base=n)
+    def comment_to_count(comment_body: str):
+        return parsing.find_count_in_text(comment_body, base=n)
 
     return comment_to_count
 

@@ -20,5 +20,5 @@ def base_n(n=10, strip_links=True):
     return validate_from_tokens(alphanumeric[:n], strip_links)
 
 
-def permissive(comment_body: str) -> bool:
+def permissive(_: str) -> bool:
     return True

@@ -1,4 +1,3 @@
-import functools
 import logging
 import os
 import sqlite3
@@ -106,5 +105,4 @@ def update_counters_table(db):
 
 
 def base_count(df):
-    extract_count = functools.partial(parsing.find_count_in_text, raise_exceptions=False)
-    return int(round((df["body"].apply(extract_count) - df.index).median(), -3))
+    return int(round((df["body"].apply(parsing.wrapped_count_in_text) - df.index).median(), -3))

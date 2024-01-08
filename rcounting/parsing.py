@@ -8,7 +8,7 @@ def find_body(post):
     return post.body if hasattr(post, "body") else post.selftext
 
 
-def find_count_in_text(body, base=10, raise_exceptions=True):
+def find_count_in_text(body: str, base: int = 10):
     """
     Extract an integer from a textual representation of a count in base n.
     Try to account for various strategies for separating thousands digits.
@@ -23,9 +23,14 @@ def find_count_in_text(body, base=10, raise_exceptions=True):
     if match is not None:
         return int(match.group(), base)
 
-    if raise_exceptions:
-        raise ValueError(f"Unable to extract count in base {base} from comment body: {body}")
-    return float("nan")
+    raise ValueError(f"Unable to extract count in base {base} from comment body: {body}")
+
+
+def wrapped_count_in_text(body: str, base: int = 10):
+    try:
+        return find_count_in_text(body, base)
+    except ValueError:
+        return float("nan")
 
 
 def find_urls_in_text(body):

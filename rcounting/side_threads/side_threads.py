@@ -2,6 +2,7 @@ import collections
 import functools
 import logging
 import math
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -62,9 +63,9 @@ class SideThread:
     def __init__(
         self,
         rule=default_rule,
-        form=permissive,
-        length=None,
-        comment_to_count=None,
+        form: Callable[[str], bool] = permissive,
+        length: int | None = None,
+        comment_to_count: Callable[[str], int] | None = None,
         update_function=None,
     ):
         self.form = form
