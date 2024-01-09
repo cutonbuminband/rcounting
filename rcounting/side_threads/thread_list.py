@@ -171,6 +171,12 @@ def ordered_pairs_count(comment_body):
     return x**2 + y if y <= x else y**2 + 2 * y - x
 
 
+def rgb_count(comment_body: str):
+    first_line = parsing.normalize_comment(comment_body)
+    values = map(int, re.findall(r"\d+", first_line))
+    return functools.reduce(lambda x, y: 256 * x + y, values)
+
+
 # an int, then a bracketed int, maybe with a plus or a minus after it
 wave_regex = r"(-?\d+).*\((\d+)[\+-]?\)"
 double_wave_regex = r"(-?\d+).*\((\d+)\).*\((\d+)\)"
@@ -316,6 +322,7 @@ known_threads = {
     "powerball": SideThread(comment_to_count=powerball_count, form=base_10),
     "rainbow": SideThread(comment_to_count=rainbow_count, form=rainbow_form),
     "reddit usernames": SideThread(length=722, form=reddit_username_form),
+    "rgb values": SideThread(form=base_10, comment_to_count=rgb_count),
     "roman progressbar": SideThread(form=roman_numeral),
     "roman": SideThread(form=roman_numeral),
     "slow": SideThread(form=base_10, rule=CountingRule(thread_time=MINUTE)),
