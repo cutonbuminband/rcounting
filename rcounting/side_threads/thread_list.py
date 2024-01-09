@@ -7,6 +7,7 @@ import re
 import string
 
 from fuzzywuzzy import fuzz
+from scipy.special import binom
 
 from rcounting import parsing
 from rcounting import thread_navigation as tn
@@ -227,6 +228,19 @@ binary_palindrome_count = functools.partial(palindrome_count, b=2)
 hex_palindrome_count = functools.partial(palindrome_count, b=16)
 
 
+def cw_binary_count(comment_body):
+    bits = parsing.extract_count_string(comment_body, base=2)
+    shorter_counts = 2 ** len(bits) - 1
+    fewer_ones = sum(int(binom(len(bits), ones)) for ones in range(bits.count("1")))
+    earlier_counts = 0
+    ones = 1
+    for i, bit in enumerate(reversed(bits)):
+        if bit == "1":
+            earlier_counts += int(binom(i, ones))
+            ones += 1
+    return shorter_counts + fewer_ones + earlier_counts
+
+
 def update_dates(count, chain, was_revival=None, previous=False):
     if previous:
         chain = ignore_revivals(chain, was_revival)[1:]
@@ -270,6 +284,7 @@ known_threads = {
     "by 99s": SideThread(comment_to_count=by_ns_count(99)),
     "collatz conjecture": SideThread(comment_to_count=collatz_count, form=base_10),
     "colored squares": SideThread(form=colored_squares_form, length=729),
+    "constant weight binary": SideThread(form=base_n(2), comment_to_count=cw_binary_count),
     "cyclical bases": SideThread(form=base_n(16)),
     "dates": SideThread(form=base_10, update_function=update_dates),
     "decimal encoded sexagesimal": SideThread(length=900, form=base_10),
