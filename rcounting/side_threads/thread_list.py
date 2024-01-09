@@ -247,6 +247,34 @@ def cw_binary_count(comment_body):
     return shorter_counts + fewer_ones + earlier_counts
 
 
+@functools.cache
+def mahonian(n, k):
+    if n == 1 and k == 0:
+        return 1
+    if n < 0 or k < 0 or k > n * (n - 1) / 2:
+        return 0
+    return mahonian(n, k - 1) + mahonian(n - 1, k) - mahonian(n - 1, k - n)
+
+
+# See https://old.reddit.com/r/counting/comments/18z0of2/free_talk_friday_436/kgii6c0/
+def cw_factoradic_count(comment_body, base=10):
+    count_string = parsing.extract_count_string(comment_body, base=base)
+    digits = [int(char, base) for char in count_string]
+
+    shorter_counts = sum(math.factorial(d + 1) for d in range(len(digits)))
+    smaller_weights = sum(mahonian(len(digits) + 1, w) for w in range(sum(digits)))
+
+    earlier_counts = 0
+    k = 1
+    for i, digit in enumerate(reversed(digits)):
+        while digit > 0:
+            earlier_counts += mahonian(i + 1, k)
+            k += 1
+            digit -= 1
+
+    return shorter_counts + smaller_weights + earlier_counts
+
+
 def update_dates(count, chain, was_revival=None, previous=False):
     if previous:
         chain = ignore_revivals(chain, was_revival)[1:]
@@ -290,6 +318,7 @@ known_threads = {
     "by 99s": SideThread(comment_to_count=by_ns_count(99)),
     "collatz conjecture": SideThread(comment_to_count=collatz_count, form=base_10),
     "colored squares": SideThread(form=colored_squares_form, length=729),
+    "constant sum factoradic": SideThread(form=base_10, comment_to_count=cw_factoradic_count),
     "constant weight binary": SideThread(form=base_n(2), comment_to_count=cw_binary_count),
     "cyclical bases": SideThread(form=base_n(16)),
     "dates": SideThread(form=base_10, update_function=update_dates),
