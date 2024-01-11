@@ -14,6 +14,73 @@ from .side_threads import SideThread
 from .validate_form import alphanumeric, base_n
 
 
+class DFA:
+    """Generate and store transition matrices for discrete finite automate
+    which track what happens when a word from an alphabet of size n_symbols is
+    extended by one symbol. Calculating these is computationally expensive, so
+    the code caches them for later use.
+
+    """
+
+    def __init__(self, n_symbols: int, n_states: int):
+        self.n_states = n_states
+        self.n_symbols = n_symbols
+        self.lookup = {str(i): str(min(i + 1, n_states - 1)) for i in range(n_states)}
+        self.transitions = [
+            scipy.sparse.eye(self.n_states**self.n_symbols, dtype=int, format="csr")
+        ]
+        self.transition_matrix = None
+
+    def __getitem__(self, i):
+        if self.transition_matrix is None:
+            self.transition_matrix = self._generate_transition_matrix()
+        while len(self.transitions) <= i:
+            self.transitions.append(self.transitions[-1] * self.transition_matrix)
+
+        return self.transitions[i]
+
+    def _connections(self, i):
+        state = np.base_repr(i, self.n_states).zfill(self.n_symbols)
+        js = [
+            int(state[:ix] + self.lookup[x] + state[ix + 1 :], self.n_states)
+            for ix, x in enumerate(state)
+        ]
+        result = defaultdict(int)
+        for j in js:
+            if j == 1:
+                continue
+            result[j] += 1
+        return (
+            len(result),
+            np.array(list(result.keys()), dtype=int),
+            np.array(list(result.values()), dtype=int),
+        )
+
+    def _generate_transition_matrix(self):
+        data = np.zeros(self.n_symbols * self.n_states**self.n_symbols, dtype=int)
+        x = np.zeros(self.n_symbols * self.n_states**self.n_symbols, dtype=int)
+        y = np.zeros(self.n_symbols * self.n_states**self.n_symbols, dtype=int)
+        ix = 0
+        for i in range(self.n_states**self.n_symbols):
+            length, js, new_data = self._connections(i)
+            x[ix : ix + length] = i
+            y[ix : ix + length] = js
+            data[ix : ix + length] = new_data
+            ix += length
+        return scipy.sparse.coo_matrix(
+            (data[:ix], (x[:ix], y[:ix])),
+            shape=(self.n_states**self.n_symbols, self.n_states**self.n_symbols),
+        )
+
+    def get_state(self, state):
+        """Converts a word to an integer encoding of the corresponding state vector"""
+        counts = Counter(state)
+        return sum(
+            (self.n_states**pos) * min(self.n_states - 1, counts[digit])
+            for pos, digit in enumerate(alphanumeric[: self.n_symbols])
+        )
+
+
 def count_only_repeating_words(n, k, bijective=False):
     """The number of words of length k where no digit is present exactly once"""
     # The idea is to use the inclusion-exclusion principle, starting with
@@ -81,13 +148,14 @@ class DFASideThread(SideThread):
 
     """
 
-    def __init__(self, dfa_base, n=10, rule=default_rule):
-        form = base_n(n)
+    def __init__(self, dfa_base=3, n=10, rule=default_rule, dfa: DFA | None = None):
         self.n = n
-        self.dfa_base = dfa_base
-        self.lookup = {str(i): str(min(i + 1, dfa_base - 1)) for i in range(self.dfa_base)}
+        form = base_n(n)
+        if dfa is not None:
+            self.dfa = dfa
+        else:
+            self.dfa = DFA(n, dfa_base)
         self.indices = None
-        self.transition_matrix = None
 
         # Some of the threads skip the single-digit counts which would
         # otherwhise be valid, so we add an offset to account for that
@@ -100,48 +168,7 @@ class DFASideThread(SideThread):
         super().__init__(rule=rule, form=form, comment_to_count=self.count)
 
     def _setup(self):
-        self.transition_matrix = self._make_dfa()
         self.indices = self._generate_indices()
-
-    def _connections(self, i):
-        state = np.base_repr(i, self.dfa_base).zfill(self.n)
-        js = [
-            int(state[:ix] + self.lookup[x] + state[ix + 1 :], self.dfa_base)
-            for ix, x in enumerate(state)
-        ]
-        result = defaultdict(int)
-        for j in js:
-            if j == 1:
-                continue
-            result[j] += 1
-        return (
-            len(result),
-            np.array(list(result.keys()), dtype=int),
-            np.array(list(result.values()), dtype=int),
-        )
-
-    def _make_dfa(self):
-        data = np.zeros(self.n * self.dfa_base**self.n, dtype=int)
-        x = np.zeros(self.n * self.dfa_base**self.n, dtype=int)
-        y = np.zeros(self.n * self.dfa_base**self.n, dtype=int)
-        ix = 0
-        for i in range(self.dfa_base**self.n):
-            length, js, new_data = self._connections(i)
-            x[ix : ix + length] = i
-            y[ix : ix + length] = js
-            data[ix : ix + length] = new_data
-            ix += length
-        return scipy.sparse.coo_matrix(
-            (data[:ix], (x[:ix], y[:ix])), shape=(self.dfa_base**self.n, self.dfa_base**self.n)
-        )
-
-    def get_state(self, state):
-        """Converts a word to an integer encoding of the corresponding state vector"""
-        counts = Counter(state)
-        return sum(
-            (self.dfa_base**pos) * min(self.dfa_base - 1, counts[digit])
-            for pos, digit in enumerate(alphanumeric[: self.n])
-        )
 
     def complete_words(self, _):
         raise NotImplementedError(
@@ -152,7 +179,7 @@ class DFASideThread(SideThread):
     def word_is_valid(self, word):
         if self.indices is None:
             self.indices = self._generate_indices()
-        return self.get_state(word) in self.indices
+        return self.dfa.get_state(word) in self.indices
 
     def _generate_indices(self):
         raise NotImplementedError(
@@ -161,7 +188,7 @@ class DFASideThread(SideThread):
         )
 
     def count(self, comment_body: str) -> int:
-        if self.indices is None or self.transition_matrix is None:
+        if self.indices is None:
             self._setup()
         word = parsing.extract_count_string(comment_body, self.n).lower()
         word_length = len(word)
@@ -177,17 +204,20 @@ class DFASideThread(SideThread):
         else:
             enumeration = 0
             lower_limit = -1
-        current_matrix = scipy.sparse.eye(self.dfa_base**self.n, dtype=int, format="csr")
         for i in range(word_length - 1, lower_limit, -1):
+            current_matrix = self.dfa[word_length - 1 - i]
             prefix = word[:i]
             current_char = word[i]
             suffixes = alphanumeric[: alphanumeric.index(current_char)]
             if i == 0:
                 suffixes = suffixes[1:]
-            states = [self.get_state(prefix + suffix) for suffix in suffixes]
+            states = [self.dfa.get_state(prefix + suffix) for suffix in suffixes]
             enumeration += sum(current_matrix[state, self.indices].sum() for state in states)
-            current_matrix *= self.transition_matrix
         return shorter_words + enumeration + self.word_is_valid(word) - self.offset
+
+
+dfa_10_2 = DFA(10, 2)
+dfa_10_3 = DFA(10, 3)
 
 
 class OnlyRepeatingDigits(DFASideThread):
@@ -196,7 +226,7 @@ class OnlyRepeatingDigits(DFASideThread):
     See the base class, `DFASideThread` for a description of the approach"""
 
     def __init__(self, n=10, rule=default_rule):
-        super().__init__(n=n, rule=rule, dfa_base=3)
+        super().__init__(n=n, rule=rule, dfa=dfa_10_3)
 
     def _generate_indices(self):
         """Valid states are those which have no ones in their ternary
@@ -213,7 +243,7 @@ class MostlyRepeatingDigits(DFASideThread):
     See the base class, `DFASideThread` for a description of the approach"""
 
     def __init__(self, n=10, rule=default_rule):
-        super().__init__(n=n, rule=rule, dfa_base=3)
+        super().__init__(n=n, rule=rule, dfa=dfa_10_3)
 
     def add_one(self, state):
         candidates = []
@@ -266,7 +296,7 @@ class OnlyConsecutiveDigits(DFASideThread):
     `DFASideThread for a description of the approach`"""
 
     def __init__(self, n=10, rule=default_rule):
-        super().__init__(n=n, rule=rule, dfa_base=2)
+        super().__init__(n=n, rule=rule, dfa=dfa_10_2)
         self.offset = 9
         self.is_homogeneous = False
 
