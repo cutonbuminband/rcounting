@@ -1,13 +1,9 @@
-import collections
 import functools
-import itertools
 import logging
-import math
 from typing import Callable
 
 import numpy as np
 import pandas as pd
-import scipy.sparse
 
 from rcounting import counters, parsing
 from rcounting import thread_navigation as tn
@@ -16,7 +12,7 @@ from rcounting.models import comment_to_dict
 
 from .rules import default_rule
 from .validate_count import base_n_count
-from .validate_form import alphanumeric, base_n, permissive
+from .validate_form import permissive
 
 printer = logging.getLogger(__name__)
 
@@ -27,7 +23,7 @@ def ignore_revivals(chain, was_revival):
 
 def make_title_updater(comment_to_count):
     @functools.wraps(comment_to_count)
-    def wrapper(old_count, chain, was_revival=None):
+    def wrapper(_, chain, was_revival=None):
         chain = ignore_revivals(chain, was_revival)
         title = chain[-1].title
         return comment_to_count(parsing.body_from_title(title))
@@ -165,174 +161,3 @@ class SideThread:
         errors[: errors.where((~errors)).last_valid_index()] = False
         mask = errors & (counts.diff() != 1) & (counts.diff(2) != 2)
         return history[mask]
-
-
-def count_only_repeating_words(n, k, bijective=False):
-    """The number of words of length k where no digit is present exactly once"""
-    # The idea is to use the inclusion-exclusion principle, starting with
-    # all n ^ k possible words. We then subtract all words where a given
-    # symbol occurrs only once. For each symbol there are k * (n-1) ^ (k-1)
-    # such words since there are k slots for the symbol of interest, and
-    # the remaining slots must be filled with one of the remaining symbols.
-    # There are thus n * k * (n-1)^ *(k-1) words where one symbol occurs
-    # only once. But this double counts all the cases where two symbols
-    # occur only once, so we have to add them back in. In general, there
-    # are (n-i)^(n-i) * C(n,i) * P(k,i) words where i symbols occur only
-    # once, giving the expression:
-
-    total = sum(
-        (-1) ** i * (n - i) ** (k - i) * math.comb(n, i) * math.perm(k, i)
-        for i in range(0, min(n, k) + 1)
-    )
-
-    # The correction factor (n-1)/n accounts for the words which would
-    # start with a 0
-    return total if bijective else total * (n - 1) // n
-
-
-class RepeatingDigits(SideThread):
-    """A class that describes the only and mostly repeating digits side threads.
-
-    The rule and form attributes of the side threads are the same as for base
-    n; no validation that each digit actually occurs the correct number of
-    times is currently done.
-
-    The main aspect of this class is the update function, which is mathematically
-    quite heavy. To count the number of possible *-repeating digits strings,
-    we build a transition matrix where the states for each digits are
-      - Seen 0 times
-      - Seen 1 time
-      - Seen 2 or more times
-
-    We can then use this transistion matrix to find the success states that
-    start with a given prefix and iterate a number of times
-
-    For strings of length n, we count the success states by looking at the
-    nth power of the transition matrix.
-
-    The approach is exactly the same for ORD and MRD, with the only difference
-    being the indices that define a success, and how to account for
-    shorter-length words
-
-    """
-
-    def __init__(self, n=10, rule=default_rule):
-        form = base_n(n)
-        self.n = n
-        self.lookup = {"0": "1", "1": "2", "2": "2"}
-        self.indices = None
-        self.transition_matrix = self.make_dfa()
-        super().__init__(rule=rule, form=form, comment_to_count=self.count)
-
-    def connections(self, i):
-        base3 = np.base_repr(i, 3).zfill(self.n)
-        js = [int(base3[:ix] + self.lookup[x] + base3[ix + 1 :], 3) for ix, x in enumerate(base3)]
-        result = collections.defaultdict(int)
-        for j in js:
-            if j == 1:
-                continue
-            result[j] += 1
-        return (
-            len(result),
-            np.array(list(result.keys()), dtype=int),
-            np.array(list(result.values()), dtype=int),
-        )
-
-    def make_dfa(self):
-        data = np.zeros(self.n * 3**self.n, dtype=int)
-        x = np.zeros(self.n * 3**self.n, dtype=int)
-        y = np.zeros(self.n * 3**self.n, dtype=int)
-        ix = 0
-        for i in range(3**self.n):
-            length, js, new_data = self.connections(i)
-            x[ix : ix + length] = i
-            y[ix : ix + length] = js
-            data[ix : ix + length] = new_data
-            ix += length
-        return scipy.sparse.coo_matrix(
-            (data[:ix], (x[:ix], y[:ix])), shape=(3**self.n, 3**self.n)
-        )
-
-    def get_state(self, state):
-        counts = collections.Counter(state)
-        trits = [min(2, counts[digit]) for digit in alphanumeric[: self.n][::-1]]
-        return functools.reduce(lambda x, y: 3 * x + y, trits)
-
-    def complete_words(self, _):
-        raise NotImplementedError(
-            "Attempting to call `complete_words` on the base class. "
-            + "Give an implementation for it in the subclass!"
-        )
-
-    def count(self, comment_body: str) -> int:
-        word = parsing.extract_count_string(comment_body, self.n).lower()
-        word_length = len(word)
-        if word_length < 2:
-            return 0
-
-        shorter_words = sum(self.complete_words(i) for i in range(1, word_length))
-        smaller_first_digit = (
-            (int(word[0], self.n) - 1) * self.complete_words(word_length) // (self.n - 1)
-        )
-        enumeration = 0
-        current_matrix = scipy.sparse.eye(3**self.n, dtype=int, format="csr")
-        for i in range(word_length - 1, 0, -1):
-            prefix = word[:i]
-            current_char = word[i]
-            suffixes = alphanumeric[: alphanumeric.index(current_char)]
-            states = [self.get_state(prefix + suffix) for suffix in suffixes]
-            enumeration += sum(current_matrix[state, self.indices].sum() for state in states)
-            current_matrix *= self.transition_matrix
-        return shorter_words + smaller_first_digit + enumeration + 1
-
-
-class OnlyRepeatingDigits(RepeatingDigits):
-    """A class that describes the only repeating digits side thread.
-
-    See the base class, `RepeatingDigits`` for a description of the magic"""
-
-    def __init__(self, n=10, rule=default_rule):
-        super().__init__(n=n, rule=rule)
-        self.indices = [int("".join(x), 3) for x in itertools.product("02", repeat=n)]
-
-    def complete_words(self, k):
-        return count_only_repeating_words(self.n, k)
-
-
-class MostlyRepeatingDigits(RepeatingDigits):
-    """A class that describes the mostly repeating digits side thread.
-
-    See the base class, `RepeatingDigits`` for a description of the magic"""
-
-    def __init__(self, n=10, rule=default_rule):
-        super().__init__(n=n, rule=rule)
-        # The [1:] at the end is because one-digit strings are apparently not
-        # valid in MRD.
-        indices = ["".join(x) for x in itertools.product("02", repeat=n)][1:]
-        self.indices = [
-            updated_index for state in indices for updated_index in self.add_one(state)
-        ]
-
-    def add_one(self, state):
-        candidates = []
-        for ix, char in enumerate(state):
-            if char == "0":
-                candidates.append(state[:ix] + "1" + state[ix + 1 :])
-
-        return [int(candidate, 3) for candidate in candidates]
-
-    def complete_words(self, k):
-        # For a given length k, the total number of MRD words in base n is
-        # found as:
-        #
-        # k * n * ORD(n-1, k-1)
-        #
-        # That's because we have n symbols which could occur once, and then
-        # (n-1) symbols which should be a valid ORD word of length (k - 1). The
-        # final factor of k is due to the fact that the lone symbol could
-        # appear anywhere in the final word.
-        # For actual MRD counts, we're not allowed to start words with 0, which
-        # means we should multiply by (n-1) / n, giving the final result
-        if k < 3:
-            return 0
-        return (self.n - 1) * k * count_only_repeating_words(self.n, k, bijective=True)
