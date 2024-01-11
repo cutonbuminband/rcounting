@@ -81,29 +81,6 @@ class DFA:
         )
 
 
-def count_only_repeating_words(n, k, bijective=False):
-    """The number of words of length k where no digit is present exactly once"""
-    # The idea is to use the inclusion-exclusion principle, starting with
-    # all n ^ k possible words. We then subtract all words where a given
-    # symbol occurrs only once. For each symbol there are k * (n-1) ^ (k-1)
-    # such words since there are k slots for the symbol of interest, and
-    # the remaining slots must be filled with one of the remaining symbols.
-    # There are thus n * k * (n-1)^ *(k-1) words where one symbol occurs
-    # only once. But this double counts all the cases where two symbols
-    # occur only once, so we have to add them back in. In general, there
-    # are (n-i)^(n-i) * C(n,i) * P(k,i) words where i symbols occur only
-    # once, giving the expression:
-
-    total = sum(
-        (-1) ** i * (n - i) ** (k - i) * math.comb(n, i) * math.perm(k, i)
-        for i in range(0, min(n, k) + 1)
-    )
-
-    # The correction factor (n-1)/n accounts for the words which would
-    # start with a 0
-    return total if bijective else total * (n - 1) // n
-
-
 class DFASideThread(SideThread):
     """Describing side threads using a deterministic finite automaton.
 
@@ -148,7 +125,14 @@ class DFASideThread(SideThread):
 
     """
 
-    def __init__(self, dfa_base=3, n=10, rule=default_rule, dfa: DFA | None = None):
+    def __init__(
+        self,
+        dfa_base=3,
+        n=10,
+        rule=default_rule,
+        dfa: DFA | None = None,
+        precalculate=False,
+    ):
         self.n = n
         form = base_n(n)
         if dfa is not None:
@@ -156,7 +140,7 @@ class DFASideThread(SideThread):
         else:
             self.dfa = DFA(n, dfa_base)
         self.indices = None
-
+        self.precalculate = precalculate
         # Some of the threads skip the single-digit counts which would
         # otherwhise be valid, so we add an offset to account for that
         self.offset = 0
@@ -172,8 +156,9 @@ class DFASideThread(SideThread):
 
     def complete_words(self, _):
         raise NotImplementedError(
-            "Attempting to call `complete_words` on the base class. "
-            + "Give an implementation for it in the subclass!"
+            """Attempting to use `complete_words` from the base class. If you
+        want to use a fast calculation of the complete set of length k, you
+        must give an implementation for it in the subclass!"""
         )
 
     def word_is_valid(self, word):
@@ -193,8 +178,11 @@ class DFASideThread(SideThread):
         word = parsing.extract_count_string(comment_body, self.n).lower()
         word_length = len(word)
 
-        shorter_words = sum(self.complete_words(i) for i in range(1, word_length))
-        if self.is_homogeneous:
+        if self.precalculate:
+            shorter_words = sum(self.complete_words(i) for i in range(1, word_length))
+        else:
+            shorter_words = 0
+        if self.is_homogeneous and self.precalculate:
             # We can get the word with smaller first digit as a simple fraction
             # of the total number of words of length `word_length`
             enumeration = (
@@ -208,10 +196,10 @@ class DFASideThread(SideThread):
             current_matrix = self.dfa[word_length - 1 - i]
             prefix = word[:i]
             current_char = word[i]
-            suffixes = alphanumeric[: alphanumeric.index(current_char)]
-            if i == 0:
-                suffixes = suffixes[1:]
+            suffixes = alphanumeric[i == 0 : alphanumeric.index(current_char)]
             states = [self.dfa.get_state(prefix + suffix) for suffix in suffixes]
+            if not self.precalculate:
+                states = [0] + states
             enumeration += sum(current_matrix[state, self.indices].sum() for state in states)
         return shorter_words + enumeration + self.word_is_valid(word) - self.offset
 
@@ -220,13 +208,36 @@ dfa_10_2 = DFA(10, 2)
 dfa_10_3 = DFA(10, 3)
 
 
+def count_only_repeating_words(n, k, bijective=False):
+    """The number of words of length k where no digit is present exactly once"""
+    # The idea is to use the inclusion-exclusion principle, starting with
+    # all n ^ k possible words. We then subtract all words where a given
+    # symbol occurrs only once. For each symbol there are k * (n-1) ^ (k-1)
+    # such words since there are k slots for the symbol of interest, and
+    # the remaining slots must be filled with one of the remaining symbols.
+    # There are thus n * k * (n-1)^ *(k-1) words where one symbol occurs
+    # only once. But this double counts all the cases where two symbols
+    # occur only once, so we have to add them back in. In general, there
+    # are (n-i)^(n-i) * C(n,i) * P(k,i) words where i symbols occur only
+    # once, giving the expression:
+
+    total = sum(
+        (-1) ** i * (n - i) ** (k - i) * math.comb(n, i) * math.perm(k, i)
+        for i in range(0, min(n, k) + 1)
+    )
+
+    # The correction factor (n-1)/n accounts for the words which would
+    # start with a 0
+    return total if bijective else total * (n - 1) // n
+
+
 class OnlyRepeatingDigits(DFASideThread):
     """A class that describes the only repeating digits side thread.
 
     See the base class, `DFASideThread` for a description of the approach"""
 
-    def __init__(self, n=10, rule=default_rule):
-        super().__init__(n=n, rule=rule, dfa=dfa_10_3)
+    def __init__(self, n=10, rule=default_rule, precalculate=True):
+        super().__init__(n=n, rule=rule, dfa=dfa_10_3, precalculate=precalculate)
 
     def _generate_indices(self):
         """Valid states are those which have no ones in their ternary
@@ -242,8 +253,8 @@ class MostlyRepeatingDigits(DFASideThread):
 
     See the base class, `DFASideThread` for a description of the approach"""
 
-    def __init__(self, n=10, rule=default_rule):
-        super().__init__(n=n, rule=rule, dfa=dfa_10_3)
+    def __init__(self, n=10, rule=default_rule, precalculate=True):
+        super().__init__(n=n, rule=rule, dfa=dfa_10_3, precalculate=precalculate)
 
     def add_one(self, state):
         candidates = []
@@ -283,7 +294,7 @@ def full_base_words(n, k):
     """The number of words of length k from an alphabet of n symbols such that
     every symbol in the alphabet is used at least once. The recursion works by
     saying we take all the n**k possible words and subtract those which are
-    made from subsets of the alphabet.
+    made from all the subsets of the alphabet.
 
     """
     if k == 1:
@@ -295,8 +306,8 @@ class OnlyConsecutiveDigits(DFASideThread):
     """A class that counts only consecutive numbers. See the base class
     `DFASideThread for a description of the approach`"""
 
-    def __init__(self, n=10, rule=default_rule):
-        super().__init__(n=n, rule=rule, dfa=dfa_10_2)
+    def __init__(self, n=10, rule=default_rule, precalculate=True):
+        super().__init__(n=n, rule=rule, dfa=dfa_10_2, precalculate=precalculate)
         self.offset = 9
         self.is_homogeneous = False
 
