@@ -125,14 +125,7 @@ class DFASideThread(SideThread):
 
     """
 
-    def __init__(
-        self,
-        dfa_base=3,
-        n=10,
-        rule=default_rule,
-        dfa: DFA | None = None,
-        precalculate=False,
-    ):
+    def __init__(self, dfa_base=3, n=10, rule=default_rule, dfa: DFA | None = None):
         self.n = n
         form = base_n(n)
         if dfa is not None:
@@ -140,7 +133,6 @@ class DFASideThread(SideThread):
         else:
             self.dfa = DFA(n, dfa_base)
         self.indices = None
-        self.precalculate = precalculate
         # Some of the threads skip the single-digit counts which would
         # otherwhise be valid, so we add an offset to account for that
         self.offset = 0
@@ -154,13 +146,6 @@ class DFASideThread(SideThread):
     def _setup(self):
         self.indices = self._generate_indices()
 
-    def complete_words(self, _):
-        raise NotImplementedError(
-            """Attempting to use `complete_words` from the base class. If you
-        want to use a fast calculation of the complete set of length k, you
-        must give an implementation for it in the subclass!"""
-        )
-
     def word_is_valid(self, word):
         if self.indices is None:
             self.indices = self._generate_indices()
@@ -172,21 +157,24 @@ class DFASideThread(SideThread):
             + "Give an implementation for it in the subclass!"
         )
 
+    def complete_words(self, k: int) -> [int, bool]:
+        return 0, False
+
     def count(self, comment_body: str) -> int:
         if self.indices is None:
             self._setup()
         word = parsing.extract_count_string(comment_body, self.n).lower()
         word_length = len(word)
 
-        if self.precalculate:
-            shorter_words = sum(self.complete_words(i) for i in range(1, word_length))
-        else:
-            shorter_words = 0
-        if self.is_homogeneous and self.precalculate:
+        complete_words = [self.complete_words(i) for i in range(1, word_length)]
+        shorter_words, precalculated = functools.reduce(
+            lambda x, y: (x[0] + y[0], x[1] and y[1]), complete_words
+        )
+        if self.is_homogeneous and precalculated:
             # We can get the word with smaller first digit as a simple fraction
             # of the total number of words of length `word_length`
             enumeration = (
-                (int(word[0], self.n) - 1) * self.complete_words(word_length) // (self.n - 1)
+                (int(word[0], self.n) - 1) * self.complete_words(word_length)[0] // (self.n - 1)
             )
             lower_limit = 0
         else:
@@ -198,7 +186,7 @@ class DFASideThread(SideThread):
             current_char = word[i]
             suffixes = alphanumeric[i == 0 : alphanumeric.index(current_char)]
             states = [self.dfa.get_state(prefix + suffix) for suffix in suffixes]
-            if not self.precalculate:
+            if not precalculated:
                 states = [0] + states
             enumeration += sum(current_matrix[state, self.indices].sum() for state in states)
         return shorter_words + enumeration + self.word_is_valid(word) - self.offset
@@ -236,8 +224,8 @@ class OnlyRepeatingDigits(DFASideThread):
 
     See the base class, `DFASideThread` for a description of the approach"""
 
-    def __init__(self, n=10, rule=default_rule, precalculate=True):
-        super().__init__(n=n, rule=rule, dfa=dfa_10_3, precalculate=precalculate)
+    def __init__(self, n=10, rule=default_rule):
+        super().__init__(n=n, rule=rule, dfa=dfa_10_3)
 
     def _generate_indices(self):
         """Valid states are those which have no ones in their ternary
@@ -245,7 +233,7 @@ class OnlyRepeatingDigits(DFASideThread):
         return [int("".join(x), 3) for x in itertools.product("02", repeat=self.n)][1:]
 
     def complete_words(self, k):
-        return count_only_repeating_words(self.n, k)
+        return count_only_repeating_words(self.n, k), True
 
 
 class MostlyRepeatingDigits(DFASideThread):
@@ -253,8 +241,8 @@ class MostlyRepeatingDigits(DFASideThread):
 
     See the base class, `DFASideThread` for a description of the approach"""
 
-    def __init__(self, n=10, rule=default_rule, precalculate=True):
-        super().__init__(n=n, rule=rule, dfa=dfa_10_3, precalculate=precalculate)
+    def __init__(self, n=10, rule=default_rule):
+        super().__init__(n=n, rule=rule, dfa=dfa_10_3)
 
     def add_one(self, state):
         candidates = []
@@ -286,7 +274,9 @@ class MostlyRepeatingDigits(DFASideThread):
         # means we should multiply by (n-1) / n, giving the final result
         if k < 3:
             return 0
-        return (self.n - 1) * k * count_only_repeating_words(self.n - 1, k - 1, bijective=True)
+        return (self.n - 1) * k * count_only_repeating_words(
+            self.n - 1, k - 1, bijective=True
+        ), True
 
 
 @functools.cache
@@ -306,8 +296,8 @@ class OnlyConsecutiveDigits(DFASideThread):
     """A class that counts only consecutive numbers. See the base class
     `DFASideThread for a description of the approach`"""
 
-    def __init__(self, n=10, rule=default_rule, precalculate=True):
-        super().__init__(n=n, rule=rule, dfa=dfa_10_2, precalculate=precalculate)
+    def __init__(self, n=10, rule=default_rule):
+        super().__init__(n=n, rule=rule, dfa=dfa_10_2)
         self.offset = 9
         self.is_homogeneous = False
 
@@ -340,4 +330,29 @@ class OnlyConsecutiveDigits(DFASideThread):
         words_starting_with_zero = sum(
             full_base_words(i, k) // i for i in range(1, min(k, self.n) + 1)
         )
-        return total - words_starting_with_zero
+        return total - words_starting_with_zero, True
+
+
+class NoConsecutiveDigits(DFASideThread):
+    """A class that counts no consecutive numbers. See the base class
+    `DFASideThread for a description of the approach`"""
+
+    def __init__(self, n=10, rule=default_rule):
+        super().__init__(n=n, rule=rule, dfa=dfa_10_2)
+
+    def no_consecutive_indices(self):
+        current = ["0", "01"]
+        result = []
+        while current:
+            val = current.pop()
+            if len(val) < self.n:
+                current.append("0" + val)
+                current.append("01" + val)
+            elif len(val) == self.n:
+                result.append(val)
+            else:
+                result.append(val[1:])
+        return result
+
+    def _generate_indices(self):
+        return sorted([int(x, 2) for x in self.no_consecutive_indices() if x])

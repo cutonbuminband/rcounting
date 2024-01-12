@@ -14,7 +14,12 @@ from rcounting import thread_navigation as tn
 from rcounting import utils
 from rcounting.units import DAY, HOUR, MINUTE
 
-from .dfa import MostlyRepeatingDigits, OnlyConsecutiveDigits, OnlyRepeatingDigits
+from .dfa import (
+    MostlyRepeatingDigits,
+    NoConsecutiveDigits,
+    OnlyConsecutiveDigits,
+    OnlyRepeatingDigits,
+)
 from .rules import CountingRule, FastOrSlow, OnlyDoubleCounting
 from .side_threads import SideThread, ignore_revivals
 from .validate_count import base_n_count, by_ns_count, count_from_word_list
@@ -336,6 +341,7 @@ known_threads = {
     "letter permutations": SideThread(comment_to_count=letter_permutation_count),
     "mayan numerals": SideThread(length=800, form=mayan_form),
     "mostly repeating digits": MostlyRepeatingDigits(),
+    "no consecutive digits": NoConsecutiveDigits(),
     "no repeating digits": SideThread(comment_to_count=nrd_count, form=base_10),
     "no repeating letters": SideThread(comment_to_count=nrl_count),
     "no successive digits": SideThread(comment_to_count=no_successive_count, form=base_10),
@@ -420,7 +426,6 @@ default_threads = [
     "four squares",
     "n read as base n number",
     "negative numbers",
-    "no consecutive digits",
     "powers of 2",
     "previous dates",
     "prime factorization",
