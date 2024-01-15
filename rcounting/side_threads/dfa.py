@@ -1,12 +1,9 @@
-import functools
-import itertools
 import math
 from collections import Counter, defaultdict
 from typing import Sequence
 
 import numpy as np
 import scipy.sparse
-from scipy.special import binom
 
 from rcounting import parsing
 
@@ -178,234 +175,96 @@ class DFASideThread(SideThread):
 
     """
 
-    def __init__(self, dfa_base=3, n=10, rule=default_rule, dfa: DFA | None = None):
+    def __init__(
+        self,
+        dfa_base=3,
+        n=10,
+        rule=default_rule,
+        dfa: DFA | None = None,
+        indices: Sequence[int] | None = None,
+        offset=0,
+    ):
         self.n = n
         form = base_n(n)
-        if dfa is not None:
-            self.dfa = dfa
-        else:
-            self.dfa = DFA(n, dfa_base)
-        self.indices = None
+        self.dfa = dfa if dfa is not None else DFA(n, dfa_base)
+        self.indices = indices if indices is not None else []
+
         # Some of the threads skip the single-digit counts which would
         # otherwhise be valid, so we add an offset to account for that
-        self.offset = 0
+        self.offset = offset
 
-        # If the digit distribution is homogeneous, the number of words
-        # starting with a given digit is just 1/number of starting digits. That
-        # lets us skip one of the transitions in the matrix, saving a bit of time.
-        self.is_homogeneous = True
         super().__init__(rule=rule, form=form, comment_to_count=self.count)
 
-    def _setup(self):
-        self.indices = self._generate_indices()
-
     def word_is_valid(self, word):
-        if self.indices is None:
-            self._setup()
         return self.dfa.encode(word) in self.indices
 
-    def _generate_indices(self):
-        raise NotImplementedError(
-            "Attempting to call `generate_indices` on the base class. "
-            + "Give an implementation for it in the subclass!"
-        )
-
-    def complete_words(self, k: int) -> [int, bool]:
-        return 0, False
-
-    def count(self, comment_body: str) -> int:
-        if self.indices is None:
-            self._setup()
+    def count(self, comment_body: str, bijective=False) -> int:
         word = parsing.extract_count_string(comment_body, self.n).lower()
         word_length = len(word)
 
-        complete_words = [self.complete_words(i) for i in range(1, word_length)]
-        shorter_words, precalculated = functools.reduce(
-            lambda x, y: (x[0] + y[0], x[1] and y[1]), complete_words
-        )
-        if self.is_homogeneous and precalculated:
-            # We can get the word with smaller first digit as a simple fraction
-            # of the total number of words of length `word_length`
-            enumeration = (
-                (int(word[0], self.n) - 1) * self.complete_words(word_length)[0] // (self.n - 1)
-            )
-            lower_limit = 0
-        else:
-            enumeration = 0
-            lower_limit = -1
-        for i in range(word_length - 1, lower_limit, -1):
-            current_matrix = self.dfa[word_length - 1 - i]
+        enumeration = 0
+        for i in range(word_length - 1, -1, -1):
+            matrix_power = word_length - 1 - i
             prefix = word[:i]
             current_char = word[i]
             suffixes = alphanumeric[i == 0 : alphanumeric.index(current_char)]
             states = [self.dfa.encode(prefix + suffix) for suffix in suffixes]
-            if not precalculated:
-                states = [0] + states
-            enumeration += sum(current_matrix[state, self.indices].sum() for state in states)
-        return shorter_words + enumeration + self.word_is_valid(word) - self.offset
+            if bijective:
+                states += [self.dfa.encode("")]
+            elif matrix_power > 0:
+                enumeration += sum(
+                    self.dfa[matrix_power - 1][self.dfa.encode(s), self.indices].sum()
+                    for s in alphanumeric[1 : self.n]
+                )
+
+            enumeration += sum(
+                self.dfa[matrix_power][state, self.indices].sum() for state in states
+            )
+        return enumeration + self.word_is_valid(word) - self.offset
 
 
 dfa_10_2 = DFA(10, 2)
-dfa_10_3 = DFA(10, 3)
+compressed_dfa = CompressedDFA(10)
+
+only_repeating_indices = [compressed_dfa.encode((x, 0, 10 - x)) for x in range(10)]
+only_repeating_digits = DFASideThread(dfa=compressed_dfa, indices=only_repeating_indices)
+
+mostly_repeating_indices = [compressed_dfa.encode((x, 1, 10 - x - 1)) for x in range(10 - 1)]
+mostly_repeating_digits = DFASideThread(dfa=compressed_dfa, indices=mostly_repeating_indices)
+
+# The only consecutive indices are sums of adjacent powers of two
+only_consecutive_indices = sorted(
+    [
+        sum(2**k for k in range(minval, maxval))
+        for maxval in range(10 + 1)
+        for minval in range(maxval)
+    ]
+)
+only_consecutive_digits = DFASideThread(dfa=dfa_10_2, indices=only_consecutive_indices, offset=9)
 
 
-def count_only_repeating_words(n, k, bijective=False):
-    """The number of words of length k where no digit is present exactly once"""
-    # The idea is to use the inclusion-exclusion principle, starting with
-    # all n ^ k possible words. We then subtract all words where a given
-    # symbol occurrs only once. For each symbol there are k * (n-1) ^ (k-1)
-    # such words since there are k slots for the symbol of interest, and
-    # the remaining slots must be filled with one of the remaining symbols.
-    # There are thus n * k * (n-1)^ *(k-1) words where one symbol occurs
-    # only once. But this double counts all the cases where two symbols
-    # occur only once, so we have to add them back in. In general, there
-    # are (n-i)^(n-i) * C(n,i) * P(k,i) words where i symbols occur only
-    # once, giving the expression:
+def no_consecutive_states(n_symbols):
+    """The valid states in no consecutive digits threads, encoded as binary
+    strings where the i'th digit of the string indicates whether the
+    corresponding digit is present in the original string or not.
 
-    total = sum(
-        (-1) ** i * (n - i) ** (k - i) * math.comb(n, i) * math.perm(k, i)
-        for i in range(0, min(n, k) + 1)
-    )
-
-    # The correction factor (n-1)/n accounts for the words which would
-    # start with a 0
-    return total if bijective else total * (n - 1) // n
-
-
-class OnlyRepeatingDigits(DFASideThread):
-    """A class that describes the only repeating digits side thread.
-
-    See the base class, `DFASideThread` for a description of the approach"""
-
-    def __init__(self, n=10, rule=default_rule):
-        super().__init__(n=n, rule=rule, dfa=dfa_10_3)
-
-    def _generate_indices(self):
-        """Valid states are those which have no ones in their ternary
-        represenation and at least one 2"""
-        return [int("".join(x), 3) for x in itertools.product("02", repeat=self.n)][1:]
-
-    def complete_words(self, k):
-        return count_only_repeating_words(self.n, k), True
-
-
-class MostlyRepeatingDigits(DFASideThread):
-    """A class that describes the mostly repeating digits side thread.
-
-    See the base class, `DFASideThread` for a description of the approach"""
-
-    def __init__(self, n=10, rule=default_rule):
-        super().__init__(n=n, rule=rule, dfa=dfa_10_3)
-
-    def add_one(self, state):
-        candidates = []
-        for ix, char in enumerate(state):
-            if char == "0":
-                candidates.append(state[:ix] + "1" + state[ix + 1 :])
-
-        return [int(candidate, 3) for candidate in candidates]
-
-    def _generate_indices(self):
-        """Valid states are those which have precisely one 1 in their ternary
-        representation and at least one 2"""
-        indices = ["".join(x) for x in itertools.product("02", repeat=self.n)][1:]
-        return sorted(
-            [updated_index for state in indices for updated_index in self.add_one(state)]
-        )
-
-    def complete_words(self, k):
-        # For a given length k, the total number of MRD words in base n is
-        # found as:
-        #
-        # k * n * ORD(n-1, k-1)
-        #
-        # That's because we have n symbols which could occur once, and then
-        # (n-1) symbols which should be a valid ORD word of length (k - 1). The
-        # final factor of k is due to the fact that the lone symbol could
-        # appear anywhere in the final word.
-        # For actual MRD counts, we're not allowed to start words with 0, which
-        # means we should multiply by (n-1) / n, giving the final result
-        if k < 3:
-            return 0
-        return (self.n - 1) * k * count_only_repeating_words(
-            self.n - 1, k - 1, bijective=True
-        ), True
-
-
-@functools.cache
-def full_base_words(n, k):
-    """The number of words of length k from an alphabet of n symbols such that
-    every symbol in the alphabet is used at least once. The recursion works by
-    saying we take all the n**k possible words and subtract those which are
-    made from all the subsets of the alphabet.
+    For example, 0000000000 is the empty string, while 1000000000 represents
+    strings which only contain the digit 9
 
     """
-    if k == 1:
-        return 1
-    return n**k - sum(int(binom(n, i)) * full_base_words(i, k) for i in range(n))
+    current = ["0", "01"]
+    result = []
+    while current:
+        val = current.pop()
+        if len(val) < n_symbols:
+            current.append("0" + val)
+            current.append("01" + val)
+        elif len(val) == n_symbols:
+            result.append(val)
+        else:
+            result.append(val[1:])
+    return result
 
 
-class OnlyConsecutiveDigits(DFASideThread):
-    """A class that counts only consecutive numbers. See the base class
-    `DFASideThread for a description of the approach`"""
-
-    def __init__(self, n=10, rule=default_rule):
-        super().__init__(n=n, rule=rule, dfa=dfa_10_2)
-        self.offset = 9
-        self.is_homogeneous = False
-
-    def pad(self, s):
-        return ["0" * i + s + "0" * (self.n - i - len(s)) for i in range(self.n - len(s) + 1)]
-
-    def _generate_indices(self):
-        ones = ["1" * i for i in range(1, self.n + 1)]
-        return sorted([int(p, 2) for one in ones for p in self.pad(one)])
-
-    def complete_words(self, k, bijective=False):
-        """The total number of only consective words of length k. This is the
-        sum over all consecutve alphabets of all words of length k which use
-        each symbol in that alphabet at least once.
-
-        Each consecutive alphabet of length n' is uniquely determined by the
-        first letter in the alphabet, and it's not too difficult to see that
-        there are (n - n' + 1) alphabets of length n'. Therefore, we can just
-        loop over the length instead of looping over the alphabet.
-
-        We need to account for words starting with zero, and we can't just do
-        it by multiplying by (n-1)/n. That's because there's only one alphabet
-        of a given length which contains zero, but there are multiple which
-        contain the other digits.
-
-        """
-        total = sum((self.n - i + 1) * full_base_words(i, k) for i in range(1, min(k, self.n) + 1))
-        if bijective:
-            return total
-        words_starting_with_zero = sum(
-            full_base_words(i, k) // i for i in range(1, min(k, self.n) + 1)
-        )
-        return total - words_starting_with_zero, True
-
-
-class NoConsecutiveDigits(DFASideThread):
-    """A class that counts no consecutive numbers. See the base class
-    `DFASideThread for a description of the approach`"""
-
-    def __init__(self, n=10, rule=default_rule):
-        super().__init__(n=n, rule=rule, dfa=dfa_10_2)
-
-    def no_consecutive_indices(self):
-        current = ["0", "01"]
-        result = []
-        while current:
-            val = current.pop()
-            if len(val) < self.n:
-                current.append("0" + val)
-                current.append("01" + val)
-            elif len(val) == self.n:
-                result.append(val)
-            else:
-                result.append(val[1:])
-        return result
-
-    def _generate_indices(self):
-        return sorted([int(x, 2) for x in self.no_consecutive_indices() if x])
+no_consecutive_indices = sorted([int(x, 2) for x in no_consecutive_states(10)])[1:]
+no_consecutive_digits = DFASideThread(dfa=dfa_10_2, indices=no_consecutive_indices)

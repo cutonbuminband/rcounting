@@ -14,12 +14,7 @@ from rcounting import thread_navigation as tn
 from rcounting import utils
 from rcounting.units import DAY, HOUR, MINUTE
 
-from .dfa import (
-    MostlyRepeatingDigits,
-    NoConsecutiveDigits,
-    OnlyConsecutiveDigits,
-    OnlyRepeatingDigits,
-)
+from . import dfa
 from .rules import CountingRule, FastOrSlow, OnlyDoubleCounting
 from .side_threads import SideThread, ignore_revivals
 from .validate_count import base_n_count, by_ns_count, count_from_word_list
@@ -340,16 +335,16 @@ known_threads = {
     "japanese": SideThread(form=validate_from_tokens("一二三四五六七八九十百千")),
     "letter permutations": SideThread(comment_to_count=letter_permutation_count),
     "mayan numerals": SideThread(length=800, form=mayan_form),
-    "mostly repeating digits": MostlyRepeatingDigits(),
-    "no consecutive digits": NoConsecutiveDigits(),
+    "mostly repeating digits": dfa.mostly_repeating_digits,
+    "no consecutive digits": dfa.no_consecutive_digits,
     "no repeating digits": SideThread(comment_to_count=nrd_count, form=base_10),
     "no repeating letters": SideThread(comment_to_count=nrl_count),
     "no successive digits": SideThread(comment_to_count=no_successive_count, form=base_10),
     "o/l binary": SideThread(form=validate_from_tokens("ol"), length=1024),
     "once per thread": SideThread(form=base_10, rule=CountingRule(wait_n=None)),
-    "only consecutive digits": OnlyConsecutiveDigits(),
+    "only consecutive digits": dfa.only_consecutive_digits,
     "only double counting": SideThread(form=base_10, rule=OnlyDoubleCounting()),
-    "only repeating digits": OnlyRepeatingDigits(),
+    "only repeating digits": dfa.only_repeating_digits,
     "ordered pairs": SideThread(form=base_10, comment_to_count=ordered_pairs_count),
     "palindromes": SideThread(form=base_10, comment_to_count=palindrome_count),
     "parentheses": SideThread(form=parentheses_form),
