@@ -2,6 +2,7 @@ import functools
 import itertools
 import math
 from collections import Counter, defaultdict
+from typing import Sequence
 
 import numpy as np
 import scipy.sparse
@@ -32,8 +33,8 @@ class DFA:
 
     def __getitem__(self, i):
         if self.transitions is None:
-            self.transitions = [self._generate_identity()]
-            self.transition_matrix = self._generate_transition_matrix()
+            self.transitions = [self.generate_identity()]
+            self.transition_matrix = self.generate_transition_matrix()
         while len(self.transitions) <= i:
             self.transitions.append(self.transitions[-1] @ self.transition_matrix)
 
@@ -59,7 +60,7 @@ class DFA:
             np.array(list(result.values()), dtype=int),
         )
 
-    def _generate_transition_matrix(self):
+    def generate_transition_matrix(self):
         data = np.zeros(self.n_symbols * self.size, dtype=int)
         x = np.zeros(self.n_symbols * self.size, dtype=int)
         y = np.zeros(self.n_symbols * self.size, dtype=int)
@@ -82,6 +83,55 @@ class DFA:
             (self.n_states**pos) * min(self.n_states - 1, counts[digit])
             for pos, digit in enumerate(alphanumeric[: self.n_symbols])
         )
+
+
+class CompressedDFA(DFA):
+    """A more compressed DFA class, where each string is represented by the
+    3-tuple of (how many digits don't occur in the string, how many digits
+    occur once, how many occur two or more times). This representation
+    decreases the number of states to keep track of from ~60k to ~60 for
+    10-symbol words"""
+
+    def __init__(self, n_symbols):
+        super().__init__(n_symbols=n_symbols, n_states=3)
+        self.size = math.comb(n_symbols + 2, n_symbols)
+        self.total_lengths = [
+            len(range(max(i - n_symbols, 0), i // 2 + 1)) for i in range(2 * n_symbols + 1)
+        ]
+
+    def generate_identity(self):
+        return np.eye(self.size, dtype=int)
+
+    def _find_next_state(self, state: Sequence[int]):
+        result = []
+        if state[0]:
+            result.append((state[0], [state[0] - 1, state[1] + 1, state[2]]))
+        if state[1]:
+            result.append((state[1], [state[0], state[1] - 1, state[2] + 1]))
+        if state[2]:
+            result.append((state[2], state))
+        return result
+
+    def generate_transition_matrix(self):
+        transition_matrix = np.zeros((self.size, self.size), dtype=int)
+        states = [
+            (x, y, self.n_symbols - x - y)
+            for x in range(self.n_symbols + 1)
+            for y in range(self.n_symbols + 1 - x)
+        ]
+        for state in states:
+            for count, new_state in self._find_next_state(state):
+                transition_matrix[self.encode(state), self.encode(new_state)] = count
+        return transition_matrix
+
+    def encode(self, state: str | Sequence[int]):
+        if isinstance(state, str):
+            counts = Counter([min(x, 2) for x in Counter(state).values()])
+        else:
+            counts = state
+        digit_sum = counts[1] + 2 * counts[2]
+        predecessors = sum(self.total_lengths[:digit_sum])
+        return predecessors + counts[1] // 2
 
 
 class DFASideThread(SideThread):
