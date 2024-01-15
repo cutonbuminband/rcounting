@@ -17,27 +17,30 @@ from .validate_form import alphanumeric, base_n
 class DFA:
     """Generate and store transition matrices for discrete finite automate
     which track what happens when a word from an alphabet of size n_symbols is
-    extended by one symbol. Calculating these is computationally expensive, so
-    the code caches them for later use.
+    extended by one symbol. Calculating these can be computationally expensive,
+    so the code caches them for later use.
 
     """
 
     def __init__(self, n_symbols: int, n_states: int):
         self.n_states = n_states
         self.n_symbols = n_symbols
+        self.size = self.n_states**self.n_symbols
         self.lookup = {str(i): str(min(i + 1, n_states - 1)) for i in range(n_states)}
-        self.transitions = [
-            scipy.sparse.eye(self.n_states**self.n_symbols, dtype=int, format="csr")
-        ]
+        self.transitions = None
         self.transition_matrix = None
 
     def __getitem__(self, i):
-        if self.transition_matrix is None:
+        if self.transitions is None:
+            self.transitions = [self._generate_identity()]
             self.transition_matrix = self._generate_transition_matrix()
         while len(self.transitions) <= i:
-            self.transitions.append(self.transitions[-1] * self.transition_matrix)
+            self.transitions.append(self.transitions[-1] @ self.transition_matrix)
 
         return self.transitions[i]
+
+    def generate_identity(self):
+        return scipy.sparse.eye(self.size, dtype=int, format="csr")
 
     def _connections(self, i):
         state = np.base_repr(i, self.n_states).zfill(self.n_symbols)
@@ -57,11 +60,11 @@ class DFA:
         )
 
     def _generate_transition_matrix(self):
-        data = np.zeros(self.n_symbols * self.n_states**self.n_symbols, dtype=int)
-        x = np.zeros(self.n_symbols * self.n_states**self.n_symbols, dtype=int)
-        y = np.zeros(self.n_symbols * self.n_states**self.n_symbols, dtype=int)
+        data = np.zeros(self.n_symbols * self.size, dtype=int)
+        x = np.zeros(self.n_symbols * self.size, dtype=int)
+        y = np.zeros(self.n_symbols * self.size, dtype=int)
         ix = 0
-        for i in range(self.n_states**self.n_symbols):
+        for i in range(self.size):
             length, js, new_data = self._connections(i)
             x[ix : ix + length] = i
             y[ix : ix + length] = js
@@ -69,10 +72,10 @@ class DFA:
             ix += length
         return scipy.sparse.coo_matrix(
             (data[:ix], (x[:ix], y[:ix])),
-            shape=(self.n_states**self.n_symbols, self.n_states**self.n_symbols),
+            shape=(self.size, self.size),
         )
 
-    def get_state(self, state):
+    def encode(self, state):
         """Converts a word to an integer encoding of the corresponding state vector"""
         counts = Counter(state)
         return sum(
@@ -148,8 +151,8 @@ class DFASideThread(SideThread):
 
     def word_is_valid(self, word):
         if self.indices is None:
-            self.indices = self._generate_indices()
-        return self.dfa.get_state(word) in self.indices
+            self._setup()
+        return self.dfa.encode(word) in self.indices
 
     def _generate_indices(self):
         raise NotImplementedError(
@@ -185,7 +188,7 @@ class DFASideThread(SideThread):
             prefix = word[:i]
             current_char = word[i]
             suffixes = alphanumeric[i == 0 : alphanumeric.index(current_char)]
-            states = [self.dfa.get_state(prefix + suffix) for suffix in suffixes]
+            states = [self.dfa.encode(prefix + suffix) for suffix in suffixes]
             if not precalculated:
                 states = [0] + states
             enumeration += sum(current_matrix[state, self.indices].sum() for state in states)
