@@ -131,6 +131,40 @@ class CompressedDFA(DFA):
         return predecessors + counts[1] // 2
 
 
+class LastDigitDFA(DFA):
+    """A DFA that keeps track of the last digit of a string, and moves to a
+    failure state if the next digit is the same as the current state. Used to
+    model the no successive digits side thread
+
+    """
+
+    def __init__(self, n_symbols=10):
+        super().__init__(n_symbols=n_symbols, n_states=3, sparse=False)
+        self.size = n_symbols + 2
+
+    def generate_transition_matrix(self):
+        transition_matrix = np.zeros((self.size, self.size), dtype=int)
+        new_state = np.ones(self.size)
+        new_state[0] = 0
+        for row in range(self.size - 1):
+            column = new_state.copy()
+            column[row] = 0
+            transition_matrix[row] = column
+        transition_matrix[0, -1] = 0
+        return transition_matrix
+
+    def encode(self, state: str):
+        if not state:
+            return 0
+        symbols = alphanumeric[: self.n_symbols]
+        previous = ""
+        for char in state:
+            if char == previous:
+                return self.size - 1
+            previous = char
+        return 1 + symbols.index(char)  # pylint: disable=undefined-loop-variable
+
+
 class DFASideThread(SideThread):
     """Describing side threads using a deterministic finite automaton.
 
@@ -268,3 +302,6 @@ def no_consecutive_states(n_symbols):
 
 no_consecutive_indices = sorted([int(x, 2) for x in no_consecutive_states(10)])[1:]
 no_consecutive_digits = DFASideThread(dfa=dfa_10_2, indices=no_consecutive_indices)
+
+no_successive_indices = list(range(1, 11))
+no_successive_digits = DFASideThread(indices=no_successive_indices, dfa=LastDigitDFA())

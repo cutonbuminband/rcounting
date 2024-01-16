@@ -136,16 +136,6 @@ def powerball_count(comment):
     return permutation_order(balls, alphabet, ordered=True) * 26 + int(powerball) - 1
 
 
-def no_successive_count(comment):
-    word = parsing.extract_count_string(comment)
-    result = sum(9**i for i in range(1, len(word)))
-    previous_i = "0"
-    for ix, i in enumerate(word[:-1]):
-        result += 9 ** (len(word) - ix - 1) * (int(i) - (i >= previous_i))
-        previous_i = i
-    return result
-
-
 u_squares = [11035, 65039, 129003, 129002, 128998, 129001, 129000, 128999, 128997, 11036]
 colored_squares_form = validate_from_tokens([chr(x) for x in u_squares])
 
@@ -339,7 +329,7 @@ known_threads = {
     "no consecutive digits": dfa.no_consecutive_digits,
     "no repeating digits": SideThread(comment_to_count=nrd_count, form=base_10),
     "no repeating letters": SideThread(comment_to_count=nrl_count),
-    "no successive digits": SideThread(comment_to_count=no_successive_count, form=base_10),
+    "no successive digits": dfa.no_successive_digits,
     "o/l binary": SideThread(form=validate_from_tokens("ol"), length=1024),
     "once per thread": SideThread(form=base_10, rule=CountingRule(wait_n=None)),
     "only consecutive digits": dfa.only_consecutive_digits,
