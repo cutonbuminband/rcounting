@@ -20,10 +20,11 @@ class DFA:
 
     """
 
-    def __init__(self, n_symbols: int, n_states: int):
+    def __init__(self, n_symbols: int, n_states: int, sparse=True):
         self.n_states = n_states
         self.n_symbols = n_symbols
         self.size = self.n_states**self.n_symbols
+        self.sparse = sparse
         self.lookup = {str(i): str(min(i + 1, n_states - 1)) for i in range(n_states)}
         self.transitions = None
         self.transition_matrix = None
@@ -38,7 +39,9 @@ class DFA:
         return self.transitions[i]
 
     def generate_identity(self):
-        return scipy.sparse.eye(self.size, dtype=int, format="csr")
+        if self.sparse:
+            return scipy.sparse.eye(self.size, dtype=int, format="csr")
+        return np.eye(self.size, dtype=int)
 
     def _connections(self, i):
         state = np.base_repr(i, self.n_states).zfill(self.n_symbols)
@@ -90,14 +93,11 @@ class CompressedDFA(DFA):
     10-symbol words"""
 
     def __init__(self, n_symbols):
-        super().__init__(n_symbols=n_symbols, n_states=3)
+        super().__init__(n_symbols=n_symbols, n_states=3, sparse=False)
         self.size = math.comb(n_symbols + 2, n_symbols)
         self.total_lengths = [
             len(range(max(i - n_symbols, 0), i // 2 + 1)) for i in range(2 * n_symbols + 1)
         ]
-
-    def generate_identity(self):
-        return np.eye(self.size, dtype=int)
 
     def _find_next_state(self, state: Sequence[int]):
         result = []
