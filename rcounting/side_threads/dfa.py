@@ -165,7 +165,7 @@ class LastDigitDFA(DFA):
         return 1 + symbols.index(char)  # pylint: disable=undefined-loop-variable
 
 
-class DFASideThread(SideThread):
+class DFAThread(SideThread):
     """Describing side threads using a deterministic finite automaton.
 
     A lot of side threads have rules like "valid counts are those were every
@@ -260,22 +260,6 @@ class DFASideThread(SideThread):
 dfa_10_2 = DFA(10, 2)
 compressed_dfa = CompressedDFA(10)
 
-only_repeating_indices = [compressed_dfa.encode((x, 0, 10 - x)) for x in range(10)]
-only_repeating_digits = DFASideThread(dfa=compressed_dfa, indices=only_repeating_indices)
-
-mostly_repeating_indices = [compressed_dfa.encode((x, 1, 10 - x - 1)) for x in range(10 - 1)]
-mostly_repeating_digits = DFASideThread(dfa=compressed_dfa, indices=mostly_repeating_indices)
-
-# The only consecutive indices are sums of adjacent powers of two
-only_consecutive_indices = sorted(
-    [
-        sum(2**k for k in range(minval, maxval))
-        for maxval in range(10 + 1)
-        for minval in range(maxval)
-    ]
-)
-only_consecutive_digits = DFASideThread(dfa=dfa_10_2, indices=only_consecutive_indices, offset=9)
-
 
 def no_consecutive_states(n_symbols):
     """The valid states in no consecutive digits threads, encoded as binary
@@ -300,8 +284,26 @@ def no_consecutive_states(n_symbols):
     return result
 
 
-no_consecutive_indices = sorted([int(x, 2) for x in no_consecutive_states(10)])[1:]
-no_consecutive_digits = DFASideThread(dfa=dfa_10_2, indices=no_consecutive_indices)
+no_consecutive = sorted([int(x, 2) for x in no_consecutive_states(10)])[1:]
+no_successive = list(range(1, 11))
+no_repeating = [compressed_dfa.encode((x, 10 - x, 0)) for x in range(10)]
+only_repeating = [compressed_dfa.encode((x, 0, 10 - x)) for x in range(10)]
+mostly_repeating = [compressed_dfa.encode((x, 1, 10 - x - 1)) for x in range(10 - 1)]
 
-no_successive_indices = list(range(1, 11))
-no_successive_digits = DFASideThread(indices=no_successive_indices, dfa=LastDigitDFA())
+# The only consecutive indices are sums of adjacent powers of two
+only_consecutive = sorted(
+    [
+        sum(2**k for k in range(minval, maxval))
+        for maxval in range(10 + 1)
+        for minval in range(maxval)
+    ]
+)
+
+dfa_threads = {
+    "mostly repeating digits": DFAThread(dfa=compressed_dfa, indices=mostly_repeating),
+    "no consecutive digits": DFAThread(dfa=dfa_10_2, indices=no_consecutive),
+    "no repeating digits": DFAThread(dfa=compressed_dfa, indices=no_repeating),
+    "no successive digits": DFAThread(indices=no_successive, dfa=LastDigitDFA()),
+    "only consecutive digits": DFAThread(dfa=dfa_10_2, indices=only_consecutive, offset=9),
+    "only repeating digits": DFAThread(dfa=compressed_dfa, indices=only_repeating),
+}

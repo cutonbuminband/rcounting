@@ -14,7 +14,7 @@ from rcounting import thread_navigation as tn
 from rcounting import utils
 from rcounting.units import DAY, HOUR, MINUTE
 
-from . import dfa
+from .dfa import dfa_threads
 from .rules import CountingRule, FastOrSlow, OnlyDoubleCounting
 from .side_threads import SideThread, ignore_revivals
 from .validate_count import base_n_count, by_ns_count, count_from_word_list
@@ -325,16 +325,10 @@ known_threads = {
     "japanese": SideThread(form=validate_from_tokens("一二三四五六七八九十百千")),
     "letter permutations": SideThread(comment_to_count=letter_permutation_count),
     "mayan numerals": SideThread(length=800, form=mayan_form),
-    "mostly repeating digits": dfa.mostly_repeating_digits,
-    "no consecutive digits": dfa.no_consecutive_digits,
-    "no repeating digits": SideThread(comment_to_count=nrd_count, form=base_10),
     "no repeating letters": SideThread(comment_to_count=nrl_count),
-    "no successive digits": dfa.no_successive_digits,
     "o/l binary": SideThread(form=validate_from_tokens("ol"), length=1024),
     "once per thread": SideThread(form=base_10, rule=CountingRule(wait_n=None)),
-    "only consecutive digits": dfa.only_consecutive_digits,
     "only double counting": SideThread(form=base_10, rule=OnlyDoubleCounting()),
-    "only repeating digits": dfa.only_repeating_digits,
     "ordered pairs": SideThread(form=base_10, comment_to_count=ordered_pairs_count),
     "palindromes": SideThread(form=base_10, comment_to_count=palindrome_count),
     "parentheses": SideThread(form=parentheses_form),
@@ -370,6 +364,7 @@ known_threads = {
     "wave": SideThread(form=base_10, comment_to_count=wave_count),
 }
 
+known_threads.update(dfa_threads)
 
 base_n_threads = {
     f"base {n}": SideThread(form=base_n(n), comment_to_count=base_n_count(n)) for n in range(2, 37)
