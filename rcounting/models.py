@@ -19,7 +19,7 @@ class Comment:
         self.comment = comment
         self.tree = tree
         self.created_utc = comment.created_utc
-        self.removed = comment.removed
+        self.removed = getattr(comment, "removed", False)
         self.body = comment.body
         self.id = comment.id
         self.link_id = comment.link_id
