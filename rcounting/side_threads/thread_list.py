@@ -371,6 +371,12 @@ base_n_threads = {
 }
 known_threads.update(base_n_threads)
 
+known_threads.update(
+    {
+        thread: SideThread(form=base_10, comment_to_count=base_n_count(10))
+        for thread in ["decimal", "by meters", "sheep", "word association"]
+    }
+)
 # See: https://www.reddit.com/r/counting/comments/o7ko8r/free_talk_friday_304/h3c7433/?context=3
 
 default_threads = [
@@ -398,11 +404,9 @@ default_threads = [
     "by 69s",
     "by 6s",
     "by 8s",
-    "by meters",
     "by one-hundredths",
     "california license plates",
     "chess matches",
-    "decimal",
     "four squares",
     "n read as base n number",
     "negative numbers",
@@ -413,14 +417,12 @@ default_threads = [
     "rational numbers",
     "rotational symmetry",
     "scientific notation",
-    "sheep",
     "street view counting",
     "thread completion",
     "top subreddits",
     "triangular numbers",
     "unordered consecutive digits",
     "william the conqueror",
-    "word association",
 ]
 known_threads.update(
     {thread_name: SideThread(form=base_10, length=1000) for thread_name in default_threads}
