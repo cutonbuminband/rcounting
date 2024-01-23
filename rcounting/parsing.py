@@ -15,7 +15,7 @@ def extract_count_string(body: str, base: int = 10):
     """
     characters = "0123456789abcdefghijklmnopqrstuvwxyz"[:base]
     separators = "' ,.*/"  # non-whitespace separators people have used
-    first_line = "".join(normalize_comment(body).split()).translate(
+    first_line = "".join(normalize_comment_body(body).split()).translate(
         str.maketrans("", "", separators)
     )
     match = re.search(f"[{characters}]+", first_line.lower())
@@ -100,7 +100,7 @@ def body_from_title(title):
     return "|".join(title.split("|")[1:])
 
 
-def normalize_comment(comment):
+def normalize_comment_body(comment):
     first_line = comment.split("\n")[0]
     no_links = strip_markdown_links(first_line)
     return no_links.strip()

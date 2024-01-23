@@ -99,7 +99,9 @@ def permutation_order(word, alphabet, ordered=False, no_leading_zeros=False):
 
 def _permutation_count(comment_body, alphabet) -> int:
     alphabet = alphabet.lower()
-    word = "".join(x for x in parsing.normalize_comment(comment_body).lower() if x in alphabet)
+    word = "".join(
+        x for x in parsing.normalize_comment_body(comment_body).lower() if x in alphabet
+    )
     l = len(word)
     shorter_words = sum(math.factorial(i) for i in range(1, l))
     return shorter_words + permutation_order(word, alphabet[:l]) - 1
@@ -123,14 +125,14 @@ def nrd_count(comment):
 
 def nrl_count(comment):
     line = "".join(
-        x for x in parsing.normalize_comment(comment).lower() if x in string.ascii_lowercase
+        x for x in parsing.normalize_comment_body(comment).lower() if x in string.ascii_lowercase
     )
     shorter_words = sum(math.perm(26, i) for i in range(1, len(line)))
     return shorter_words + permutation_order(line, string.ascii_lowercase)
 
 
 def powerball_count(comment):
-    balls, powerball = parsing.normalize_comment(comment).split("+")
+    balls, powerball = parsing.normalize_comment_body(comment).split("+")
     balls = balls.split()
     alphabet = [str(x) for x in range(1, 70)]
     return permutation_order(balls, alphabet, ordered=True) * 26 + int(powerball) - 1
@@ -163,7 +165,7 @@ def ordered_pairs_count(comment_body):
 
 
 def rgb_count(comment_body: str):
-    first_line = parsing.normalize_comment(comment_body)
+    first_line = parsing.normalize_comment_body(comment_body)
     values = map(int, re.findall(r"\d+", first_line))
     return functools.reduce(lambda x, y: 256 * x + y, values)
 
@@ -174,7 +176,7 @@ double_wave_regex = r"(-?\d+).*\((\d+)\).*\((\d+)\)"
 
 
 def wave_count(comment):
-    comment = parsing.normalize_comment(comment)
+    comment = parsing.normalize_comment_body(comment)
     match = re.search(wave_regex, comment)
     a, b = [int(x) for x in match.groups()]
     return 2 * b**2 - a
@@ -184,7 +186,7 @@ def increasing_type_count(n):
     regex = r"(-?\d+)" + r".*\((\d+)\)" * n
 
     def count(comment):
-        comment = parsing.normalize_comment(comment)
+        comment = parsing.normalize_comment_body(comment)
         total = 0
         values = [int(x) for x in re.search(regex, comment).groups()]
         for ix, value in enumerate(values):
