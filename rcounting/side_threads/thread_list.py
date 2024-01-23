@@ -381,32 +381,31 @@ known_threads.update(
 )
 # See: https://www.reddit.com/r/counting/comments/o7ko8r/free_talk_friday_304/h3c7433/?context=3
 
+
+def by_x_count(comment_body: str, x=1.0):
+    regex = r"([-+]?[\.,\s0-9]*)"
+    body = parsing.normalize_comment_body(comment_body)
+    count_string = re.search(regex, body).groups()[0]
+    count_string = "".join(count_string.split()).replace(",", "")
+    return int(float(count_string) / x)
+
+
+by_xs = [0.01, 0.02, 0.025, 0.05, 6, 7, 8, 10, 11, 12, 20, 23, 29, 40, 50, 64, 69, 123, 1000]
+known_threads.update(
+    {
+        f"by {x}s": SideThread(form=base_10, comment_to_count=functools.partial(by_x_count, x=x))
+        for x in by_xs
+    }
+)
+
 default_threads = [
     "10 at a time",
     "3 or fewer palindromes",
     "69, 420, or 666",
     "age",
     "all even or all odd",
-    "by 0.025s",
-    "by 0.02s",
-    "by 0.05s",
-    "by 1000s",
-    "by 10s",
-    "by 11s",
-    "by 123s",
-    "by 12s",
-    "by 20s",
-    "by 23s",
-    "by 29s",
     "by 2s even",
     "by 2s odd",
-    "by 40s",
-    "by 50s",
-    "by 64s",
-    "by 69s",
-    "by 6s",
-    "by 8s",
-    "by one-hundredths",
     "california license plates",
     "chess matches",
     "four squares",
