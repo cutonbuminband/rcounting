@@ -9,6 +9,7 @@ import socket
 from importlib.metadata import version
 
 import praw
+import praw.exceptions
 
 # The tools work with OAuth access and refresh tokens, so you need to grant
 # access. Once you've done that, they token will be stored in a file for future
@@ -105,3 +106,12 @@ reddit = praw.Reddit(
 
 subreddit = reddit.subreddit("counting")
 reddit.validate_on_submit = True
+
+
+def extract_from_short_link(url):
+    try:
+        comment = reddit.comment(url=url)
+        return comment.submission.id, comment.id
+    except praw.exceptions.InvalidURL:
+        submission = reddit.submission(url=url)
+        return submission.id, None

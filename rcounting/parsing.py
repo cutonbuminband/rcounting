@@ -1,7 +1,7 @@
 """A collection of functions for parsing texts and extracting urls and counts"""
 import re
 
-import requests
+from rcounting.reddit_interface import extract_from_short_link
 
 
 def find_body(post):
@@ -51,21 +51,11 @@ def find_urls_in_text(body):
     urls = re.findall(url_regex, body)
 
     # reddit has introduced new short links which are completely opaque to the
-    # api. If one of those is detected, we need to send a request to reddit,
-    # which will redirect us to the right page and then grab the url and parse.
-    # Sigh.
+    # api. We need to handle those separately.
     new_url_regex = "reddit.com/r/counting/s/([A-Za-z0-9]+)"
-    new_links = re.findall(new_url_regex, body)
     new_url_prefix = "https://www.reddit.com/r/counting/s/"
-    responses = [requests.get(new_url_prefix + link, timeout=100) for link in new_links]
-    new_urls = [response.url for response in responses]
-    try:
-        extra_urls = [re.search(url_regex, url).groups() for url in new_urls]
-    except AttributeError:
-        print(new_links)
-        print(new_urls)
-        print([response.status_code for response in responses])
-        raise
+    short_links = [new_url_prefix + x for x in re.findall(new_url_regex, body)]
+    extra_urls = [extract_from_short_link(l) for l in short_links]
     return urls + extra_urls
 
 
