@@ -102,7 +102,7 @@ def log(
     while (not all_counts and (completed < n_threads)) or (
         all_counts and submission.id != threadlogger.last_checkpoint
     ):
-        printer.info("Logging %s", comment.submission.title)
+        printer.info("Logging %s", submission.title)
         completed += 1
         if not threadlogger.is_already_logged(submission):
             if submission_id is not None:
@@ -110,7 +110,7 @@ def log(
             df = pd.DataFrame(tn.fetch_comments(comment))
             threadlogger.log(comment, df)
         else:
-            printer.info("Submission %s has already been logged!", comment.submission.title)
+            printer.info("Submission %s has already been logged!", submission.title)
 
         if submission.id in directory.first_submissions:
             break
