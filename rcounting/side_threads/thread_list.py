@@ -376,7 +376,7 @@ known_threads.update(base_n_threads)
 known_threads.update(
     {
         thread: SideThread(form=base_10, comment_to_count=base_n_count(10))
-        for thread in ["decimal", "by meters", "sheep", "word association"]
+        for thread in ["by meters", "sheep", "word association"]
     }
 )
 # See: https://www.reddit.com/r/counting/comments/o7ko8r/free_talk_friday_304/h3c7433/?context=3
@@ -408,6 +408,7 @@ default_threads = [
     "by 2s odd",
     "california license plates",
     "chess matches",
+    "decimal",
     "four squares",
     "n read as base n number",
     "negative numbers",
