@@ -51,7 +51,7 @@ def generate_new_body(previous_ftf_id, threshold_date):
         "be it your lives, your strava, your plans, your hobbies, studies, stats, "
         "pets, bears, hikes, dragons, trousers, travels, transit, cycling, family, "
         "or anything you like or dislike, except politics\n\n"
-        "Feel free to check out our [tidbits](https://redd.it/10roh5l) thread "
+        "Feel free to check out our [tidbits](https://redd.it/1bgwyht) thread "
         "and introduce yourself if you haven't already.\n\n"
         "---\n\n"
         "*This post was made by a bot, because no-one else made a Free Talk Friday post "
