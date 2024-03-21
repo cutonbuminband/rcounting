@@ -5,6 +5,7 @@ import click
 
 from rcounting.counters import apply_alias
 from rcounting.parsing import parse_markdown_links
+from rcounting.utils import get_ftf_timestamp
 
 
 def is_within_threshold(post, timestamp):
@@ -88,19 +89,6 @@ def update_directory(post, subreddit):
     if post.id not in known_posts:
         new_contents = "\n".join(contents_list + [row])
         wiki.edit(content=new_contents, reason="Added latest FTF")
-
-
-def get_ftf_timestamp():
-    current_time = dt.datetime.now()
-    threshold_date = (
-        current_time.date()
-        - dt.timedelta(days=current_time.weekday())
-        + dt.timedelta(days=4, weeks=-1)
-    )
-    threshold_timestamp = dt.datetime.combine(threshold_date, dt.time(7))
-    if current_time - threshold_timestamp >= dt.timedelta(weeks=1):
-        threshold_timestamp += dt.timedelta(weeks=1)
-    return threshold_timestamp
 
 
 @click.command(name="ftf")

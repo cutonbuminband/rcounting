@@ -1,3 +1,4 @@
+import datetime as dt
 import itertools
 import os
 
@@ -48,3 +49,16 @@ def chunked(iterable, n):
         except StopIteration:
             return
         yield itertools.chain((first_el,), chunk_it)
+
+
+def get_ftf_timestamp():
+    current_time = dt.datetime.now()
+    threshold_date = (
+        current_time.date()
+        - dt.timedelta(days=current_time.weekday())
+        + dt.timedelta(days=4, weeks=-1)
+    )
+    threshold_timestamp = dt.datetime.combine(threshold_date, dt.time(7))
+    if current_time - threshold_timestamp >= dt.timedelta(weeks=1):
+        threshold_timestamp += dt.timedelta(weeks=1)
+    return threshold_timestamp
