@@ -67,7 +67,7 @@ class Tree:
     def find_children(self, node):
         return [self.node(x) for x in self.reversed_tree[extract_id(node)]]
 
-    def walk_up_tree(self, node, limit=None):
+    def walk_up_tree(self, node, limit=None, cutoff=None):
         """Navigate the tree from node to root"""
         if isinstance(node, str):
             try:
@@ -80,6 +80,9 @@ class Tree:
         counter = 1
         while node.id in self.tree and not getattr(node, "is_root", False):
             if limit is not None and counter >= limit:
+                break
+            if cutoff is not None and getattr(node, "created_utc", float("inf")) < cutoff:
+                nodes = nodes[:-1]
                 break
             node = self.parent(node)
             nodes.append(node)
