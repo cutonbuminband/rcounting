@@ -212,11 +212,6 @@ class CommentTree(Tree):
     def comments(self):
         return self.nodes.values()
 
-    def parent(self, node):
-        node_id = extract_id(node)
-        parent_id = self.tree[node_id]
-        return self.node(parent_id)
-
     def add_missing_parents(self, comment_id):
         comments = []
         if self.reddit is None:
