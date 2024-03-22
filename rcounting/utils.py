@@ -52,13 +52,13 @@ def chunked(iterable, n):
 
 
 def get_ftf_timestamp():
-    current_time = dt.datetime.now()
+    current_time = dt.datetime.now(dt.timezone.utc)
     threshold_date = (
         current_time.date()
         - dt.timedelta(days=current_time.weekday())
         + dt.timedelta(days=4, weeks=-1)
     )
-    threshold_timestamp = dt.datetime.combine(threshold_date, dt.time(7))
+    threshold_timestamp = dt.datetime.combine(threshold_date, dt.time(7, tzinfo=dt.timezone.utc))
     if current_time - threshold_timestamp >= dt.timedelta(weeks=1):
         threshold_timestamp += dt.timedelta(weeks=1)
     return threshold_timestamp
