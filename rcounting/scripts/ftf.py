@@ -43,18 +43,23 @@ def generate_new_title(previous_title):
     return f"Free Talk Friday #{n+1}"
 
 
-def generate_new_body(previous_ftf_id, threshold_date):
+def generate_new_body(previous_ftf_id, threshold_date, bot=True):
 
     ftf_body = (
-        "Continued from last week's FTF [here](/comments/{}/)\n\n"
+        f"Continued from last week's FTF [here](/comments/{previous_ftf_id}/)\n\n"
         "It's that time of the week again. Speak anything on your mind! "
         "This thread is for talking about anything off-topic, "
         "be it your lives, your strava, your plans, your hobbies, studies, stats, "
         "pets, bears, hikes, dragons, trousers, travels, transit, cycling, family, "
-        "or anything you like or dislike, except politics\n\n"
+        "colours, or anything you like or dislike, except politics\n\n"
         "Feel free to check out our [tidbits](https://redd.it/1bgwyht) thread "
-        "and introduce yourself if you haven't already.\n\n"
-        "---\n\n"
+        "and introduce yourself if you haven't already."
+    )
+
+    if not bot:
+        return ftf_body
+    bot_body = (
+        "\n\n---\n\n"
         "*This post was made by a bot, because no-one else made a Free Talk Friday post "
         " before {} UTC 13:00. Anyone can post the FTF, so if you want to have your "
         "post pinned here for a week, just make one {} between UTC 07:00 and 13:00. "
@@ -64,11 +69,8 @@ def generate_new_body(previous_ftf_id, threshold_date):
         "*If you have any questions or comments about the bot, feel free to write them below,"
         " or message the mods.*"
     )
-
-    return ftf_body.format(
-        previous_ftf_id,
-        pprint(threshold_date),
-        pprint(threshold_date + dt.timedelta(weeks=1)),
+    return ftf_body + bot_body.format(
+        pprint(threshold_date), pprint(threshold_date + dt.timedelta(weeks=1))
     )
 
 
@@ -93,7 +95,8 @@ def update_directory(post, subreddit):
 
 @click.command(name="ftf")
 @click.argument("subreddit", default="counting")
-def pin_or_create_ftf(subreddit):
+@click.option("--bot/--no-bot", default=True)
+def pin_or_create_ftf(subreddit, bot):
     """
     Pin the earliest valid Free Talk Friday thread for this week in [subreddit].
     The subreddit is r/counting by default, but passing a different value lets you
@@ -116,7 +119,7 @@ def pin_or_create_ftf(subreddit):
         ftf_post = find_manual_ftf(previous_ftf_post.author, subreddit, threshold_timestamp)
         if not ftf_post:
             title = generate_new_title(previous_ftf_post.title)
-            body = generate_new_body(previous_ftf_post.id, threshold_timestamp)
+            body = generate_new_body(previous_ftf_post.id, threshold_timestamp, bot)
             ftf_post = subreddit.submit(title=title, selftext=body)
 
         ftf_post.mod.approve()
