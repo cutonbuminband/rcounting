@@ -1,11 +1,13 @@
 # pylint: disable=import-outside-toplevel,too-many-arguments,too-many-locals
 """Script for logging reddit submissions to either a database or a csv file"""
 import logging
+import time
 from datetime import datetime
 from pathlib import Path
 
 import click
 import pandas as pd
+from prawcore.exceptions import TooManyRequests
 
 printer = logging.getLogger("rcounting")
 
@@ -99,16 +101,21 @@ def log(
     submission = comment.submission
     submission_id = None
     comment_id = comment.id
+    multiple = 1
     while (not all_counts and (completed < n_threads)) or (
         all_counts and submission.id != threadlogger.last_checkpoint
     ):
         printer.info("Logging %s", submission.title)
-        completed += 1
         if not threadlogger.is_already_logged(submission):
-            if submission_id is not None:
-                comment = tn.find_get_in_submission(submission_id, comment_id)
-            df = pd.DataFrame(tn.fetch_comments(comment))
-            threadlogger.log(comment, df)
+            try:
+                if submission_id is not None:
+                    comment = tn.find_get_in_submission(submission_id, comment_id)
+                df = pd.DataFrame(tn.fetch_comments(comment))
+                threadlogger.log(comment, df)
+            except TooManyRequests:
+                time.sleep(30 * multiple)
+                multiple *= 1.5
+                continue
         else:
             printer.info("Submission %s has already been logged!", submission.title)
 
@@ -117,6 +124,8 @@ def log(
 
         submission_id, comment_id = tn.find_previous_submission(submission)
         submission = reddit.submission(submission_id)
+        multiple = 1
+        completed += 1
 
     if completed:
         if sql:
