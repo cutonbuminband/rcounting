@@ -1,22 +1,25 @@
+# pylint: disable=import-outside-toplevel
 import datetime as dt
+import logging
 import time
 
 import click
 import pandas as pd
 from prawcore.exceptions import TooManyRequests
 
-from rcounting import counters, ftf, models, parsing
+from rcounting import configure_logging, counters, ftf, models, parsing
 from rcounting import thread_directory as td
 from rcounting import thread_navigation as tn
 from rcounting import units
-from rcounting.reddit_interface import reddit, subreddit
+
+printer = logging.getLogger("rcounting")
 
 WEEK = 7 * units.DAY
 ftf_timestamp = ftf.get_ftf_timestamp().timestamp()
 threshold_timestamp = ftf_timestamp - WEEK
 
 
-def find_directory_revision(threshold):
+def find_directory_revision(subreddit, threshold):
     """Find the first directory revision which was made after a threshold
     timestamp. If no such revision exists, return the latest revision.
 
@@ -31,15 +34,15 @@ def find_directory_revision(threshold):
     return first_revision
 
 
-def get_directory_counts(directory, threshold):
+def get_directory_counts(reddit, directory, threshold):
     counts = []
     for row in directory.rows[1:]:
-        print(row.name)
-        counts.append((get_side_thread_counts(row, threshold), row.name))
+        printer.info("Getting history for %s", row.name)
+        counts.append((get_side_thread_counts(reddit, row, threshold), row.name))
     return counts
 
 
-def get_side_thread_counts(row, threshold):
+def get_side_thread_counts(reddit, row, threshold):
     """Return a list of all counts in the side thread represented by row that
     occurred after `threshold`.
     """
@@ -49,7 +52,7 @@ def get_side_thread_counts(row, threshold):
     comments = []
     multiple = 1
     while submission.created_utc >= threshold:
-        print(f"fetching submission {submission.title}")
+        printer.debug("Fetching submission %s", submission.title)
         tree = models.CommentTree(reddit=reddit, get_missing_replies=False)
         try:
             new_comments = tree.walk_up_tree(comment_id)
@@ -78,17 +81,19 @@ def get_side_thread_counts(row, threshold):
     return comments
 
 
-def get_weekly_stats():
-    revision = find_directory_revision(ftf_timestamp)
+def get_weekly_stats(reddit, subreddit):
+    revision = find_directory_revision(subreddit, ftf_timestamp)
     contents = revision["page"].content_md.replace("\r\n", "\n")
     directory = td.Directory(parsing.parse_directory_page(contents), "directory")
-    counts = get_directory_counts(directory, threshold_timestamp)
-    comments = [
-        dict(models.comment_to_dict(comment), **{"thread name": thread_name})
-        for comments, thread_name in counts
-        for comment in comments
-    ]
-    return pd.DataFrame(comments)
+    counts = get_directory_counts(reddit, directory, threshold_timestamp)
+    comments = pd.DataFrame(
+        [
+            dict(models.comment_to_dict(comment), **{"thread name": thread_name})
+            for comments, thread_name in counts
+            for comment in comments
+        ]
+    )
+    return comments[comments["timestamp"] < ftf_timestamp]
 
 
 def pprint(date):
@@ -139,8 +144,14 @@ def stats_post(stats):
 @click.option(
     "--dry-run", is_flag=True, help="Write results to console instead of making a comment"
 )
-def generate_stats_post(dry_run):
-    stats = get_weekly_stats()
+@click.option("--verbose", "-v", count=True, help="Print more output")
+@click.option("--quiet", "-q", is_flag=True, default=False, help="Suppress output")
+def generate_stats_post(dry_run, verbose, quiet):
+    t_start = dt.datetime.now()
+    from rcounting.reddit_interface import reddit, subreddit
+
+    configure_logging.setup(printer, verbose, quiet)
+    stats = get_weekly_stats(reddit, subreddit)
     body = stats_post(stats)
     if dry_run:
         print(body)
@@ -148,6 +159,7 @@ def generate_stats_post(dry_run):
         ftf_post = subreddit.sticky(number=2)
         if ftf.is_within_threshold(ftf_post):
             ftf_post.reply(body)
+    printer.info("Running the script took %s", dt.datetime.now() - t_start)
 
 
 if __name__ == "__main__":
