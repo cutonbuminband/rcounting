@@ -8,10 +8,11 @@ from .ftf import pin_or_create_ftf
 from .log_thread import log
 from .update_thread_directory import update_directory
 from .validate import validate
+from .weekly_side_thread_stats import generate_stats_post
 
 
 @click.group(
-    commands=[log, validate, update_directory, pin_or_create_ftf],
+    commands=[log, validate, update_directory, pin_or_create_ftf, generate_stats_post],
     context_settings=dict(help_option_names=["-h", "--help"]),
 )
 @click.version_option()
