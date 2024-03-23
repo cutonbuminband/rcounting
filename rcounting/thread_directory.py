@@ -217,8 +217,12 @@ class Row:
         if submission_tree.is_archived(self.submission):
             comment = comment.walk_up_tree(limit=5)[-1]
             dt = datetime.timedelta(days=30)
-            now = datetime.datetime.utcnow()
-            if now - datetime.datetime.utcfromtimestamp(comment.created_utc) > dt:
+            now = datetime.datetime.now(datetime.timezone.utc)
+            if (
+                now
+                - datetime.datetime.fromtimestamp(comment.created_utc, tz=datetime.timezone.utc)
+                > dt
+            ):
                 self.archived = True
 
 
