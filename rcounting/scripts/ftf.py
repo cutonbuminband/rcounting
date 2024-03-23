@@ -4,21 +4,14 @@ import datetime as dt
 import click
 
 from rcounting.counters import apply_alias
+from rcounting.ftf import get_ftf_timestamp, is_within_threshold
 from rcounting.parsing import parse_markdown_links
-from rcounting.utils import get_ftf_timestamp
 
 
-def is_within_threshold(post, timestamp):
-    """
-    Check if a post was made after the most recent Friday at 0700 UTC
-    """
-    return post.created_utc >= timestamp.timestamp()
-
-
-def find_manual_ftf(previous_ftf_poster, subreddit, timestamp):
+def find_manual_ftf(previous_ftf_poster, subreddit):
     submissions = []
     for submission in subreddit.new(limit=1000):
-        if is_within_threshold(submission, timestamp):
+        if is_within_threshold(submission):
             submissions.append(submission)
         else:
             break
@@ -113,10 +106,10 @@ def pin_or_create_ftf(subreddit, bot):
     previous_ftf_post = subreddit.sticky(number=2)
     threshold_timestamp = get_ftf_timestamp()
 
-    if is_within_threshold(previous_ftf_post, threshold_timestamp):
+    if is_within_threshold(previous_ftf_post):
         ftf_post = previous_ftf_post
     else:
-        ftf_post = find_manual_ftf(previous_ftf_post.author, subreddit, threshold_timestamp)
+        ftf_post = find_manual_ftf(previous_ftf_post.author, subreddit)
         if not ftf_post:
             title = generate_new_title(previous_ftf_post.title)
             body = generate_new_body(previous_ftf_post.id, threshold_timestamp, bot)
