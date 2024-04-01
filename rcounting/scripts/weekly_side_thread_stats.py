@@ -1,10 +1,12 @@
 # pylint: disable=import-outside-toplevel
 import datetime as dt
 import logging
+import sqlite3
 import time
 
 import click
 import pandas as pd
+from fuzzywuzzy import fuzz
 from prawcore.exceptions import TooManyRequests
 
 from rcounting import configure_logging, counters, ftf, models, parsing
@@ -15,8 +17,6 @@ from rcounting import units
 printer = logging.getLogger("rcounting")
 
 WEEK = 7 * units.DAY
-ftf_timestamp = ftf.get_ftf_timestamp().timestamp()
-threshold_timestamp = ftf_timestamp - WEEK
 
 
 def find_directory_revision(subreddit, threshold):
@@ -34,79 +34,121 @@ def find_directory_revision(subreddit, threshold):
     return first_revision
 
 
-def get_directory_counts(reddit, directory, threshold):
-    counts = []
+def get_directory_counts(reddit, directory, ftf_timestamp, db):
+    threshold = ftf_timestamp - WEEK
+    multiple = 1
+    try:
+        threads = pd.read_sql("select * from threads", db).set_index("thread_id")
+    except pd.io.sql.DatabaseError:
+        threads = pd.DataFrame()
+
     for row in directory.rows[1:]:
-        printer.info("Getting history for %s", row.name)
-        counts.append((get_side_thread_counts(reddit, row, threshold), row.name))
-    return counts
+        try:
+            checkpoint_timestamp = threads.loc[row.first_submission, "checkpoint_timestamp"]
+        except KeyError:
+            checkpoint_timestamp = 0
+        if checkpoint_timestamp == threshold:
+            printer.info("row %s has already been logged this week!", row.name)
+        else:
+            printer.info("Getting history for %s", row.name)
+            while True:
+                try:
+                    submissions, comments = get_side_thread_counts(reddit, row, threshold)
+                    multiple = 1
+                    break
+                except TooManyRequests:
+                    time.sleep(30 * multiple)
+                    multiple *= 1.5
+            df = pd.DataFrame([models.comment_to_dict(c) for c in comments])
+            df = df[df["timestamp"] < ftf_timestamp]
+            df.to_sql("comments", db, if_exists="append", index=False)
+            write_submissions(db, submissions, row.first_submission)
+            update_checkpoint(db, row.first_submission, row.name, threshold)
+    query = (
+        "SELECT comments.*, submissions.thread_id "
+        "FROM comments JOIN submissions ON comments.submission_id==submissions.submission_id "
+        f"WHERE comments.timestamp >= {threshold}"
+    )
+    comments = pd.read_sql(query, db)
+    threads = pd.read_sql("select * from threads", db)
+
+    return pd.merge(comments, threads, left_on="thread_id", right_on="thread_id", how="left")
+
+
+def update_checkpoint(db, thread_id, name, timestamp):
+    row = {"thread_id": thread_id, "thread_name": name, "checkpoint_timestamp": timestamp}
+    try:
+        threads = pd.read_sql("select * from threads", db)
+        if (threads["thread_id"] == thread_id).any():
+            threads.loc["thread_id" == thread_id, "checkpoint_timestamp"] = timestamp
+        else:
+            threads = pd.concat([threads, pd.DataFrame([row])])
+    except pd.io.sql.DatabaseError:
+        threads = pd.DataFrame([row])
+
+    threads.to_sql("threads", db, index=False, if_exists="replace")
+
+
+def write_submissions(db, submissions, thread_id):
+    df = pd.DataFrame([models.submission_to_dict(submission) for submission in submissions])
+    df["thread_id"] = thread_id
+    try:
+        existing_submissions = pd.read_sql("select * from submissions", db)
+    except pd.io.sql.DatabaseError:
+        existing_submissions = pd.DataFrame()
+
+    new_submissions = pd.concat([existing_submissions, df]).drop_duplicates()
+    new_submissions.to_sql("submissions", db, index=False, if_exists="replace")
 
 
 def get_side_thread_counts(reddit, row, threshold):
     """Return a list of all counts in the side thread represented by row that
-    occurred after `threshold`.
+    occurred after `threshold`, as well as the corresponding submissions the
+    comments belong to.
+
     """
     submission_id = row.submission_id
     comment_id = row.comment_id
     submission = reddit.submission(submission_id)
     comments = []
-    multiple = 1
+    submissions = [submission]
     while submission.created_utc >= threshold:
         printer.debug("Fetching submission %s", submission.title)
         tree = models.CommentTree(reddit=reddit, get_missing_replies=False)
-        try:
-            new_comments = tree.walk_up_tree(comment_id)
-            if new_comments is not None:
-                comments += new_comments[:-1]
-        # We're bumping up against reddit's API limits, so we'll manually
-        # include an exponential backoff. I don't know why PRAW doesn't catch
-        # this in the HTTP headers, but I can see that it doesn't.
-        except TooManyRequests:
-            time.sleep(30 * multiple)
-            multiple *= 1.5
-            continue
+        new_comments = tree.walk_up_tree(comment_id)
+        if new_comments is not None:
+            comments += new_comments[:-1]
         try:
             submission_id, comment_id = tn.find_previous_submission(submission)
         # We've hit the first submission in a new side thread
         except StopIteration:
-            return comments
+            return submissions, comments
         submission = reddit.submission(submission_id)
-        multiple = 1
-    while True:
-        tree = models.CommentTree(reddit=reddit, get_missing_replies=False)
-        try:
-            new_comments = tree.walk_up_tree(comment_id, cutoff=threshold)
-            if new_comments is not None:
-                comments += new_comments
-            break
-        except TooManyRequests:
-            time.sleep(30 * multiple)
-            multiple *= 1.5
-    return comments
+        submissions.append(submission)
+    tree = models.CommentTree(reddit=reddit, get_missing_replies=False)
+    new_comments = tree.walk_up_tree(comment_id, cutoff=threshold)
+    if new_comments is not None:
+        comments += new_comments
+    return submissions, comments
 
 
-def get_weekly_stats(reddit, subreddit):
+def get_weekly_stats(reddit, subreddit, ftf_timestamp):
+    filename = "side_threads.sqlite"
+    db = sqlite3.connect(filename)
+
     revision = find_directory_revision(subreddit, ftf_timestamp)
     contents = revision["page"].content_md.replace("\r\n", "\n")
     directory = td.Directory(parsing.parse_directory_page(contents), "directory")
-    counts = get_directory_counts(reddit, directory, threshold_timestamp)
-    comments = pd.DataFrame(
-        [
-            dict(models.comment_to_dict(comment), **{"thread name": thread_name})
-            for comments, thread_name in counts
-            for comment in comments
-        ]
-    )
-    return comments[comments["timestamp"] < ftf_timestamp]
+    return get_directory_counts(reddit, directory, ftf_timestamp, db)
 
 
 def pprint(date):
     return date.strftime("%A %B %d, %Y")
 
 
-def stats_post(stats):
-    start = dt.date.fromtimestamp(ftf_timestamp)
-    end = dt.date.fromtimestamp(threshold_timestamp)
+def stats_post(stats, ftf_timestamp):
+    end = dt.date.fromtimestamp(ftf_timestamp)
+    start = dt.date.fromtimestamp(ftf_timestamp - WEEK)
     stats["canonical_username"] = stats["username"].apply(counters.apply_alias)
 
     top_counters = (
@@ -125,7 +167,7 @@ def stats_post(stats):
     tc = top_counters["canonical_username"].to_numpy()
 
     top_threads = (
-        stats.groupby("thread name").size().sort_values(ascending=False).to_frame().reset_index()
+        stats.groupby("thread_name").size().sort_values(ascending=False).to_frame().reset_index()
     )
     top_threads.index += 1
     s = (
@@ -144,6 +186,14 @@ def stats_post(stats):
     return s
 
 
+def is_duplicate(body, post):
+    link, score = max(
+        ((comment.permalink, fuzz.ratio(body, comment.body)) for comment in post.comments),
+        key=lambda x: x[1],
+    )
+    return score > 90, link
+
+
 @click.command(name="st-stats")
 @click.option(
     "--dry-run", is_flag=True, help="Write results to console instead of making a comment"
@@ -152,18 +202,26 @@ def stats_post(stats):
 @click.option("--quiet", "-q", is_flag=True, default=False, help="Suppress output")
 def generate_stats_post(dry_run, verbose, quiet):
     t_start = dt.datetime.now()
+    ftf_timestamp = ftf.get_ftf_timestamp().timestamp()
+
     from rcounting.reddit_interface import reddit, subreddit
 
     configure_logging.setup(printer, verbose, quiet)
-    stats = get_weekly_stats(reddit, subreddit)
-    body = stats_post(stats)
+    stats = get_weekly_stats(reddit, subreddit, ftf_timestamp)
+    body = stats_post(stats, ftf_timestamp)
     if dry_run:
         print(body)
     else:
         ftf_post = subreddit.sticky(number=2)
-        if ftf.is_within_threshold(ftf_post):
+        duplicate, link = is_duplicate(body, ftf_post)
+        if ftf.is_within_threshold(ftf_post) and not duplicate:
             ftf_post.reply(body)
-    printer.info("Running the script took %s", dt.datetime.now() - t_start)
+        elif duplicate:
+            s = "Not posting stats comment. Existing comment found at https://www.reddit.com%s"
+            printer.warning(s, link)
+        else:
+            printer.warning("Not posting stats comment. Pinned FTF is stale")
+    printer.warning("Running the script took %s", dt.datetime.now() - t_start)
 
 
 if __name__ == "__main__":
