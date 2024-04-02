@@ -140,29 +140,20 @@ class LastDigitDFA(DFA):
 
     def __init__(self, n_symbols=10):
         super().__init__(n_symbols=n_symbols, n_states=3, sparse=False)
-        self.size = n_symbols + 2
+        self.size = 3
 
     def generate_transition_matrix(self):
-        transition_matrix = np.zeros((self.size, self.size), dtype=int)
-        new_state = np.ones(self.size)
-        new_state[0] = 0
-        for row in range(self.size - 1):
-            column = new_state.copy()
-            column[row] = 0
-            transition_matrix[row] = column
-        transition_matrix[0, -1] = 0
-        return transition_matrix
+        return np.array([[0, self.n_symbols, 0], [0, self.n_symbols - 1, 0], [0, 0, 0]])
 
     def encode(self, state: str):
         if not state:
             return 0
-        symbols = alphanumeric[: self.n_symbols]
         previous = ""
         for char in state:
             if char == previous:
-                return self.size - 1
+                return 2
             previous = char
-        return 1 + symbols.index(char)  # pylint: disable=undefined-loop-variable
+        return 1
 
 
 class NotAnyOfThoseDFA(DFA):
@@ -526,7 +517,7 @@ def no_consecutive_states(n_symbols):
 
 
 no_consecutive = sorted([int(x, 2) for x in no_consecutive_states(10)])[1:]
-no_successive = list(range(1, 11))
+no_successive = [1]
 no_repeating = [compressed_dfa.encode((x, 10 - x, 0)) for x in range(10)]
 only_repeating = [compressed_dfa.encode((x, 0, 10 - x)) for x in range(10)]
 mostly_repeating = [compressed_dfa.encode((x, 1, 10 - x - 1)) for x in range(10 - 1)]
