@@ -1,3 +1,4 @@
+import itertools
 import math
 from collections import Counter, defaultdict
 from typing import Sequence, Tuple
@@ -179,66 +180,59 @@ class NotAnyOfThoseDFA(DFA):
     1. The last digit of the string is present at least twice in the string
     2. The state has already successfully failed the NSD condition
 
-    The trickiest part is finding a sensible representation for each NOAT
-    state, so that we don't create matrices with large swathes of invalid
-    states. For example, in a two-symbol world, the state ([0, 1], 2, 1) is
-    invalid, since it claims we have two symbols present at least twice, but
-    only one symbol present at all.
+    Instead of packing the states nicely in a sensible scheme, we'll just loop
+    over all possible values of a, b, c in some arbitrary order, discard the
+    values which correspond to invalid states, and use that order to assign an
+    integer to each state.
 
-    We'll use the following layout:
+    The invalid states are:
 
-    - The range [0, 2^n) will be used to represent the states [a, 0, 0]: for b =
-    0 there is only one valid value of c.
+    b = 0, c != 0
+    b = sum(a), c == 0
 
-    - The range [2^n, 3 * 2^n) will be used to represent the states [a, sum(a),
-    1] and [a, sum(a), 2], since when b == sum(a), c == 0 is invalid.
+    and after accounting for those, it can be shown that there are 3n*2^(n-1)
+    valid states
 
-
-    - The remaining range [3 * 2^n, 3 * n * 2^(n - 1)) will represent the
-    remaining states in order according to:
-        - The number of bits set in their mask
-        - The (inverse) lexicographic position of their bitmask among those of the same weight
-        - The value of b
-        - The value of c
     """
 
     def __init__(self, n=10):
         super().__init__(n_symbols=n, n_states=3)
-        #
-        # As part of the encoding/decoding routine, we need to know the
-        # cumulative value of i * C(n_symbols, i) for different values of i.
-        # Each one represents the number of states in our DFA with a certain
-        # number of set bits (ignoring the NSD trit since its contribution to
-        # the count is trivial to calculate): Given a fixed number of symbols
-        # and a number of bits to set, there are C(n_symbols, i) different bit
-        # masks we can make. For each of those, there are i different possible
-        # counts of how many of the set bits should be at least two.
-
-        counts = [max((i - 1) * math.comb(n, i), 0) for i in range(n + 1)]
-        # cumulative counts stores the cumulative count, so that
-        # cumulative_count[k] is the total number of states with k or fewer
-        # bits set in the mask.
-        self.cumulative_counts = np.cumsum(counts)
-        self.size = 3 * n * 2 ** (n - 1) + 1
-        self.mask_decoder = {}
-        self.itos_map = None
-        self.itos_map = {i: self.int_to_state(i) for i in range(self.size)}
+        self.itos_map = self.initialize_itos_map()
         self.stoi_map = {v: k for k, v in self.itos_map.items()}
+        self.size = len(self.itos_map)
+
+    def initialize_itos_map(self):
+        itos_map = {}
+        idx = 0
+        for mask in itertools.product([False, True], repeat=self.n_symbols):
+            for b in range(sum(mask) + 1):
+                for c in range(3):
+                    if b == 0 and c > 0:
+                        continue
+                    if b == sum(mask) and c == 0:
+                        continue
+                    itos_map[idx] = mask, b, c
+                    idx += 1
+        return itos_map
 
     def _find_next_states(self, mask: Tuple[bool, ...], b: int, c: int):
         total = sum(mask)
         result = []
         # Every digit not present in the state just results in one more bit
-        # set, the same number of twos in the string, and a last digit of one
+        # set, the same number of twos in the string, and a last digit of zero
+        # if we're not already in a success state for nsd', and two if we are
         for idx, bit in enumerate(mask):
             if not bit:
                 current = tuple(mask[:idx]) + (True,) + tuple(mask[idx + 1 :])
                 result += [(1, (current, b, 0 if c != 2 else 2))]
-        # If we aren't already in a success state for \overline{NSD}, then one
-        # of the digits we add will move us there
         if total > 0:
+            # If we aren't already in a success state for \overline{NSD}, then
+            # one of the digits we add will move us there
             if c != 2:
                 result += [(1, (mask, b + (c == 0), 2))]
+            # The remaining digits will just keep the same mask, make b
+            # either stay the same or increase by one, and make c = 1 if we are
+            # not in a success state for nsd'
             result += [(b - (c == 1), (mask, b, 1 if c != 2 else 2))]
             result += [(total - b - (c == 0), (mask, b + 1, 1 if c != 2 else 2))]
         return [x for x in result if x[0] > 0]
@@ -246,103 +240,22 @@ class NotAnyOfThoseDFA(DFA):
     def int_to_mask(self, state: int) -> Tuple[bool, ...]:
         return tuple(char == "1" for char in f"{state:0>10b}"[::-1])
 
-    def state_to_int(self, bits: Tuple[bool, ...], b: int, c: int) -> int:
-        """A mapping of a state to an integer which represents that state.
-        There are 2**n_symbols possible bit fields of length n_symbols, for
-        each of those there are up to (n_symbols + 1) valid states for the
-        number of ones, and then there are 3 states for the NSD trit. A naïve
-        encoding would thus yield
-
-        2**n_symbols * (n_symbols + 1) * 3 ~ 34k states for n_symbols == 10
-
-        But we can be cleverer than that, and reduce it to less than half those
-        states. The downside is that the encoding and decoding procedure
-        becomes more complicated.
-
-        It turns out to be faster to define the int -> state mapping for all
-        valid states and then reverse that to get the state -> int mapping.
-        Don't ask me why.
-
-        """
-        return self.stoi_map[bits, b, c]
-
-    def int_to_state(self, state: int) -> Tuple[Tuple[bool, ...], int, int]:
-        if self.itos_map is not None:
-            return self.itos_map[state]
-
-        # The first 2 ** n states have b = c = 0
-        if state < 2**self.n_symbols:
-            return self.int_to_mask(state), 0, 0
-
-        state = state - 2**self.n_symbols
-
-        # The next 2 * 2 ** n states have b = sum(mask), and thus must have c =
-        # 1 or c = 2
-        if state < 2 * 2**self.n_symbols - 2:
-            c = state % 2 + 1
-            state = state // 2
-            a = self.int_to_mask(state + 1)
-            return a, sum(a), c
-        state = state - (2 * 2**self.n_symbols - 2)
-
-        # And then we get to all the remaining states. We can read off the
-        # value of c directly as state % 3, but we can't do the same for b
-        # since there's a different number of valid b values for different
-        # masks. Once we've figured out how many bits are set in the mask, we
-        # can proceed.
-        c = state % 3
-        state = state // 3
-        old_value = 0
-        idx = 0
-        for idx, value in enumerate(self.cumulative_counts):
-            if value > state:
-                break
-            old_value = value
-        state = state - old_value
-        b = (state % (idx - 1)) + 1
-        state = state // (idx - 1)
-        bits = self._decode_mask(state, idx)
-        return bits, b, c
-
-    def _decode_mask(self, state: int, ones: int, n: int | None = None) -> Tuple[bool, ...]:
-        if n is None:
-            n = self.n_symbols
-        if n == 0:
-            return tuple()
-        if (state, ones, n) not in self.mask_decoder:
-            # How many combinations are there of shorter strings with the same number
-            # of ones? If more, we can safely put a zero here and move on. If fewer, we
-            # need to put a one here before recursing.
-            cost = math.comb(n - 1, ones)
-            if state >= cost:
-                self.mask_decoder[state, ones, n] = self._decode_mask(
-                    state - cost, ones - 1, n - 1
-                ) + (True,)
-            else:
-                self.mask_decoder[state, ones, n] = self._decode_mask(state, ones, n - 1) + (
-                    False,
-                )
-        return self.mask_decoder[state, ones, n]
-
     def generate_transition_matrix(self):
         i = np.empty(self.n_symbols * self.size, dtype=int)
         j = np.empty(self.n_symbols * self.size, dtype=int)
         data = np.empty(self.n_symbols * self.size, dtype=int)
-        ix = 0
+        idx = 0
         for state in range(self.size):
-            next_states = self._find_next_states(*self.int_to_state(state))
+            next_states = self._find_next_states(*self.itos_map[state])
             counts, new_states = zip(*next_states)
-            new_states = [self.state_to_int(*ns) for ns in new_states]
-            if any(ns >= self.size for ns in new_states):
-                print(new_states)
-                print(state)
+            new_states = [self.stoi_map[ns] for ns in new_states]
             total = len(counts)
-            i[ix : ix + total] = state
-            j[ix : ix + total] = new_states
-            data[ix : ix + total] = counts
-            ix += total
+            i[idx : idx + total] = state
+            j[idx : idx + total] = new_states
+            data[idx : idx + total] = counts
+            idx += total
         return scipy.sparse.coo_array(
-            (data[:ix], (i[:ix], j[:ix])),
+            (data[:idx], (i[:idx], j[:idx])),
             shape=(self.size, self.size),
         ).tocsc()
 
@@ -360,7 +273,7 @@ class NotAnyOfThoseDFA(DFA):
         if c != 2 and state:
             c = min(counts[state[-1]], 2) - 1
         b = Counter([min(x, 2) for x in counts.values()])[2]
-        return self.state_to_int(tuple(bitmask), b, c)
+        return self.stoi_map[tuple(bitmask), b, c]
 
 
 class DFAThread(SideThread):
@@ -516,9 +429,9 @@ not_any_mask = [
     if x not in only_consecutive and x not in no_consecutive
 ]
 # Valid states for not any have a bitmask that excludes dfa
-not_any = [
-    not_any_dfa.state_to_int(tuple(a), b, 2) for a in not_any_mask for b in range(1, sum(a) - 1)
-]
+not_any = sorted(
+    [not_any_dfa.stoi_map[tuple(a), b, 2] for a in not_any_mask for b in range(1, sum(a) - 1)]
+)
 
 dfa_threads = {
     "mostly repeating digits": DFAThread(dfa=compressed_dfa, indices=mostly_repeating),
