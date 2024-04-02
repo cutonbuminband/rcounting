@@ -1,6 +1,6 @@
 import math
 from collections import Counter, defaultdict
-from typing import Sequence
+from typing import Sequence, Tuple
 
 import numpy as np
 import scipy.sparse
@@ -76,7 +76,7 @@ class DFA:
             shape=(self.size, self.size),
         )
 
-    def encode(self, state):
+    def encode(self, state: str) -> int:
         """Converts a word to an integer encoding of the corresponding state vector"""
         counts = Counter(state)
         return sum(
@@ -93,7 +93,7 @@ class CompressedDFA(DFA):
     10-symbol words"""
 
     def __init__(self, n_symbols):
-        super().__init__(n_symbols=n_symbols, n_states=3, sparse=False)
+        super().__init__(n_symbols=n_symbols, n_states=3)
         self.size = math.comb(n_symbols + 2, n_symbols)
         self.total_lengths = [
             len(range(max(i - n_symbols, 0), i // 2 + 1)) for i in range(2 * n_symbols + 1)
@@ -121,7 +121,7 @@ class CompressedDFA(DFA):
                 transition_matrix[self.encode(state), self.encode(new_state)] = count
         return transition_matrix
 
-    def encode(self, state: str | Sequence[int]):
+    def encode(self, state: str | Sequence[int]) -> int:
         if isinstance(state, str):
             counts = Counter([min(x, 2) for x in Counter(state).values()])
         else:
@@ -163,6 +163,235 @@ class LastDigitDFA(DFA):
                 return self.size - 1
             previous = char
         return 1 + symbols.index(char)  # pylint: disable=undefined-loop-variable
+
+
+class NotAnyOfThoseDFA(DFA):
+    """A class to represent the states and transitions of the not any of those
+    side thread, which has the rule that the cannot match any of:
+
+    - No Repeating Digits
+    - Only Repeating Digits
+    - Mostly Repeating Digits
+    - No Successive Digits
+    - No Consecutive Digits
+    - Only Consecutive Digits
+
+    We'll use the following representation for a state:
+
+    [a_0, a_1, a_2, \\ldots, a_n], b, c
+
+    where a is a boolean vector, with a_i representing whether the digit i is
+    present in the state, b is a count of how many digits are already present twice
+    in the state, and c is a ternary digit representing whether:
+
+    0. The the last digit is only present once in the string
+    1. The last digit of the string is present at least twice in the string
+    2. The state has already successfully failed the NSD condition
+
+    The trickiest part is finding a sensible representation for each NOAT
+    state, so that we don't create matrices with large swathes of invalid
+    states. For example, in a two-symbol world, the state ([0, 1], 2, 1) is
+    invalid, since it claims we have two symbols present at least twice, but
+    only one symbol present at all.
+
+    We'll use the following layout:
+
+    - The range [0, 2^n) will be used to represent the states [a, 0, 0]: for b =
+    0 there is only one valid value of c.
+
+    - The range [2^n, 3 * 2^n) will be used to represent the states [a, sum(a),
+    1] and [a, sum(a), 2], since when b == sum(a), c == 0 is invalid.
+
+
+    - The remaining range [3 * 2^n, 3 * n * 2^(n - 1)) will represent the
+    remaining states in order according to:
+        - The number of bits set in their mask
+        - The (inverse) lexicographic position of their bitmask among those of the same weight
+        - The value of b
+        - The value of c
+    """
+
+    def __init__(self, n=10):
+        super().__init__(n_symbols=n, n_states=3)
+        #
+        # As part of the encoding/decoding routine, we need to know the
+        # cumulative value of i * C(n_symbols, i) for different values of i.
+        # Each one represents the number of states in our DFA with a certain
+        # number of set bits (ignoring the NSD trit since its contribution to
+        # the count is trivial to calculate): Given a fixed number of symbols
+        # and a number of bits to set, there are C(n_symbols, i) different bit
+        # masks we can make. For each of those, there are i different possible
+        # counts of how many of the set bits should be at least two.
+
+        counts = [max((i - 1) * math.comb(n, i), 0) for i in range(n + 1)]
+        # cumulative counts stores the cumulative count, so that
+        # cumulative_count[k] is the total number of states with k or fewer
+        # bits set in the mask.
+        self.cumulative_counts = np.cumsum(counts)
+        self.size = 3 * n * 2 ** (n - 1) + 1
+        self.mask_decoder = {}
+
+    def _find_next_states(self, mask: Tuple[bool, ...], b: int, c: int):
+        total = sum(mask)
+        result = []
+        # Every digit not present in the state just results in one more bit
+        # set, the same number of twos in the string, and a last digit of one
+        for idx, bit in enumerate(mask):
+            if not bit:
+                current = tuple(mask[:idx]) + (True,) + tuple(mask[idx + 1 :])
+                result += [(1, (current, b, 0 if c != 2 else 2))]
+        # If we aren't already in a success state for \overline{NSD}, then one
+        # of the digits we add will move us there
+        if total > 0:
+            if c != 2:
+                result += [(1, (mask, b + (c == 0), 2))]
+            result += [(b - (c == 1), (mask, b, 1 if c != 2 else 2))]
+            result += [(total - b - (c == 0), (mask, b + 1, 1 if c != 2 else 2))]
+        return [x for x in result if x[0] > 0]
+
+    def mask_to_int(self, bits: Sequence[bool]):
+        return sum(bit * 2**i for i, bit in enumerate(bits))
+
+    def int_to_mask(self, state: int) -> Tuple[bool, ...]:
+        return tuple(char == "1" for char in f"{state:0>10b}"[::-1])
+
+    def state_to_int(self, bits: Tuple[bool, ...] | int, b: int, c: int) -> int:
+        """A mapping of a state to an integer which represents that state.
+        There are 2**n_symbols possible bit fields of length n_symbols, for
+        each of those there are up to (n_symbols + 1) valid states for the
+        number of ones, and then there are 3 states for the NSD trit. A naïve
+        encoding would thus yield
+
+        2**n_symbols * (n_symbols + 1) * 3 ~ 34k states for n_symbols == 10
+
+        But we can be cleverer than that, and reduce it to less than half those
+        states. The downside is that the encoding and decoding procedure
+        becomes more complicated.
+
+        """
+        if isinstance(bits, int):
+            bits = self.int_to_mask(bits)
+
+        # We have 2**n states that have b = 0, one for every possible value of the
+        # mask.
+        if b == 0:
+            return self.mask_to_int(bits)
+        offset = 2**self.n_symbols
+
+        total = sum(bits)
+
+        # We have 2 ** n - 2 states with b = total, since the case b = 0 was
+        # accounted for above.
+        if b == total:
+            assert c != 0
+            return offset + (self.mask_to_int(bits) - 1) * 2 + (c - 1)
+        offset += 2 * (2**self.n_symbols - 1)
+
+        # Additionally, we need to account for all the states with a smaller
+        # number of bits set in the mask. We need this number for the decoding
+        # as well, so we've precalculated it in the init.
+        offset += 3 * self.cumulative_counts[total - 1]
+
+        # With the completed sets out of the way, we need to assign some
+        # integer to the current mask, in the line of all masks with the same
+        # total. We'll use an inverse lexicographic order so that 1000 is the
+        # first mask of length four with weight one, 0100 is the second and so
+        # on.
+        cw_position = sum(
+            bit * math.comb(idx, ones)
+            for idx, (bit, ones) in enumerate(zip(bits, np.cumsum(bits, dtype=int)))
+        )
+        # That tells us how many masks we've completed before the current one
+        # with the same total weight; each one has a total of 2*total states it
+        # matches. Within each one, there are three valid values for the NSD trit
+        # and `total` valid values for the number of twos in the string. To
+        # that we need to add thrice the value of b (one for each value of the
+        # NSD trit), and finally the value of the NSD trit itself.
+        return offset + 3 * (total - 1) * cw_position + (b - 1) * 3 + c
+
+    def int_to_state(self, state: int) -> Tuple[Tuple[bool, ...], int, int]:
+        if state < 2**self.n_symbols:
+            return self.int_to_mask(state), 0, 0
+
+        state = state - 2**self.n_symbols
+
+        if state < 2 * 2**self.n_symbols - 2:
+            c = state % 2 + 1
+            state = state // 2
+            a = self.int_to_mask(state + 1)
+            return a, sum(a), c
+        state = state - (2 * 2**self.n_symbols - 2)
+        c = state % 3
+        state = state // 3
+        old_value = 0
+        idx = 0
+        for idx, value in enumerate(self.cumulative_counts):
+            if value > state:
+                break
+            old_value = value
+        state = state - old_value
+        b = (state % (idx - 1)) + 1
+        state = state // (idx - 1)
+        bits = self._decode_mask(state, idx)
+        return bits, b, c
+
+    def _decode_mask(self, state: int, ones: int, n: int | None = None) -> Tuple[bool, ...]:
+        if n is None:
+            n = self.n_symbols
+        if n == 0:
+            return tuple()
+        if (state, ones, n) not in self.mask_decoder:
+            # How many combinations are there of shorter strings with the same number
+            # of ones? If more, we can safely put a zero here and move on. If fewer, we
+            # need to put a one here before recursing.
+            cost = math.comb(n - 1, ones)
+            if state >= cost:
+                self.mask_decoder[state, ones, n] = self._decode_mask(
+                    state - cost, ones - 1, n - 1
+                ) + (True,)
+            else:
+                self.mask_decoder[state, ones, n] = self._decode_mask(state, ones, n - 1) + (
+                    False,
+                )
+        return self.mask_decoder[state, ones, n]
+
+    def generate_transition_matrix(self):
+        i = np.empty(10 * self.size, dtype=int)
+        j = np.empty(10 * self.size, dtype=int)
+        data = np.empty(10 * self.size, dtype=int)
+        ix = 0
+        for state in range(self.size):
+            next_states = self._find_next_states(*self.int_to_state(state))
+            counts, new_states = zip(*next_states)
+            new_states = [self.state_to_int(*ns) for ns in new_states]
+            if any(ns >= self.size for ns in new_states):
+                print(new_states)
+                print(state)
+            total = len(counts)
+            i[ix : ix + total] = state
+            j[ix : ix + total] = new_states
+            data[ix : ix + total] = counts
+            ix += total
+        return scipy.sparse.coo_array(
+            (data[:ix], (i[:ix], j[:ix])),
+            shape=(self.size, self.size),
+        ).tocsr()
+
+    def encode(self, state: str) -> int:
+        symbols = alphanumeric[: self.n_symbols]
+        bitmask = [symbol in state for symbol in symbols]
+        current = ""
+        c = 0
+        for char in state:
+            if char == current:
+                c = 2
+                break
+            current = char
+        counts = Counter(state)
+        if c != 2 and state:
+            c = min(counts[state[-1]], 2) - 1
+        b = Counter([min(x, 2) for x in counts.values()])[2]
+        return self.state_to_int(tuple(bitmask), b, c)
 
 
 class DFAThread(SideThread):
@@ -299,6 +528,17 @@ only_consecutive = sorted(
     ]
 )
 
+not_any_dfa = NotAnyOfThoseDFA()
+not_any_mask = [
+    not_any_dfa.int_to_mask(x)
+    for x in range(1024)
+    if x not in only_consecutive and x not in no_consecutive
+]
+# Valid states for not any have a bitmask that excludes dfa
+not_any = [
+    not_any_dfa.state_to_int(tuple(a), b, 2) for a in not_any_mask for b in range(1, sum(a) - 1)
+]
+
 dfa_threads = {
     "mostly repeating digits": DFAThread(dfa=compressed_dfa, indices=mostly_repeating),
     "no consecutive digits": DFAThread(dfa=dfa_10_2, indices=no_consecutive),
@@ -306,4 +546,5 @@ dfa_threads = {
     "no successive digits": DFAThread(indices=no_successive, dfa=LastDigitDFA()),
     "only consecutive digits": DFAThread(dfa=dfa_10_2, indices=only_consecutive, offset=9),
     "only repeating digits": DFAThread(dfa=compressed_dfa, indices=only_repeating),
+    "not any of those": DFAThread(dfa=not_any_dfa, indices=not_any),
 }
