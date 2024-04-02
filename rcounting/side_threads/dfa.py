@@ -40,7 +40,7 @@ class DFA:
 
     def generate_identity(self):
         if self.sparse:
-            return scipy.sparse.eye(self.size, dtype=int, format="csr")
+            return scipy.sparse.eye(self.size, dtype=int, format="csc")
         return np.eye(self.size, dtype=int)
 
     def _connections(self, i):
@@ -74,7 +74,7 @@ class DFA:
         return scipy.sparse.coo_matrix(
             (data[:ix], (x[:ix], y[:ix])),
             shape=(self.size, self.size),
-        )
+        ).tocsc()
 
     def encode(self, state: str) -> int:
         """Converts a word to an integer encoding of the corresponding state vector"""
@@ -375,7 +375,7 @@ class NotAnyOfThoseDFA(DFA):
         return scipy.sparse.coo_array(
             (data[:ix], (i[:ix], j[:ix])),
             shape=(self.size, self.size),
-        ).tocsr()
+        ).tocsc()
 
     def encode(self, state: str) -> int:
         symbols = alphanumeric[: self.n_symbols]
@@ -451,12 +451,22 @@ class DFAThread(SideThread):
         form = base_n(n)
         self.dfa = dfa if dfa is not None else DFA(n, dfa_base)
         self.indices = indices if indices is not None else []
+        self.encoded_symbols = [self.dfa.encode(s) for s in alphanumeric[:n]]
+        self.matrices = {}
 
         # Some of the threads skip the single-digit counts which would
         # otherwhise be valid, so we add an offset to account for that
         self.offset = offset
 
         super().__init__(rule=rule, form=form, comment_to_count=self.count)
+
+    def matrix(self, n):
+        if n not in self.matrices:
+            matrix = self.dfa[n][:, self.indices]
+            if scipy.sparse.issparse(matrix):
+                matrix = matrix.toarray()
+            self.matrices[n] = matrix.sum(axis=1)
+        return self.matrices[n]
 
     def word_is_valid(self, word):
         return self.dfa.encode(word) in self.indices
@@ -475,15 +485,17 @@ class DFAThread(SideThread):
             if bijective:
                 states += [self.dfa.encode("")]
             elif matrix_power > 0:
-                enumeration += sum(
-                    self.dfa[matrix_power - 1][self.dfa.encode(s), self.indices].sum()
-                    for s in alphanumeric[1 : self.n]
-                )
-
-            enumeration += sum(
-                self.dfa[matrix_power][state, self.indices].sum() for state in states
-            )
+                enumeration += self._enumerate(self.encoded_symbols[1:], matrix_power - 1)
+            enumeration += self._enumerate(states, matrix_power)
         return enumeration + self.word_is_valid(word) - self.offset
+
+    def _enumerate(self, states, n):
+        """Given a list of states, how many success strings will we have after
+        n rounds of appending digits?"""
+        if not states:
+            return 0
+        states, counts = zip(*Counter(states).items())
+        return np.dot(counts, self.matrix(n)[list(states)])
 
 
 dfa_10_2 = DFA(10, 2)
