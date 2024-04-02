@@ -15,6 +15,7 @@ rule_dict = {
     "only_double_counting": "only double counting",
     "fast_or_slow": "fast or slow",
     "no_repeating": "no repeating digits",
+    "not_any": "not any of those",
 }
 
 
