@@ -356,9 +356,9 @@ class NotAnyOfThoseDFA(DFA):
         return self.mask_decoder[state, ones, n]
 
     def generate_transition_matrix(self):
-        i = np.empty(10 * self.size, dtype=int)
-        j = np.empty(10 * self.size, dtype=int)
-        data = np.empty(10 * self.size, dtype=int)
+        i = np.empty(self.n_symbols * self.size, dtype=int)
+        j = np.empty(self.n_symbols * self.size, dtype=int)
+        data = np.empty(self.n_symbols * self.size, dtype=int)
         ix = 0
         for state in range(self.size):
             next_states = self._find_next_states(*self.int_to_state(state))
