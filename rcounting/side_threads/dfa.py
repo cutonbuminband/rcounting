@@ -221,6 +221,9 @@ class NotAnyOfThoseDFA(DFA):
         self.cumulative_counts = np.cumsum(counts)
         self.size = 3 * n * 2 ** (n - 1) + 1
         self.mask_decoder = {}
+        self.itos_map = None
+        self.itos_map = {i: self.int_to_state(i) for i in range(self.size)}
+        self.stoi_map = {v: k for k, v in self.itos_map.items()}
 
     def _find_next_states(self, mask: Tuple[bool, ...], b: int, c: int):
         total = sum(mask)
@@ -240,13 +243,10 @@ class NotAnyOfThoseDFA(DFA):
             result += [(total - b - (c == 0), (mask, b + 1, 1 if c != 2 else 2))]
         return [x for x in result if x[0] > 0]
 
-    def mask_to_int(self, bits: Sequence[bool]):
-        return sum(bit * 2**i for i, bit in enumerate(bits))
-
     def int_to_mask(self, state: int) -> Tuple[bool, ...]:
         return tuple(char == "1" for char in f"{state:0>10b}"[::-1])
 
-    def state_to_int(self, bits: Tuple[bool, ...] | int, b: int, c: int) -> int:
+    def state_to_int(self, bits: Tuple[bool, ...], b: int, c: int) -> int:
         """A mapping of a state to an integer which represents that state.
         There are 2**n_symbols possible bit fields of length n_symbols, for
         each of those there are up to (n_symbols + 1) valid states for the
@@ -259,59 +259,37 @@ class NotAnyOfThoseDFA(DFA):
         states. The downside is that the encoding and decoding procedure
         becomes more complicated.
 
+        It turns out to be faster to define the int -> state mapping for all
+        valid states and then reverse that to get the state -> int mapping.
+        Don't ask me why.
+
         """
-        if isinstance(bits, int):
-            bits = self.int_to_mask(bits)
-
-        # We have 2**n states that have b = 0, one for every possible value of the
-        # mask.
-        if b == 0:
-            return self.mask_to_int(bits)
-        offset = 2**self.n_symbols
-
-        total = sum(bits)
-
-        # We have 2 ** n - 2 states with b = total, since the case b = 0 was
-        # accounted for above.
-        if b == total:
-            assert c != 0
-            return offset + (self.mask_to_int(bits) - 1) * 2 + (c - 1)
-        offset += 2 * (2**self.n_symbols - 1)
-
-        # Additionally, we need to account for all the states with a smaller
-        # number of bits set in the mask. We need this number for the decoding
-        # as well, so we've precalculated it in the init.
-        offset += 3 * self.cumulative_counts[total - 1]
-
-        # With the completed sets out of the way, we need to assign some
-        # integer to the current mask, in the line of all masks with the same
-        # total. We'll use an inverse lexicographic order so that 1000 is the
-        # first mask of length four with weight one, 0100 is the second and so
-        # on.
-        cw_position = sum(
-            bit * math.comb(idx, ones)
-            for idx, (bit, ones) in enumerate(zip(bits, np.cumsum(bits, dtype=int)))
-        )
-        # That tells us how many masks we've completed before the current one
-        # with the same total weight; each one has a total of 2*total states it
-        # matches. Within each one, there are three valid values for the NSD trit
-        # and `total` valid values for the number of twos in the string. To
-        # that we need to add thrice the value of b (one for each value of the
-        # NSD trit), and finally the value of the NSD trit itself.
-        return offset + 3 * (total - 1) * cw_position + (b - 1) * 3 + c
+        return self.stoi_map[bits, b, c]
 
     def int_to_state(self, state: int) -> Tuple[Tuple[bool, ...], int, int]:
+        if self.itos_map is not None:
+            return self.itos_map[state]
+
+        # The first 2 ** n states have b = c = 0
         if state < 2**self.n_symbols:
             return self.int_to_mask(state), 0, 0
 
         state = state - 2**self.n_symbols
 
+        # The next 2 * 2 ** n states have b = sum(mask), and thus must have c =
+        # 1 or c = 2
         if state < 2 * 2**self.n_symbols - 2:
             c = state % 2 + 1
             state = state // 2
             a = self.int_to_mask(state + 1)
             return a, sum(a), c
         state = state - (2 * 2**self.n_symbols - 2)
+
+        # And then we get to all the remaining states. We can read off the
+        # value of c directly as state % 3, but we can't do the same for b
+        # since there's a different number of valid b values for different
+        # masks. Once we've figured out how many bits are set in the mask, we
+        # can proceed.
         c = state % 3
         state = state // 3
         old_value = 0
