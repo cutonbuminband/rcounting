@@ -3,6 +3,7 @@ import datetime as dt
 import logging
 import sqlite3
 import time
+from pathlib import Path
 
 import click
 import pandas as pd
@@ -60,8 +61,9 @@ def get_directory_counts(reddit, directory, ftf_timestamp, db):
                     time.sleep(30 * multiple)
                     multiple *= 1.5
             df = pd.DataFrame([models.comment_to_dict(c) for c in comments])
-            df = df[df["timestamp"] < ftf_timestamp]
-            df.to_sql("comments", db, if_exists="append", index=False)
+            if not df.empty:
+                df = df[df["timestamp"] < ftf_timestamp]
+                df.to_sql("comments", db, if_exists="append", index=False)
             write_submissions(db, submissions, row.first_submission)
             update_checkpoint(db, row.first_submission, row.name, threshold)
     query = (
@@ -69,7 +71,7 @@ def get_directory_counts(reddit, directory, ftf_timestamp, db):
         "FROM comments JOIN submissions ON comments.submission_id==submissions.submission_id "
         f"WHERE comments.timestamp >= {threshold}"
     )
-    comments = pd.read_sql(query, db)
+    comments = pd.read_sql(query, db).drop_duplicates()
     threads = pd.read_sql("select * from threads", db)
 
     return pd.merge(comments, threads, left_on="thread_id", right_on="thread_id", how="left")
@@ -80,7 +82,7 @@ def update_checkpoint(db, thread_id, name, timestamp):
     try:
         threads = pd.read_sql("select * from threads", db)
         if (threads["thread_id"] == thread_id).any():
-            threads.loc["thread_id" == thread_id, "checkpoint_timestamp"] = timestamp
+            threads.loc[threads["thread_id"] == thread_id, "checkpoint_timestamp"] = timestamp
         else:
             threads = pd.concat([threads, pd.DataFrame([row])])
     except pd.io.sql.DatabaseError:
@@ -132,8 +134,7 @@ def get_side_thread_counts(reddit, row, threshold):
     return submissions, comments
 
 
-def get_weekly_stats(reddit, subreddit, ftf_timestamp):
-    filename = "side_threads.sqlite"
+def get_weekly_stats(reddit, subreddit, ftf_timestamp, filename):
     db = sqlite3.connect(filename)
 
     revision = find_directory_revision(subreddit, ftf_timestamp)
@@ -179,7 +180,7 @@ def stats_post(stats, ftf_timestamp):
     s += top_counters.head(15).to_markdown(headers=["**Rank**", "**User**", "**Counts**"])
     s += "\n\nTop 5 side threads:\n\n"
     s += top_threads.head(5).to_markdown(headers=["**Rank**", "**Thread**", "**Counts**"])
-    s += "\n\n--\n\n"
+    s += "\n\n----\n\n"
     s += "*This comment was made by a script; check it out "
     # pylint: disable-next=line-too-long
     s += "[here](https://github.com/cutonbuminband/rcounting/blob/main/rcounting/scripts/weekly_side_thread_stats.py)*"
@@ -200,14 +201,28 @@ def is_duplicate(body, post):
 )
 @click.option("--verbose", "-v", count=True, help="Print more output")
 @click.option("--quiet", "-q", is_flag=True, default=False, help="Suppress output")
-def generate_stats_post(dry_run, verbose, quiet):
+@click.option(
+    "--filename",
+    "-f",
+    type=click.Path(path_type=Path),
+    help=("What file to write to. If none is specified, side_threads.sqlite is used"),
+)
+def generate_stats_post(filename, dry_run, verbose, quiet):
+    """Load all the side thread counts made in the previous FTF period and
+    store them in a database. Then post a side thread stats comment in the
+    current FTF as long as:
+
+    - The current FTF is not stale
+    - The comment has not been posted before.
+
+    """
     t_start = dt.datetime.now()
     ftf_timestamp = ftf.get_ftf_timestamp().timestamp()
 
     from rcounting.reddit_interface import reddit, subreddit
 
     configure_logging.setup(printer, verbose, quiet)
-    stats = get_weekly_stats(reddit, subreddit, ftf_timestamp)
+    stats = get_weekly_stats(reddit, subreddit, ftf_timestamp, filename)
     body = stats_post(stats, ftf_timestamp)
     if dry_run:
         print(body)
@@ -216,11 +231,11 @@ def generate_stats_post(dry_run, verbose, quiet):
         duplicate, link = is_duplicate(body, ftf_post)
         if ftf.is_within_threshold(ftf_post) and not duplicate:
             ftf_post.reply(body)
-        elif duplicate:
+        elif not duplicate:
+            printer.warning("Not posting stats comment. Pinned FTF is stale")
+        else:
             s = "Not posting stats comment. Existing comment found at https://www.reddit.com%s"
             printer.warning(s, link)
-        else:
-            printer.warning("Not posting stats comment. Pinned FTF is stale")
     printer.warning("Running the script took %s", dt.datetime.now() - t_start)
 
 
