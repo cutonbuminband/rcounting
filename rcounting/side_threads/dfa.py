@@ -100,7 +100,7 @@ class CompressedDFA(DFA):
             len(range(max(i - n_symbols, 0), i // 2 + 1)) for i in range(2 * n_symbols + 1)
         ]
 
-    def _find_next_state(self, state: Sequence[int]):
+    def _find_next_states(self, state: Sequence[int]):
         result = []
         if state[0]:
             result.append((state[0], [state[0] - 1, state[1] + 1, state[2]]))
@@ -118,7 +118,7 @@ class CompressedDFA(DFA):
             for y in range(self.n_symbols + 1 - x)
         ]
         for state in states:
-            for count, new_state in self._find_next_state(state):
+            for count, new_state in self._find_next_states(state):
                 transition_matrix[self.encode(state), self.encode(new_state)] = count
         return transition_matrix
 
@@ -274,6 +274,61 @@ class NotAnyOfThoseDFA(DFA):
             c = min(counts[state[-1]], 2) - 1
         b = Counter([min(x, 2) for x in counts.values()])[2]
         return self.stoi_map[tuple(bitmask), b, c]
+
+
+class BarelyRepeatingDigitsDFA(DFA):
+    """Class for tracking state transitions for barely repeating digits. We
+    have three types of state:
+
+    - One failure state
+    - A state representing the empty string
+    - States of the form (digits present, repeat), where digits present counts
+      how many digits from the alphabet of n symbols are present in the string,
+      and repeat is a bool representing whether any of these digits repeats in
+      the string.
+
+    """
+
+    def __init__(self, n_symbols=10):
+        super().__init__(n_symbols=n_symbols, n_states=3, sparse=False)
+        self.size = 2 * (n_symbols + 1)
+
+    def encode(self, state: str | Sequence[int]):
+        if isinstance(state, str):
+            counts = Counter([min(x, 3) for x in Counter(state).values()])
+            digits_present = counts[1] + counts[2]
+            repeat = counts[2] if not counts[3] else -1
+        else:
+            digits_present, repeat = state
+
+        if digits_present > self.n_symbols or digits_present < 0 or repeat not in [0, 1]:
+            return 0
+        if digits_present == 0:
+            return 1 - repeat
+        return 2 * digits_present + repeat
+
+    def _find_next_states(self, state: Tuple[int, int]):
+        digits_present, repeat = state
+        result = []
+        if repeat == 0:
+            result.append((digits_present, (digits_present, 1)))
+        if digits_present != self.n_symbols:
+            result.append((self.n_symbols - digits_present, (digits_present + 1, repeat)))
+        return result
+
+    def generate_transition_matrix(self):
+        transition_matrix = np.zeros((self.size, self.size), dtype=int)
+        states = [
+            (digits_present, repeat)
+            for digits_present in range(self.n_symbols + 1)
+            for repeat in range(2)
+        ]
+        for state in states:
+            for count, new_state in self._find_next_states(state):
+                transition_matrix[self.encode(state), self.encode(new_state)] = count
+        transition_matrix[0] = 0
+        transition_matrix[:, 0] = 0
+        return transition_matrix
 
 
 class DFAThread(SideThread):
@@ -433,6 +488,9 @@ not_any = sorted(
     [not_any_dfa.stoi_map[tuple(a), b, 2] for a in not_any_mask for b in range(1, sum(a) - 1)]
 )
 
+barely_repeating_dfa = BarelyRepeatingDigitsDFA()
+barely_repeating = [barely_repeating_dfa.encode((x, 1)) for x in range(2, 11)]
+
 dfa_threads = {
     "mostly repeating digits": DFAThread(dfa=compressed_dfa, indices=mostly_repeating),
     "no consecutive digits": DFAThread(dfa=dfa_10_2, indices=no_consecutive),
@@ -441,4 +499,5 @@ dfa_threads = {
     "only consecutive digits": DFAThread(dfa=dfa_10_2, indices=only_consecutive, offset=9),
     "only repeating digits": DFAThread(dfa=compressed_dfa, indices=only_repeating),
     "not any of those": DFAThread(dfa=not_any_dfa, indices=not_any),
+    "barely repeating digits": DFAThread(dfa=barely_repeating_dfa, indices=barely_repeating),
 }
