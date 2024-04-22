@@ -412,3 +412,18 @@ class Directory:
         ]
         archive = list(itertools.chain.from_iterable(zip(titles, parts)))
         return "\n\n".join(archive[1:])
+
+
+def comment_to_row(comment) -> Row:
+    """Takes a comment on a new side thread and returns a Row object that
+    represents that comment under the assumption that:
+
+    - The comment is the leaf comment in the submission of interest
+    - The submission is the first one in a new side thread
+
+    This is useful for when submissions need to be manually added to the directory.
+    """
+    submission = comment.submission
+    name = f'**{submission.title.split("|")[0].strip()}**'
+    title = title_from_first_comment(submission)
+    return Row(name, submission.id, title, submission.id, comment.id, "-")
