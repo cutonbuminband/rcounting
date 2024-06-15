@@ -15,6 +15,7 @@ spurious_edges = [
     ("r2h98h", "nyg22w"),
     ("11va8n8", "11siye8"),
     ("12p80i5", "11nouml"),
+    ("1d1pyvo", "1crh3wj"),
 ]
 
 # And some posts just shouldn't be tracked - here's a hardcoded list of those
