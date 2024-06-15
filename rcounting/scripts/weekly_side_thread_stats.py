@@ -122,6 +122,8 @@ def get_side_thread_counts(reddit, row, threshold):
             comments += new_comments[:-1]
         try:
             submission_id, comment_id = tn.find_previous_submission(submission)
+            if not comment_id:
+                return submissions, comments
         # We've hit the first submission in a new side thread
         except StopIteration:
             return submissions, comments
