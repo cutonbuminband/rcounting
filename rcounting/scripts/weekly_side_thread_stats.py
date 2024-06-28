@@ -190,10 +190,10 @@ def stats_post(stats, ftf_timestamp):
 
 
 def is_duplicate(body, post):
-    link, score = max(
-        ((comment.permalink, fuzz.ratio(body, comment.body)) for comment in post.comments),
-        key=lambda x: x[1],
-    )
+    scores = [(comment.permalink, fuzz.ratio(body, comment.body)) for comment in post.comments]
+    if not scores:
+        return False, None
+    link, score = max(scores, key=lambda x: x[1])
     return score > 90, link
 
 
