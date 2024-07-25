@@ -115,6 +115,7 @@ def pin_or_create_ftf(subreddit, bot):
             body = generate_new_body(previous_ftf_post.id, threshold_timestamp, bot)
             ftf_post = subreddit.submit(title=title, selftext=body)
 
+        previous_ftf_post.mod.sticky(state=False)
         ftf_post.mod.approve()
         ftf_post.mod.sticky()
     ftf_post.mod.suggested_sort(sort="new")
