@@ -118,7 +118,7 @@ class SideThread:
         except ValueError:
             return np.nan
 
-    def find_errors(self, history):
+    def find_errors(self, history, offset=0):
         """Find points in the history of a side thread where an incorrect count was posted.
 
         Parameters:
@@ -126,6 +126,9 @@ class SideThread:
             the leaf comment in the thread to be investigated, or a pandas
             dataframe with (at least) a "body" column that contains the markdown
             string of each comment in the thread.
+          - offset: How much the comments in the chain are shifted with respect
+            to some platonic "true chain". Used in case some broken chains mean
+            that there isn't a linear thread from start to finish.
 
         Returns:
           - The comments in the history where an uncorrected error was introduced
@@ -154,7 +157,7 @@ class SideThread:
             self.history = pd.DataFrame(tn.fetch_comments(history))
             history = self.history
 
-        counts = history["body"].apply(self.wrapped_comment_to_count)
+        counts = history["body"].apply(self.wrapped_comment_to_count) - offset
         # Errors are points where the count doesn't match the index difference
         errors = counts - counts.iloc[0] != counts.index
         # But only errors after the last correct value are interesting
