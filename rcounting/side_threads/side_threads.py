@@ -157,9 +157,9 @@ class SideThread:
             self.history = pd.DataFrame(tn.fetch_comments(history))
             history = self.history
 
-        counts = history["body"].apply(self.wrapped_comment_to_count) - offset
+        counts = history["body"].apply(self.wrapped_comment_to_count)
         # Errors are points where the count doesn't match the index difference
-        errors = counts - counts.iloc[0] != counts.index
+        errors = counts - counts.iloc[0] - offset != counts.index
         # But only errors after the last correct value are interesting
         errors[: errors.where((~errors)).last_valid_index()] = False
         mask = errors & (counts.diff() != 1) & (counts.diff(2) != 2)
