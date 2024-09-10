@@ -216,7 +216,7 @@ class Row:
             self.update_title()
         if submission_tree.is_archived(self.submission):
             comment = comment.walk_up_tree(limit=5)[-1]
-            dt = datetime.timedelta(days=30)
+            dt = datetime.timedelta(days=60)
             now = datetime.datetime.now(datetime.timezone.utc)
             if (
                 now
