@@ -75,7 +75,7 @@ class Row:
 
     def __str__(self):
         return (
-            f"[{self.name}](/{self.first_submission}) | "
+            f"[{self.name}](/comments/{self.first_submission}) | "
             f"[{self.title}]({self.link}) | {self.count_string}"
         )
 

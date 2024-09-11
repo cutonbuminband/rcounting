@@ -122,7 +122,7 @@ def parse_row(markdown_row):
     first, current, count = markdown_row.split("|")
     name, first_submission = parse_markdown_links(first)[0]
     name = name.strip()
-    first_submission_id = first_submission.strip()[1:]
+    first_submission_id = first_submission.split("/")[-1]
     title, link = parse_markdown_links(current)[0]
     title = title.strip()
     submission_id, comment_id = find_urls_in_text(link)[0]
