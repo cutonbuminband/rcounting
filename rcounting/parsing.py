@@ -112,9 +112,14 @@ def parse_directory_page(directory_page):
             rows.append(line)
         else:
             # flush the table buffer
-            if rows:
+            if rows and len(rows) > 2:
                 rows = [parse_row(row) for row in rows[2:]]
                 tagged_results.append(["table", rows])
+                rows = []
+            elif rows:
+                # We have an incorrectly formatted table - it's only two lines
+                # long! We'll treat it as text and not update it
+                text = rows
                 rows = []
             text.append(line)
     if text:
