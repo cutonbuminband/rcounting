@@ -98,22 +98,30 @@ def normalize_comment_body(comment):
 
 def parse_directory_page(directory_page):
     """Tag each paragraph of a directory page by whether it represents text or a table."""
-    paragraphs = directory_page.split("\n\n")
+    directory_page = re.sub(r"\n{2,}", r"\n\n", directory_page)
     regex = r"^.*\|.*\|.*$"
     tagged_results = []
     text = []
-    for paragraph in paragraphs:
-        lines = [line for line in paragraph.split("\n") if line]
-        mask = all(bool(re.match(regex, line)) for line in lines)
-        if not mask:
-            text.append(paragraph)
+    rows = []
+    for line in directory_page.split("\n"):
+        if bool(re.match(regex, line)):
+            # flush the text buffer
+            if text:
+                tagged_results.append(["text", "\n".join(text).strip("\n")])
+                text = []
+            rows.append(line)
         else:
-            tagged_results.append(["text", "\n\n".join(text)])
-            text = []
-            rows = [parse_row(row) for row in lines[2:]]
-            tagged_results.append(["table", rows])
+            # flush the table buffer
+            if rows:
+                rows = [parse_row(row) for row in rows[2:]]
+                tagged_results.append(["table", rows])
+                rows = []
+            text.append(line)
     if text:
-        tagged_results.append(["text", "\n\n".join(text)])
+        tagged_results.append(["text", "\n".join(text)])
+    if rows:
+        rows = [parse_row(row) for row in rows[2:]]
+        tagged_results.append(["table", rows])
     return tagged_results
 
 
