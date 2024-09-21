@@ -17,14 +17,9 @@ from .validate_form import permissive
 printer = logging.getLogger(__name__)
 
 
-def ignore_revivals(chain, was_revival):
-    return chain if was_revival is None else [x for x, y in zip(chain, was_revival) if not y]
-
-
 def make_title_updater(comment_to_count):
     @functools.wraps(comment_to_count)
-    def wrapper(_, chain, was_revival=None):
-        chain = ignore_revivals(chain, was_revival)
+    def wrapper(_, chain):
         title = chain[-1].title
         return comment_to_count(parsing.body_from_title(title))
 
@@ -78,8 +73,7 @@ class SideThread:
             self.length = length if length is not None else 1000
             self.update_count = self.update_from_length
 
-    def update_from_length(self, old_count, chain, was_revival=None):
-        chain = ignore_revivals(chain, was_revival)[1:]
+    def update_from_length(self, old_count, chain):
         if self.length is not None:
             return old_count + self.length * (len(chain))
         return None

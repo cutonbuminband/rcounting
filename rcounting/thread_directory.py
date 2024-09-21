@@ -128,12 +128,12 @@ class Row:
             title = title_from_first_comment(self.submission)
         self.title = parsing.normalise_title(title)
 
-    def update_count(self, chain, was_revival, side_thread):
+    def update_count(self, chain, side_thread):
         """
         Use the side thread get an updated tally of how many counts have been
-        made in the thread, taking the revival status of each submission into account."""
+        made in the thread."""
         try:
-            count = side_thread.update_count(self.count, chain, was_revival)
+            count = side_thread.update_count(self.count, chain)
         except (ValueError, IndexError):
             count = None
         self.count_string = self.format_count(count)
@@ -209,10 +209,9 @@ class Row:
             comment = comment_chain[-3 if len(comment_chain) >= 3 else 0]
 
         self.comment = comment
-        was_revival = [parsing.is_revived(x.title) for x in chain]
-        if not all(was_revival[1:]):
+        if len(chain) > 1:
             # If there's really a new thread, the title & count need updating
-            self.update_count(chain, was_revival, side_thread)
+            self.update_count(chain, side_thread)
             self.update_title()
         if submission_tree.is_archived(self.submission):
             comment = comment.walk_up_tree(limit=5)[-1]
