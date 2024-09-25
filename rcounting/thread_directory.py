@@ -271,6 +271,8 @@ class Paragraph:
         return "\n".join(header + [str(x) for x in rows])
 
     def is_misc_table_heading(self):
+        if not isinstance(self.contents, str):
+            return False
         return "new" in self.contents.lower() and "revived" in self.contents.lower()
 
 
