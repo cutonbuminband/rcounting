@@ -236,21 +236,6 @@ class Paragraph:
             self.contents = [Row(*x) if hasattr(x, "__iter__") else x for x in self.contents]
         self.kind = kind
 
-    def update(self, tree, sleep=0):
-        result = set()
-        if self.tag == "text":
-            return result
-        for row in self.contents:
-            try:
-                row.update(tree)
-                result.add(row.submission_id)
-                if sleep:
-                    time.sleep(sleep)
-            except Exception:  # pylint: disable=broad-except
-                printer.warning("Unable to update thread %s", row.title)
-                raise
-        return result
-
     def sort(self, *args, **kwargs):
         if self.tag != "text":
             self.contents.sort(*args, **kwargs)
@@ -274,6 +259,11 @@ class Paragraph:
         if not isinstance(self.contents, str):
             return False
         return "new" in self.contents.lower() and "revived" in self.contents.lower()
+
+    def delete_row_if_present(self, row_to_delete):
+        if self.tag == "text":
+            return
+        self.contents = [row for row in self.contents if id(row) != id(row_to_delete)]
 
 
 class Directory:
@@ -299,8 +289,12 @@ class Directory:
         self.header = paragraphs[0][1]
 
     @property
+    def tables(self):
+        return [x for x in self.paragraphs if x.tag == "table"]
+
+    @property
     def rows(self):
-        return utils.flatten([x.contents for x in self.paragraphs if x.tag == "table"])
+        return utils.flatten([x.contents for x in self.tables])
 
     @property
     def first_submissions(self):
@@ -321,7 +315,12 @@ class Directory:
         new_submissions = self.find_new_submissions(tree, new_submission_ids)
         printer.info("Finding revived threads")
         revived_submissions = self.find_revived_submissions(tree, new_submission_ids)
-        self.paragraphs[-2].contents += new_submissions + revived_submissions
+        new_top_25, promoted, demoted = self.find_new_top_25()
+        self.tables[1].contents = new_top_25
+        for row in promoted:
+            for table in self.tables[2:]:
+                table.delete_row_if_present(row)
+        self.paragraphs[-2].contents += new_submissions + revived_submissions + demoted
         self.paragraphs[-2].sort(key=lambda x: parsing.name_sort(x.name))
         archived_rows = [row for row in self.rows if row.archived]
         if archived_rows:
@@ -329,14 +328,16 @@ class Directory:
             self.archive.update({row.submission_id: row for row in archived_rows})
 
     def update_existing_rows(self, tree, sleep=0):
-        """Update every row in the main directory page and sort the second table"""
-        table_counter = 0
-        for paragraph in self.paragraphs:
-            self.known_submissions |= paragraph.update(tree, sleep)
-            if paragraph.tag != "text":
-                table_counter += 1
-            if table_counter == 2:
-                paragraph.sort(reverse=True)
+        """Update every row in the main directory page"""
+        for row in self.rows:
+            try:
+                row.update(tree)
+                if sleep:
+                    time.sleep(sleep)
+            except Exception:  # pylint: disable=broad-except
+                printer.warning("Unable to update thread %s", row.title)
+                raise
+        self.known_submissions |= {row.submission_id for row in self.rows}
 
     def add_last_table(self):
         if not self.paragraphs[-3].is_misc_table_heading():
@@ -413,6 +414,24 @@ class Directory:
         ]
         archive = list(itertools.chain.from_iterable(zip(titles, parts)))
         return "\n\n".join(archive[1:])
+
+    def top_25(self):
+        rows = [row for row in sorted(self.rows[1:], reverse=True) if not row.archived]
+        return rows[:25]
+
+    def find_new_top_25(self):
+        previous_top_25 = self.tables[1].contents
+        previous_ids = {id(x) for x in previous_top_25}
+        new_top_25 = self.top_25()
+        new_ids = {id(x) for x in new_top_25}
+        id_mapping = {id(x): x for x in previous_top_25 + new_top_25}
+        promoted_ids = new_ids - previous_ids
+        demoted_ids = previous_ids - new_ids
+        return (
+            new_top_25,
+            [id_mapping[x] for x in promoted_ids],
+            [id_mapping[x] for x in demoted_ids],
+        )
 
 
 def comment_to_row(comment) -> Row:
