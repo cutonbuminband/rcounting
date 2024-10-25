@@ -16,7 +16,7 @@ from rcounting.units import DAY, HOUR, MINUTE
 
 from .dfa import dfa_threads
 from .rules import CountingRule, FastOrSlow, OnlyDoubleCounting
-from .side_threads import SideThread, ignore_revivals
+from .side_threads import SideThread
 from .validate_count import base_n_count, by_ns_count, count_from_word_list
 from .validate_form import base_n, validate_from_tokens
 
@@ -268,14 +268,12 @@ def cw_factoradic_count(comment_body, base=10):
     return shorter_counts + smaller_weights + earlier_counts
 
 
-def update_dates(count, chain, was_revival=None, previous=False):
-    if previous:
-        chain = ignore_revivals(chain, was_revival)[1:]
-    else:
-        chain = ignore_revivals(chain, was_revival)[:-1]
+def update_dates(count, chain, previous=False):
     regex = r"([,\d]+)$"  # All digits at the end of the line, plus optional separators
     for submission in chain:
         year = int(re.search(regex, submission.title).group().replace(",", ""))
+        if previous:
+            year = year - 3
         length = 1095 + any(map(utils.is_leap_year, range(year, year + 3)))
         count += length
     return count
@@ -284,7 +282,7 @@ def update_dates(count, chain, was_revival=None, previous=False):
 update_previous_dates = functools.partial(update_dates, previous=True)
 
 
-def update_from_traversal(count, chain, was_revival):
+def update_from_traversal(count, chain):
     for thread in chain[1:]:
         _, get_id = tn.find_previous_submission(thread)
         comments = tn.fetch_comments(get_id)
