@@ -349,7 +349,7 @@ class Directory:
 
     def find_new_submissions(self, tree, new_submission_ids):
         """
-        Make a list of update rows corresponding to new submissions
+        Make a list of updated rows corresponding to new submissions
 
         If a row cannot be updated or, don't include it.
         The same goes for new submissions with only a few comments on them.
