@@ -20,4 +20,5 @@ repos:
   hooks:
     # Run the linter.
     - id: ruff
-      args: [ --fix ]
+      args: ["check", "--select", "I", "--fix"]
+    - id: ruff-format

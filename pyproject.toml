@@ -2,37 +2,9 @@
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.pylint]
-max-branches=15
-
-
-[tool.pylint.format]
-max-line-length = "99"
-
-[tool.pylint.'MESSAGES CONTROL']
-disable = [
-    "missing-module-docstring",
-    "missing-function-docstring",
-    "too-many-instance-attributes",
-    "too-many-public-methods",
-    "too-many-statements",
-    "too-many-arguments",
-	"too-many-locals",
-    "unused-argument",
-    "invalid-name",
-    "unused-variable"
-    ]
-
-
-[tool.pylint.SIMILARITIES]
-ignore-imports=true
-
-
-[tool.black]
-line-length = 99
-
-[tool.isort]
-profile = "black"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+
+[tool.ruff]
+line-length = 99
