@@ -1,6 +1,7 @@
 praw.ini
 credentials.ini
 .env
+.venv
 *.sqlite
 __pycache__/
 *.py[cod]
@@ -21,4 +22,4 @@ share/python-wheels/
 .installed.cfg
 *.egg
 notes.org
-pyrightconfig.json
+
