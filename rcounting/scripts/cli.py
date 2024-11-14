@@ -2,6 +2,7 @@
 The main entry point for the command line interface.
 See the subcommands for details on their behaviour.
 """
+
 import click
 
 from .ftf import pin_or_create_ftf

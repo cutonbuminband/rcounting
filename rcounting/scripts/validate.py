@@ -1,5 +1,6 @@
 # pylint: disable=import-outside-toplevel
 """Validate the thread ending at COMMENT_ID according to the specified rule."""
+
 import click
 
 rule_dict = {

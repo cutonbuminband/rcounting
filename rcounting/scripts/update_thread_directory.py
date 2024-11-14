@@ -1,5 +1,6 @@
 # pylint: disable=import-outside-toplevel
 """A script to update the thread directory"""
+
 import datetime
 import logging
 

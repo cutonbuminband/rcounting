@@ -1,5 +1,6 @@
 # pylint: disable=import-outside-toplevel,too-many-arguments,too-many-locals
 """Script for logging reddit submissions to either a database or a csv file"""
+
 import logging
 import time
 from datetime import datetime

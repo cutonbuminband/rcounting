@@ -1,4 +1,5 @@
 """A collection of functions for parsing texts and extracting urls and counts"""
+
 import re
 
 from rcounting.reddit_interface import extract_from_short_link

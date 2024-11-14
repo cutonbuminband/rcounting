@@ -2,6 +2,7 @@
 Provide an authorised interface to the reddit api.
 Look for authorisation first in the environment variables, then in a config file.
 If none can be found, prompt the user to authorise."""
+
 import configparser
 import os
 import random

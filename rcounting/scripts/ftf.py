@@ -37,7 +37,6 @@ def generate_new_title(previous_title):
 
 
 def generate_new_body(previous_ftf_id, threshold_date, bot=True):
-
     ftf_body = (
         f"Continued from last week's FTF [here](/comments/{previous_ftf_id}/)\n\n"
         "It's that time of the week again. Speak anything on your mind! "

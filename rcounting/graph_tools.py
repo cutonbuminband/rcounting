@@ -25,7 +25,7 @@ def weighted_product(x, y, p):
     """
     assert 0 <= p <= 1
     q = 1 - p
-    return x ** q * y ** p
+    return x**q * y**p
 
 
 def calculate_weighted_degrees(graph, p=0.5):

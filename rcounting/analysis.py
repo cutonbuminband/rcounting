@@ -3,6 +3,7 @@ A collection of functions for analysing counting data.
 See also https://github.com/cutonbuminband/rcounting/blob/main/doc/examples.org
 for examples of working with the data.
 """
+
 from pathlib import Path
 
 import numpy as np
