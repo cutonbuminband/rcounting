@@ -55,7 +55,7 @@ def find_urls_in_text(body):
     new_url_regex = "reddit.com/r/counting/s/([A-Za-z0-9]+)"
     new_url_prefix = "https://www.reddit.com/r/counting/s/"
     short_links = [new_url_prefix + x for x in re.findall(new_url_regex, body)]
-    extra_urls = [extract_from_short_link(l) for l in short_links]
+    extra_urls = [extract_from_short_link(link) for link in short_links]
     return urls + extra_urls
 
 

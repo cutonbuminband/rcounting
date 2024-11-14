@@ -102,9 +102,9 @@ def _permutation_count(comment_body, alphabet) -> int:
     word = "".join(
         x for x in parsing.normalize_comment_body(comment_body).lower() if x in alphabet
     )
-    l = len(word)
-    shorter_words = sum(math.factorial(i) for i in range(1, l))
-    return shorter_words + permutation_order(word, alphabet[:l]) - 1
+    length = len(word)
+    shorter_words = sum(math.factorial(i) for i in range(1, length))
+    return shorter_words + permutation_order(word, alphabet[:length]) - 1
 
 
 permutation_count = functools.partial(_permutation_count, alphabet="123456789")
@@ -219,8 +219,10 @@ def get_base_powers(n, b):
 def palindrome_count(comment_body: str, b=10) -> int:
     count = parsing.find_count_in_text(comment_body, b)
     digits = get_base_powers(count, b)
-    l = math.ceil(len(digits) / 2)
-    return functools.reduce(lambda x, y: b * x + y, digits[:l]) + b ** (l - len(digits) % 2)
+    palindromic_length = math.ceil(len(digits) / 2)
+    shorter_palindromes = b ** (palindromic_length - len(digits) % 2)
+    current_palindromes = functools.reduce(lambda x, y: b * x + y, digits[:palindromic_length])
+    return current_palindromes + shorter_palindromes
 
 
 binary_palindrome_count = functools.partial(palindrome_count, b=2)

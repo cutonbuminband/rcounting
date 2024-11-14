@@ -76,7 +76,7 @@ def effective_number_of_counters(c):
     See also https://en.wikipedia.org/wiki/Effective_number_of_parties
     """
     normalised_counters = c / c.sum()
-    return 1 / (normalised_counters ** 2).sum()
+    return 1 / (normalised_counters**2).sum()
 
 
 def capture_the_flag_score(submission):
@@ -145,7 +145,7 @@ def fft_kde(data, n_bins, kernel=vonmises_distribution, **params):
 
 def even_odd_counts(df, n=50):
     indices = df.groupby("username").size().sort_values(ascending=False).index
-    top_counters = [x for x in indices if not counters.is_banned_counter(x)][:n]
+    top_counters = [x for x in indices if not counters.is_banned_counter(x)][:n]  # noqa: F841
     df["is_even"] = df["position"] % 2 == 0
     offsets = [
         "1gm10t",
