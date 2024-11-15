@@ -5,16 +5,27 @@ on:
     - cron: '45 11,23 * * *'
 
 jobs:
-  build:
+  directory:
+    name: python
     runs-on: ubuntu-latest
     env:
       praw_refresh_token:  ${{secrets.PRAW_REFRESH_TOKEN}}
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: '3.10'
-          cache: 'pip' # caching pip dependencies
-      - run: pip install -e .
-      - name: directory
-        run: python3 rcounting/scripts/update_thread_directory.py -v --sleep 5
+          version: "0.5.1"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install the project
+        run: uv sync
+
+      - name: Run directory test
+        run: uv run rcounting update-directory -v --sleep 5
