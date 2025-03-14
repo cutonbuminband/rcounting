@@ -31,7 +31,8 @@ spurious_nodes = ("12x4vpl", "13s4tu6")
 @click.option("-v", "--verbose", count=True, help="Print more output")
 @click.option("-q", "--quiet", is_flag=True)
 @click.option("--sleep", default=0)
-def update_directory(quiet, verbose, dry_run, sleep):
+@click.option("--allow-archive/--no-allow-archive", default=True)
+def update_directory(quiet, verbose, dry_run, sleep, allow_archive):
     """
     Update the thread directory located at reddit.com/r/counting/wiki/directory.
     """
@@ -53,7 +54,7 @@ def update_directory(quiet, verbose, dry_run, sleep):
     new_submissions = [x for x in new_submissions if x.id not in spurious_nodes]
     new_submission_ids = {tree.walk_down_tree(submission)[-1].id for submission in new_submissions}
 
-    directory = td.load_wiki_page(subreddit, "directory")
+    directory = td.load_wiki_page(subreddit, "directory", allow_archive=allow_archive)
     archive = td.load_wiki_page(subreddit, "directory/archive", kind="archive")
     directory.set_archive(archive)
     directory.update(tree, new_submission_ids, sleep)

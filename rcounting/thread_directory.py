@@ -5,14 +5,13 @@ import itertools
 import logging
 import time
 
-from rcounting import models, parsing
+from rcounting import models, parsing, utils
 from rcounting import side_threads as st
-from rcounting import utils
 
 printer = logging.getLogger(__name__)
 
 
-def load_wiki_page(subreddit, location, kind="directory"):
+def load_wiki_page(subreddit, location, kind="directory", allow_archive=True):
     """
     Load the wiki page at reddit.com/r/subreddit/wiki/location
 
@@ -20,7 +19,7 @@ def load_wiki_page(subreddit, location, kind="directory"):
     """
     wiki_page = subreddit.wiki[location]
     document = wiki_page.content_md.replace("\r\n", "\n")
-    return Directory(parsing.parse_directory_page(document), kind)
+    return Directory(parsing.parse_directory_page(document), kind, allow_archive=allow_archive)
 
 
 def title_from_first_comment(submission):
@@ -51,7 +50,9 @@ class Row:
     the last four pieces of information listed.
     """
 
-    def __init__(self, name, first_submission, title, submission_id, comment_id, count):
+    def __init__(
+        self, name, first_submission, title, submission_id, comment_id, count, allow_archive=True
+    ):
         """
         Initialise a new row with all the necessary information. Associate a side
         thread object with the row.
@@ -72,6 +73,7 @@ class Row:
         self.thread_type = st.known_thread_ids.get(self.first_submission, fallback="default")
         self.submission = None
         self.comment = None
+        self.allow_archive = allow_archive
 
     def __str__(self):
         return (
@@ -218,7 +220,8 @@ class Row:
             dt = datetime.timedelta(days=60)
             now = datetime.datetime.now(datetime.timezone.utc)
             if (
-                now
+                self.allow_archive
+                and now
                 - datetime.datetime.fromtimestamp(comment.created_utc, tz=datetime.timezone.utc)
                 > dt
             ):
@@ -228,19 +231,22 @@ class Row:
 class Paragraph:
     """A class to hold either a text paragraph, or a markdown table"""
 
-    def __init__(self, tagged_text, kind="directory"):
+    def __init__(self, tagged_text, kind="directory", allow_archive=True):
         self.tag, self.contents = tagged_text
         if self.tag == "table":
             if not self.contents:
                 self.contents = []
-            self.contents = [Row(*x) if hasattr(x, "__iter__") else x for x in self.contents]
+            self.contents = [
+                Row(*x, allow_archive=allow_archive) if hasattr(x, "__iter__") else x
+                for x in self.contents
+            ]
         self.kind = kind
 
     def sort(self, *args, **kwargs):
         if self.tag != "text":
             self.contents.sort(*args, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.tag == "text":
             return self.contents
         labels = {"directory": "Current", "archive": "Last"}
@@ -279,8 +285,8 @@ class Directory:
 
     """
 
-    def __init__(self, paragraphs, kind="directory", archive=None):
-        self.paragraphs = [Paragraph(x, kind) for x in paragraphs]
+    def __init__(self, paragraphs, kind="directory", archive=None, allow_archive=True):
+        self.paragraphs = [Paragraph(x, kind, allow_archive=allow_archive) for x in paragraphs]
         self.known_submissions = {x.submission_id for x in self.rows}
         if archive is None:
             archive = {}
