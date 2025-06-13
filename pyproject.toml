@@ -12,6 +12,7 @@ authors = [{name = "CutOnBumInBand", email = "cutonbuminband@gmail.com"}]
 dependencies = [
     "click>=8.1.7",
     "fuzzywuzzy>=0.18.0",
+    "levenshtein>=0.27.1",
     "pandas>=2.2.3",
     "praw>=7.8.1",
     "scipy>=1.14.1",
