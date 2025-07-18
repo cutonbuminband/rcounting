@@ -44,7 +44,7 @@ def generate_new_body(previous_ftf_id, threshold_date, bot=True):
         "be it your lives, your strava, your plans, your hobbies, studies, stats, "
         "pets, bears, hikes, dragons, trousers, travels, transit, cycling, family, "
         "colours, or anything you like or dislike, except politics\n\n"
-        "Feel free to check out our [tidbits](/comments/1bgwyht) thread "
+        "Feel free to check out our [tidbits](/comments/1ld03nn) thread "
         "and introduce yourself if you haven't already."
     )
 
