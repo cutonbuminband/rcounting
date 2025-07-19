@@ -5,9 +5,8 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 
-from rcounting import counters, parsing
+from rcounting import counters, parsing, utils
 from rcounting import thread_navigation as tn
-from rcounting import utils
 from rcounting.models import comment_to_dict
 
 from .rules import default_rule
@@ -67,15 +66,15 @@ class SideThread:
         if comment_to_count is not None:
             self.comment_to_count = comment_to_count
             self.update_count = make_title_updater(comment_to_count)
-        if update_function is not None:
+        elif update_function is not None:
             self.update_count = update_function
-        if length is not None or (comment_to_count is None and update_function is None):
+        else:
             self.length = length if length is not None else 1000
             self.update_count = self.update_from_length
 
     def update_from_length(self, old_count, chain):
         if self.length is not None:
-            return old_count + self.length * (len(chain))
+            return old_count + self.length * (len(chain) - 1)
         return None
 
     def is_valid_thread(self, history):
