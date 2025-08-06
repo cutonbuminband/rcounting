@@ -49,15 +49,18 @@ def find_urls_in_text(body):
     # r/counting/comments, since that's what has the information we are
     # interested in.
     url_regex = r"/comments/([\w]+)(?:/[^/]*/([\w]*)|)"
-    urls = re.findall(url_regex, body)
+    normal_matches = [(m.groups(), m.start()) for m in re.finditer(url_regex, body)]
 
     # reddit has introduced new short links which are completely opaque to the
     # api. We need to handle those separately.
     new_url_regex = "reddit.com/r/counting/s/([A-Za-z0-9]+)"
     new_url_prefix = "https://www.reddit.com/r/counting/s/"
-    short_links = [new_url_prefix + x for x in re.findall(new_url_regex, body)]
-    extra_urls = [extract_from_short_link(link) for link in short_links]
-    return urls + extra_urls
+    short_links = [
+        (new_url_prefix + m.groups()[0], m.start()) for m in re.finditer(new_url_regex, body)
+    ]
+    extra_matches = [(extract_from_short_link(link[0]), link[1]) for link in short_links]
+    result = [x[0] for x in sorted(normal_matches + extra_matches, key=lambda x: x[1])]
+    return result
 
 
 def post_to_count(reddit_post):
