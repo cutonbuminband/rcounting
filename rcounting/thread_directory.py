@@ -375,7 +375,7 @@ class Directory:
                 printer.warning("Unable to update new thread %s", row.title)
                 raise
             n_authors = len(set(x.author for x in row.comment.walk_up_tree()))
-            is_long_chain = row.comment.depth >= 50 and n_authors >= 5
+            is_long_chain = row.comment.depth >= 20 or n_authors >= 5
             if is_long_chain or row.submission_id != first_submission.id:
                 result.append(row)
         return result
@@ -399,7 +399,7 @@ class Directory:
                     except Exception:  # pylint: disable=broad-except
                         printer.warning("Unable to update revived thread %s", row.title)
                         raise
-                    if row.comment.depth >= 20 or len(chain) > 2:
+                    if row.comment.depth >= 5 or len(chain) > 2:
                         revivals.append(row)
                         del self.archive[submission.id]
                         self.updated_archive = True
