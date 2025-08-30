@@ -116,8 +116,13 @@ def find_get_from_comment(comment):
     except DuplicateReplaceException:
         pass
     while count % 1000 != 0:
-        comment = comment.replies[0]
-        count = parsing.post_to_count(comment)
+        for reply in comment.replies:
+            try:
+                count = parsing.post_to_count(reply)
+                comment = reply
+                break
+            except ValueError:
+                continue
     return comment
 
 
