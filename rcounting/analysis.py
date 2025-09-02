@@ -148,22 +148,6 @@ def even_odd_counts(df, n=50):
     indices = df.groupby("username").size().sort_values(ascending=False).index
     top_counters = [x for x in indices if not counters.is_banned_counter(x)][:n]  # noqa: F841
     df["is_even"] = df["position"] % 2 == 0
-    offsets = [
-        "1gm10t",
-        "7hn2tm",
-        "b471wg",
-        "bz6r0g",
-        "d6pgni",
-        "ebnh39",
-        "grggc0",
-        "oj50hj",
-        "ob4a2h",
-        "t81gug",
-    ]
-    for offset in offsets:
-        df.loc[df["submission_id"] == offset, "is_even"] = (
-            1 - df.loc[df["submission_id"] == offset, "is_even"]
-        )
     df["is_odd"] = 1 - df["is_even"]
     subset = df.query("username in @top_counters")
     table = subset[["username", "is_even", "is_odd"]].groupby("username").sum()
