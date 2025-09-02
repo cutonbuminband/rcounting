@@ -1372,6 +1372,15 @@ wheels = [
 ]
 
 [[package]]
+name = "networkx"
+version = "3.4.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/1d/06475e1cd5264c0b870ea2cc6fdb3e37177c1e565c43f56ff17a10e3937f/networkx-3.4.2.tar.gz", hash = "sha256:307c3669428c5362aab27c8a1260aa8f47c4e91d3891f48be0141738d8d053e1", size = 2151368 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b9/54/dd730b32ea14ea797530a4479b2ed46a6fb250f682a9cfb997e968bf0261/networkx-3.4.2-py3-none-any.whl", hash = "sha256:df5d4365b724cf81b8c6a7312509d0c22386097011ad1abe274afd5e9d3bbc5f", size = 1723263 },
+]
+
+[[package]]
 name = "nodeenv"
 version = "1.9.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2029,7 +2038,7 @@ wheels = [
 
 [[package]]
 name = "rcounting"
-version = "0.6.2a1.dev15+g741def706.d20250902"
+version = "0.6.2a1.dev16+g1a7bb499d.d20250902"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -2044,6 +2053,7 @@ dependencies = [
 analysis = [
     { name = "jupyter" },
     { name = "matplotlib" },
+    { name = "networkx" },
     { name = "scikit-learn" },
     { name = "seaborn" },
     { name = "tabulate" },
@@ -2065,6 +2075,7 @@ requires-dist = [
     { name = "jupyter", marker = "extra == 'analysis'", specifier = ">=1.1.1" },
     { name = "levenshtein", specifier = ">=0.27.1" },
     { name = "matplotlib", marker = "extra == 'analysis'", specifier = ">=3.9.2" },
+    { name = "networkx", marker = "extra == 'analysis'", specifier = ">=3.4.2" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "praw", specifier = ">=7.8.1" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.7.3" },
