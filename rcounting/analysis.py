@@ -75,6 +75,13 @@ def effective_number_of_counters(c):
     """
     Calculate the effective number of parties for a given reply distribution.
     See also https://en.wikipedia.org/wiki/Effective_number_of_parties
+
+    Parameters:
+      c: A data series of the total counts for each username.
+         Usually a data series indexed by username, but a bare numpy array should work as well
+
+    Returns:
+      The effective number of parties/counters corresponding to the above list
     """
     normalised_counters = c / c.sum()
     return 1 / (normalised_counters**2).sum()
