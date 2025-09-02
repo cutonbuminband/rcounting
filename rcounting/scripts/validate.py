@@ -53,7 +53,3 @@ def validate(comment_id, rule):
             )
     else:
         print(f"Invalid count found at http://reddit.com{reddit.comment(result[1]).permalink}!")
-
-
-if __name__ == "__main__":
-    validate()  # pylint: disable=no-value-for-parameter

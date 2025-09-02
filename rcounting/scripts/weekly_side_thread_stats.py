@@ -10,10 +10,9 @@ import pandas as pd
 from fuzzywuzzy import fuzz
 from prawcore.exceptions import TooManyRequests
 
-from rcounting import configure_logging, counters, ftf, models, parsing
+from rcounting import configure_logging, counters, ftf, models, parsing, units
 from rcounting import thread_directory as td
 from rcounting import thread_navigation as tn
-from rcounting import units
 
 printer = logging.getLogger("rcounting")
 
@@ -120,12 +119,11 @@ def get_side_thread_counts(reddit, row, threshold):
         new_comments = tree.walk_up_tree(comment_id)
         if new_comments is not None:
             comments += new_comments[:-1]
-        try:
-            submission_id, comment_id = tn.find_previous_submission(submission)
-            if not comment_id:
-                return submissions, comments
-        # We've hit the first submission in a new side thread
-        except StopIteration:
+        submission_id, comment_id = tn.find_previous_submission(submission)
+        if not comment_id:
+            # No comment was linked in the post. We're
+            # either at the first submission, or at an incorrectly
+            # formatted link. In any case, we bail here
             return submissions, comments
         submission = reddit.submission(submission_id)
         submissions.append(submission)
@@ -239,7 +237,3 @@ def generate_stats_post(filename, dry_run, verbose, quiet):
             s = "Not posting stats comment. Existing comment found at https://www.reddit.com%s"
             printer.warning(s, link)
     printer.warning("Running the script took %s", dt.datetime.now() - t_start)
-
-
-if __name__ == "__main__":
-    generate_stats_post()  # pylint: disable=no-value-for-parameter

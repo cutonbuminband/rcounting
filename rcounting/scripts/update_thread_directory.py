@@ -76,7 +76,3 @@ def update_directory(quiet, verbose, dry_run, sleep, allow_archive):
                 print(archive, file=f)
     end = datetime.datetime.now()
     printer.info("Running the script took %s", end - start)
-
-
-if __name__ == "__main__":
-    update_directory()  # pylint: disable=no-value-for-parameter

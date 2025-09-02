@@ -13,10 +13,18 @@ printer = logging.getLogger(__name__)
 class ThreadLogger:
     """Simple class for logging either to a database or to a csv file"""
 
-    def __init__(self, sql, output_directory, filename=None, is_main=True):
+    def __init__(
+        self,
+        sql: bool,
+        output_directory: Path,
+        filename: Path | str | None = None,
+        is_main: bool = True,
+        side_thread_id: str | None = None,
+    ):
         self.sql = sql
         self.is_main = is_main
         assert self.is_main or self.sql, "Only sql output is supported for side threads"
+        self.side_thread_id = side_thread_id
         self.output_directory = output_directory
         self.last_checkpoint = ""
         if self.sql:
@@ -33,18 +41,34 @@ class ThreadLogger:
         printer.warning("Writing submissions to sql database at %s", path)
         db = sqlite3.connect(path)
         try:
-            known_submissions = pd.read_sql("select * from submissions", db)[
-                "submission_id"
-            ].tolist()
-            checkpoints = pd.read_sql(
-                "select last_submission.submission_id "
-                "from last_submission join submissions "
-                "on last_submission.submission_id = submissions.submission_id "
-                "order by timestamp",
-                db,
-            )
-            last_checkpoint = checkpoints.iat[-1, 0]
+            if self.side_thread_id is not None:
+                known_submissions = pd.read_sql(
+                    f"select submission_id from submissions "
+                    f"where submissions.thread_id == '{self.side_thread_id}'",
+                    db,
+                )
+            else:
+                known_submissions = pd.read_sql("select submission_id from submissions", db)
+            known_submissions = known_submissions.squeeze().tolist()
         except pd.io.sql.DatabaseError:
+            # The database error is for when the table doesn't exist in the database
+            printer.warning("Finding known submissions failed")
+            pass
+        try:
+            if self.side_thread_id is not None:
+                checkpoint = pd.read_sql(
+                    f"select submission_id from checkpoints "
+                    f"where thread_id == '{self.side_thread_id}'",
+                    db,
+                )
+            else:
+                checkpoint = pd.read_sql("select submission_id from checkpoints", self.db).iloc[-1]
+            if checkpoint.empty:
+                last_checkpoint = ""
+            else:
+                last_checkpoint = checkpoint.squeeze()
+        except pd.io.sql.DatabaseError:
+            printer.warning("Finding previous checkpoints failed")
             pass
         self.db = db
         self.last_checkpoint = last_checkpoint
@@ -70,6 +94,8 @@ class ThreadLogger:
         submission = submission[["submission_id", "username", "timestamp", "title", "body"]]
         if self.is_main:
             submission["base_count"] = base_count(df)
+        if self.side_thread_id is not None:
+            submission["thread_id"] = self.side_thread_id
         df.to_sql("comments", self.db, index_label="position", if_exists="append")
         submission.to_frame().T.to_sql("submissions", self.db, index=False, if_exists="append")
 
@@ -89,11 +115,30 @@ class ThreadLogger:
     def update_checkpoint(self):
         if not self.sql:
             return
-        newest_submission = pd.read_sql(
-            "select submission_id from submissions order by timestamp", self.db
-        ).iloc[-1]
-        newest_submission.name = "submission_id"
-        newest_submission.to_sql("last_submission", self.db, index=False, if_exists="append")
+        if self.side_thread_id is not None:
+            newest_submission = pd.read_sql(
+                "select submission_id from submissions "
+                f"where submissions.thread_id == '{self.side_thread_id}' "
+                "order by timestamp desc limit 1",
+                self.db,
+            ).squeeze()
+            checkpoints = pd.DataFrame(
+                columns=["submission_id"], index=pd.Series([], name="thread_id")
+            )
+            try:
+                checkpoints = pd.read_sql(
+                    "select * from checkpoints", self.db, index_col="thread_id"
+                )
+            except pd.io.sql.DatabaseError:
+                pass
+            checkpoints.loc[self.side_thread_id] = newest_submission
+            checkpoints.to_sql("checkpoints", self.db, if_exists="replace")
+        else:
+            newest_submission = pd.read_sql(
+                "select submission_id from submissions order by timestamp desc limit 1", self.db
+            )
+            newest_submission.name = "submission_id"
+            newest_submission.to_sql("checkpoints", self.db, index=False, if_exists="replace")
 
 
 def update_counters_table(db):

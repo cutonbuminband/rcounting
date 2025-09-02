@@ -3,7 +3,8 @@ import logging
 
 from praw.exceptions import DuplicateReplaceException
 
-from rcounting import models, parsing, reddit_interface
+from rcounting import models, parsing
+from rcounting.reddit_interface import reddit
 
 printer = logging.getLogger(__name__)
 
@@ -20,12 +21,16 @@ def find_previous_submission(submission):
 
     """
 
+    submission = submission if hasattr(submission, "id") else reddit.submission(submission)
     urls = filter(
         lambda x: int(x[0], 36) < int(submission.id, 36),
         parsing.find_urls_in_submission(submission),
     )
     next_submission_id = None
-    new_submission_id, new_get_id = next(urls)
+    try:
+        new_submission_id, new_get_id = next(urls)
+    except StopIteration:
+        return None, None
     # This gets a bit silly but if the first link we found only had a
     # submission id and not a comment id we scan through all the rest, and then
     # take the first one that also has a comment id. If none of them do, we
@@ -41,7 +46,6 @@ def find_previous_submission(submission):
 
 
 def find_get_in_submission(submission_id, get_id, validate_get=True):
-    reddit = reddit_interface.reddit
     if not get_id:
         get_id = find_deepest_comment(submission_id, reddit)
     comment = reddit.comment(get_id)
@@ -74,9 +78,10 @@ def find_previous_get(submission, validate_get=True):
     validate_get: Whether or not the prorgram should check that the linked comment ends in 000,
     and if it doesn't, try to find a nearby comment that does.
     """
-    reddit = reddit_interface.reddit
     submission = submission if hasattr(submission, "id") else reddit.submission(submission)
     new_submission_id, new_get_id = find_previous_submission(submission)
+    if new_submission_id is None:
+        return None
     return find_get_in_submission(new_submission_id, new_get_id, validate_get)
 
 
@@ -130,7 +135,6 @@ def fetch_comments(comment, limit=None):
     """
     Fetch a chain of comments from root to the supplied leaf comment.
     """
-    reddit = reddit_interface.reddit
     tree = models.CommentTree([], reddit=reddit)
     comment_id = getattr(comment, "id", comment)
     comments = tree.comment(comment_id).walk_up_tree(limit=limit)[::-1]
@@ -170,6 +174,6 @@ def fetch_counting_history(subreddit, time_limit):
         )
 
     return (
-        models.SubmissionTree(submissions_dict, tree, reddit_interface.reddit),
+        models.SubmissionTree(submissions_dict, tree, reddit),
         new_submissions,
     )

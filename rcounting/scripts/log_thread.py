@@ -60,16 +60,47 @@ def log(
     verbose,
     quiet,
 ):
+    """This is incredibly silly and hacky but I can't think of a better way of
+    doing it right now. We need access to the undecorated log function for the
+    side thread logging, and I don't see any easy way of getting there. And I'm
+    not about to start learning about click's context rules, so a hack it is.
+    We'll manually extract the undecorated function and just call it here
+
+    """
+    log_undecorated(
+        leaf_comment_id,
+        all_counts,
+        n_threads,
+        filename,
+        output_directory,
+        sql,
+        side_thread,
+        verbose,
+        quiet,
+    )
+
+
+def log_undecorated(
+    leaf_comment_id,
+    all_counts,
+    n_threads,
+    filename,
+    output_directory,
+    sql,
+    side_thread,
+    verbose,
+    quiet,
+    side_thread_id=None,
+):
     """
     Log the reddit submission which ends in LEAF_COMMENT_ID.
     If no comment id is provided, use the latest completed thread found in the thread directory.
     By default, assumes that this is part of the main chain, and will attempt to
     find the true get if the gz or the assist are linked instead.
     """
-    from rcounting import configure_logging
+    from rcounting import configure_logging, utils
     from rcounting import thread_directory as td
     from rcounting import thread_navigation as tn
-    from rcounting import utils
     from rcounting.io import ThreadLogger, update_counters_table
     from rcounting.reddit_interface import reddit, subreddit
 
@@ -96,7 +127,7 @@ def log(
         comment.id,
     )
 
-    threadlogger = ThreadLogger(sql, output_directory, filename, not side_thread)
+    threadlogger = ThreadLogger(sql, output_directory, filename, not side_thread, side_thread_id)
     completed = 0
 
     submission = comment.submission
@@ -110,10 +141,15 @@ def log(
         if not threadlogger.is_already_logged(submission):
             try:
                 if submission_id is not None:
-                    comment = tn.find_get_in_submission(submission_id, comment_id)
+                    comment = tn.find_get_in_submission(
+                        submission_id, comment_id, validate_get=not side_thread
+                    )
                 df = pd.DataFrame(tn.fetch_comments(comment))
                 threadlogger.log(comment, df)
             except TooManyRequests:
+                printer.warning(
+                    f"Getting rate limited. Sleeping for {30 * multiple} seconds and trying again"
+                )
                 time.sleep(30 * multiple)
                 multiple *= 1.5
                 continue
@@ -136,7 +172,3 @@ def log(
     else:
         printer.info("The database is already up to date!")
     printer.info("Running the script took %s", datetime.now() - t_start)
-
-
-if __name__ == "__main__":
-    log()  # pylint: disable=no-value-for-parameter

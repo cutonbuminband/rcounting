@@ -119,7 +119,3 @@ def pin_or_create_ftf(subreddit, bot):
         ftf_post.mod.sticky()
     ftf_post.mod.suggested_sort(sort="new")
     update_directory(ftf_post, subreddit)
-
-
-if __name__ == "__main__":
-    pin_or_create_ftf()  # pylint: disable=no-value-for-parameter
