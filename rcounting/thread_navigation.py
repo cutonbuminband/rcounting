@@ -1,4 +1,5 @@
 import datetime
+import difflib
 import logging
 
 from praw.exceptions import DuplicateReplaceException
@@ -9,40 +10,50 @@ from rcounting.reddit_interface import reddit
 printer = logging.getLogger(__name__)
 
 
-def find_previous_submission(submission):
-    """
-    Find the previous reddit submission in the chain of counts. The code
-    will look first in the body of the submission text and then in the top
-    level comments for everything that looks like a link to a reddit comment.
-    It will take the first comment link it finds and use that as the previous
-    submission in the chain. Failing that, it will take the first link to a
-    reddit submission it finds and use as the previous link in the chain.
-    Failing that, it will just fail.
+def find_previous_submission(submission, similarity_threshold=0.5):
+    """Decide which link in a submission most likely represents the intended
+    link to the previous submission.
+
+    Sometimes people write weird things in submissions selftexts or in top
+    level comments, so we'll potentially be receiving a list of multiple urls,
+    and have to pick the best one.
+
+    We also have to take into account that the most common case is that there
+    is a single link in the submission self text that points to the right
+    place, and so we shouldn't spend too much extra time in handling that case
+
+    We'll use the following heuristics:
+
+    - If there are no links at all, return a (None, None) tuple.
+
+    - Submissions with ids higher than the current submission id cannot be
+      links to a previous submission.
+
+    - Submissions with very different titles from the current submission should
+      be regarded as suspect, and other submissions should be sought
+
+    - Links which also include a comment are preferable to links which don't,
+      especially if they link to the same submission
 
     """
 
     submission = submission if hasattr(submission, "id") else reddit.submission(submission)
+    matcher = difflib.SequenceMatcher()
+    matcher.set_seq2(submission.title)
+    result = (None, None)
     urls = filter(
         lambda x: int(x[0], 36) < int(submission.id, 36),
         parsing.find_urls_in_submission(submission),
     )
-    next_submission_id = None
-    try:
-        new_submission_id, new_get_id = next(urls)
-    except StopIteration:
-        return None, None
-    # This gets a bit silly but if the first link we found only had a
-    # submission id and not a comment id we scan through all the rest, and then
-    # take the first one that also has a comment id. If none of them do, we
-    # fall back to the first link we found
-    while not new_get_id:
-        try:
-            next_submission_id, new_get_id = next(urls)
-        except StopIteration:
-            break
-    if next_submission_id is not None and new_get_id:
-        return next_submission_id, new_get_id
-    return new_submission_id, new_get_id
+    for previous_submission_id, previous_get_id in urls:
+        if result == (None, None):
+            result = (previous_submission_id, previous_get_id)
+        matcher.set_seq1(reddit.submission(previous_submission_id).title)
+        if matcher.ratio() >= similarity_threshold:
+            result = (previous_submission_id, previous_get_id)
+            if previous_get_id:
+                break
+    return result
 
 
 def find_get_in_submission(submission_id, get_id, validate_get=True):
@@ -159,11 +170,10 @@ def fetch_counting_history(subreddit, time_limit):
         if "tidbits" in title or "free talk friday" in title or author == "rcounting":
             continue
         submissions_dict[submission.id] = submission
-        urls = parsing.find_urls_in_submission(submission)
-        try:
-            url = next(filter(lambda x, s=submission: int(x[0], 36) < int(s.id, 36), urls))
-            tree[submission.id] = url[0]
-        except StopIteration:
+        previous_submission = find_previous_submission(submission)[0]
+        if previous_submission is not None:
+            tree[submission.id] = previous_submission
+        else:
             new_submissions.append(submission)
         post_time = datetime.datetime.utcfromtimestamp(submission.created_utc)
         if now - post_time > time_limit:
