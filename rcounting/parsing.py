@@ -48,7 +48,7 @@ def find_urls_in_text(body):
     # so everything before that is optional. We only capture the bit after
     # r/counting/comments, since that's what has the information we are
     # interested in.
-    url_regex = r"/comments/([\w]+)(?:/[^/]*/([\w]*)|)"
+    url_regex = r"(?:/comments/|redd\.it/)([\w]+)(?:/[^/]*/([\w]*)|)"
     normal_matches = [(m.groups(), m.start()) for m in re.finditer(url_regex, body)]
 
     # reddit has introduced new short links which are completely opaque to the
