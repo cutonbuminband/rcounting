@@ -22,18 +22,14 @@ def find_previous_submission(submission, similarity_threshold=0.5):
     is a single link in the submission self text that points to the right
     place, and so we shouldn't spend too much extra time in handling that case
 
-    We'll use the following heuristics:
+    We'll use the following approach:
 
-    - If there are no links at all, return a (None, None) tuple.
-
-    - Submissions with ids higher than the current submission id cannot be
-      links to a previous submission.
-
-    - Submissions with very different titles from the current submission should
-      be regarded as suspect, and other submissions should be sought
-
-    - Links which also include a comment are preferable to links which don't,
-      especially if they link to the same submission
+    - Take the first link which has both submission and comment and a
+      sufficiently high similarity
+    - If there are none, take the first link with sufficiently high similarity
+    - If there are none, take the first link with both submission and comment
+    - If there are none, take the first link present
+    - If there are none, return (None, None)
 
     """
 
@@ -45,13 +41,21 @@ def find_previous_submission(submission, similarity_threshold=0.5):
         lambda x: int(x[0], 36) < int(submission.id, 36),
         parsing.find_urls_in_submission(submission),
     )
+    threshold_met = False
     for previous_submission_id, previous_get_id in urls:
         if result == (None, None):
             result = (previous_submission_id, previous_get_id)
+
+        if not threshold_met and result[1] is None and previous_get_id is not None:
+            result = (previous_submission_id, previous_get_id)
+
         matcher.set_seq1(reddit.submission(previous_submission_id).title)
         if matcher.ratio() >= similarity_threshold:
-            result = (previous_submission_id, previous_get_id)
+            if not threshold_met:
+                result = (previous_submission_id, previous_get_id)
+                threshold_met = True
             if previous_get_id:
+                result = (previous_submission_id, previous_get_id)
                 break
     return result
 
