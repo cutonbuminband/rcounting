@@ -156,7 +156,7 @@ def fetch_counting_history(subreddit, time_limit):
     """
     Fetch all submissions made to r/counting within time_limit days
     """
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.timezone.utc)
     submissions = subreddit.new(limit=1000)
     tree = {}
     submissions_dict = {}
@@ -175,7 +175,7 @@ def fetch_counting_history(subreddit, time_limit):
             tree[submission.id] = previous_submission
         else:
             new_submissions.append(submission)
-        post_time = datetime.datetime.utcfromtimestamp(submission.created_utc)
+        post_time = datetime.datetime.fromtimestamp(submission.created_utc, datetime.timezone.utc)
         if now - post_time > time_limit:
             break
     else:  # no break
