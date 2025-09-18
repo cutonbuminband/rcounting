@@ -90,7 +90,9 @@ def log_undecorated(
     side_thread,
     verbose,
     quiet,
+    first_submissions=None,
     side_thread_id=None,
+    print_timing=True,
 ):
     """
     Log the reddit submission which ends in LEAF_COMMENT_ID.
@@ -114,9 +116,9 @@ def log_undecorated(
         sql = True
 
     configure_logging.setup(printer, verbose, quiet)
-    directory = td.load_wiki_page(subreddit, "directory")
-
+    directory = None
     if not leaf_comment_id:
+        directory = td.load_wiki_page(subreddit, "directory")
         comment = tn.find_previous_get(directory.rows[0].submission_id)
     else:
         comment = reddit.comment(leaf_comment_id)
@@ -127,6 +129,10 @@ def log_undecorated(
         comment.id,
     )
 
+    if not first_submissions:
+        if not directory:
+            directory = td.load_wiki_page(subreddit, "directory")
+        first_submissions = directory.first_submissions
     threadlogger = ThreadLogger(sql, output_directory, filename, not side_thread, side_thread_id)
     completed = 0
 
@@ -156,19 +162,21 @@ def log_undecorated(
         else:
             printer.info("Submission %s has already been logged!", submission.title)
 
-        if submission.id in directory.first_submissions:
+        if submission.id in first_submissions:
             break
 
         submission_id, comment_id = tn.find_previous_submission(submission)
         submission = reddit.submission(submission_id)
+
         multiple = 1
         completed += 1
 
     if completed:
         if sql:
             update_counters_table(threadlogger.db)
-        if submission.id in directory.first_submissions + [threadlogger.last_checkpoint]:
+        if submission.id in first_submissions + [threadlogger.last_checkpoint]:
             threadlogger.update_checkpoint()
     else:
         printer.info("The database is already up to date!")
-    printer.info("Running the script took %s", datetime.now() - t_start)
+    if print_timing:
+        printer.info("Running the script took %s", datetime.now() - t_start)

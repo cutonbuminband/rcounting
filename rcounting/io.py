@@ -38,7 +38,7 @@ class ThreadLogger:
         if filename is None:
             filename = "counting.sqlite"
         path = self.output_directory / filename
-        printer.warning("Writing submissions to sql database at %s", path)
+        printer.info("Writing submissions to sql database at %s", path)
         db = sqlite3.connect(path)
         try:
             if self.side_thread_id is not None:

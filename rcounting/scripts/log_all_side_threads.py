@@ -3,6 +3,7 @@ from pathlib import Path
 
 import click
 
+from ..side_threads import known_thread_ids
 from .log_thread import log_undecorated
 
 printer = logging.getLogger("rcounting")
@@ -30,13 +31,21 @@ def log_side_threads(
     configure_logging.setup(printer, verbose, quiet)
     directory = td.load_wiki_page(subreddit, "directory")
     for row in directory.rows[1:]:
+        if row.first_submission == row.initial_submission_id:
+            continue
         side_thread_id = row.first_submission
+        try:
+            side_thread_name = known_thread_ids[side_thread_id]
+        except KeyError:
+            side_thread_name = f"Unknown side thread: {side_thread_id}"
         submission_id = row.initial_submission_id
         previous_submission, previous_get = tn.find_previous_submission(submission_id)
         if previous_submission is None:
             continue
         if previous_get is None:
             previous_get = tn.find_deepest_comment(previous_submission, reddit)
+
+        printer.warning("Logging side thread %s", side_thread_name)
 
         log_undecorated(
             previous_get,
@@ -49,4 +58,6 @@ def log_side_threads(
             quiet=quiet,
             side_thread_id=side_thread_id,
             n_threads=1,
+            print_timing=False,
+            first_submissions=directory.first_submissions,
         )
