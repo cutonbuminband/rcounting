@@ -49,7 +49,7 @@ class ThreadLogger:
                 )
             else:
                 known_submissions = pd.read_sql("select submission_id from submissions", db)
-            known_submissions = known_submissions.squeeze().tolist()
+            known_submissions = list(known_submissions["submission_id"])
         except pd.io.sql.DatabaseError:
             # The database error is for when the table doesn't exist in the database
             printer.warning("Finding known submissions failed")
