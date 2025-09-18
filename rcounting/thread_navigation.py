@@ -26,8 +26,8 @@ def find_previous_submission(submission, similarity_threshold=0.5):
 
     - Take the first link which has both submission and comment and a
       sufficiently high similarity
-    - If there are none, take the first link with sufficiently high similarity
     - If there are none, take the first link with both submission and comment
+    - If there are none, take the first link with sufficiently high similarity
     - If there are none, take the first link present
     - If there are none, return (None, None)
 
@@ -43,20 +43,20 @@ def find_previous_submission(submission, similarity_threshold=0.5):
     )
     threshold_met = False
     for previous_submission_id, previous_get_id in urls:
-        if result == (None, None):
+        if result[0] is None:
             result = (previous_submission_id, previous_get_id)
 
-        if not threshold_met and result[1] is None and previous_get_id is not None:
+        if result[1] is None and previous_get_id:
             result = (previous_submission_id, previous_get_id)
 
         matcher.set_seq1(reddit.submission(previous_submission_id).title)
         if matcher.ratio() >= similarity_threshold:
-            if not threshold_met:
-                result = (previous_submission_id, previous_get_id)
-                threshold_met = True
             if previous_get_id:
                 result = (previous_submission_id, previous_get_id)
                 break
+            if not threshold_met and result[1] is None:
+                result = (previous_submission_id, previous_get_id)
+                threshold_met = True
     return result
 
 
