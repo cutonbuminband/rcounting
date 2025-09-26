@@ -1,5 +1,4 @@
 import itertools
-import os
 from collections.abc import Iterable, Iterator
 from datetime import timedelta
 
@@ -31,11 +30,6 @@ def format_timedelta(delta_t: timedelta) -> str:
     units = ["day", "hour", "minute", "second"]
     formatted = [format_one_interval(n, unit) for n, unit in zip(amounts, units)]
     return ", ".join([x for x in formatted if x])
-
-
-def ensure_directory(directory: str | os.PathLike):
-    if not os.path.exists(directory):
-        os.makedirs(directory)
 
 
 deleted_phrases = ["[deleted]", "[removed]", "[banned]"]
