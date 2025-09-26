@@ -60,13 +60,19 @@ def log(
     verbose,
     quiet,
 ):
-    """This is incredibly silly and hacky but I can't think of a better way of
-    doing it right now. We need access to the undecorated log function for the
-    side thread logging, and I don't see any easy way of getting there. And I'm
-    not about to start learning about click's context rules, so a hack it is.
-    We'll manually extract the undecorated function and just call it here
-
     """
+    Log the reddit submission which ends in LEAF_COMMENT_ID.
+    If no comment id is provided, use the latest completed thread found in the thread directory.
+    By default, assumes that this is part of the main chain, and will attempt to
+    find the true get if the gz or the assist are linked instead.
+    """
+
+    # This is incredibly silly and hacky but I can't think of a better way of
+    # doing it right now. We need access to the undecorated log function for the
+    # side thread logging, and I don't see any easy way of getting there. And I'm
+    # not about to start learning about click's context rules, so a hack it is.
+    # We'll manually extract the undecorated function and just call it here
+
     log_undecorated(
         leaf_comment_id,
         all_counts,
@@ -94,12 +100,6 @@ def log_undecorated(
     side_thread_id=None,
     print_timing=True,
 ):
-    """
-    Log the reddit submission which ends in LEAF_COMMENT_ID.
-    If no comment id is provided, use the latest completed thread found in the thread directory.
-    By default, assumes that this is part of the main chain, and will attempt to
-    find the true get if the gz or the assist are linked instead.
-    """
     from rcounting import configure_logging, utils
     from rcounting import thread_directory as td
     from rcounting import thread_navigation as tn
