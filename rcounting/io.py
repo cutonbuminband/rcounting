@@ -54,7 +54,7 @@ class ThreadLogger:
                     db,
                 )
             else:
-                checkpoint = pd.read_sql("select submission_id from checkpoints", self.db).iloc[-1]
+                checkpoint = pd.read_sql("select submission_id from checkpoints", db).iloc[-1]
             if checkpoint.empty:
                 last_checkpoint = ""
             else:
