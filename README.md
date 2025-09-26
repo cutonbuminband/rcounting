@@ -26,6 +26,13 @@ The first time you run the program you will be asked to authorize it to interact
 
 The package has functionality for logging threads which can be invoked by typing `rcounting log`. The default behaviour is to log the latest complete thread (as found in the [directory](http://reddit.com/r/counting/wiki/directory), saving the output to csv files. You can specify that you want to log a different threads, want to log a while chain of threads, or want to store the output in a database instead. Try typing `rcounting log_thread -h` to see a more detailed usage explanation.
 
+
+#### Logging all side threads
+
+If for some reason you want log all side threads, there's a script to help you do that as well, under `rcounting log-side-threads`. Type `rcounting log-side-threads -h` for more information about the relevant options.
+
+This script will try to log every thread back to the very first submission in the chain, and can therefore take a very long time to run. It saves checkpoints, so that updating an existing database will take much less time than generating a new one. If you want a copy of the existing database, please message the maintainer here, on reddit, or via email.
+
 ### Validation
 The package can also validate threads according to specific rules. This is done by typing `rcounting validate`, and the program takes an additional `--rule` parameter specifying which rule should be checked. The following options are available:
 
