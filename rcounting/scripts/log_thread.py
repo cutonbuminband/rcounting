@@ -22,29 +22,15 @@ printer = logging.getLogger("rcounting")
     "-f",
     type=click.Path(path_type=Path),
     help=(
-        "What file to write output to. If none is specified, counting.sqlite is used as default in"
-        " sql mode, and the base count is used in csv mode."
+        "What file to write output to. If none is specified, counting.sqlite is used as default."
     ),
-)
-@click.option(
-    "-o",
-    "--output-directory",
-    default=".",
-    type=click.Path(path_type=Path),
-    help="The directory to use for output. Default is the current working directory",
-)
-@click.option(
-    "--sql/--csv",
-    default=False,
-    help="Write submissions to csv files (one per thread) or to a database.",
 )
 @click.option(
     "--side-thread/--main",
     "-s/-m",
     default=False,
     help=(
-        "Log the main thread or a side thread. Get validation is "
-        "switched off for side threads, and only sqlite output is supported"
+        "Log the main thread or a side thread. Get validation is switched off for side threads."
     ),
 )
 @click.option("--verbose", "-v", count=True, help="Print more output")
@@ -54,8 +40,6 @@ def log(
     all_counts,
     n_threads,
     filename,
-    output_directory,
-    sql,
     side_thread,
     verbose,
     quiet,
@@ -78,8 +62,6 @@ def log(
         all_counts,
         n_threads,
         filename,
-        output_directory,
-        sql,
         side_thread,
         verbose,
         quiet,
@@ -91,8 +73,6 @@ def log_undecorated(
     all_counts,
     n_threads,
     filename,
-    output_directory,
-    sql,
     side_thread,
     verbose,
     quiet,
@@ -100,20 +80,15 @@ def log_undecorated(
     side_thread_id=None,
     print_timing=True,
 ):
-    from rcounting import configure_logging, utils
+    from rcounting import configure_logging
     from rcounting import thread_directory as td
     from rcounting import thread_navigation as tn
     from rcounting.io import ThreadLogger, update_counters_table
     from rcounting.reddit_interface import reddit, subreddit
 
+    # Create the output directory if it doesn't already exist.
+    filename.parent.mkdir(parents=True, exist_ok=True)
     t_start = datetime.now()
-    utils.ensure_directory(output_directory)
-
-    if side_thread or (
-        filename is not None
-        and (n_threads != 1 or all_counts or Path(filename).suffix == ".sqlite")
-    ):
-        sql = True
 
     configure_logging.setup(printer, verbose, quiet)
     directory = None
@@ -133,7 +108,7 @@ def log_undecorated(
         if not directory:
             directory = td.load_wiki_page(subreddit, "directory")
         first_submissions = directory.first_submissions
-    threadlogger = ThreadLogger(sql, output_directory, filename, not side_thread, side_thread_id)
+    threadlogger = ThreadLogger(filename, not side_thread, side_thread_id)
     completed = 0
 
     submission = comment.submission
@@ -172,8 +147,7 @@ def log_undecorated(
         completed += 1
 
     if completed:
-        if sql:
-            update_counters_table(threadlogger.db)
+        update_counters_table(threadlogger.db)
         if submission.id in first_submissions + [threadlogger.last_checkpoint]:
             threadlogger.update_checkpoint()
     else:

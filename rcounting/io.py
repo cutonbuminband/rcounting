@@ -1,5 +1,4 @@
 import logging
-import os
 import sqlite3
 from pathlib import Path
 
@@ -15,21 +14,14 @@ class ThreadLogger:
 
     def __init__(
         self,
-        sql: bool,
-        output_directory: Path,
         filename: Path | str | None = None,
         is_main: bool = True,
         side_thread_id: str | None = None,
     ):
-        self.sql = sql
         self.is_main = is_main
-        assert self.is_main or self.sql, "Only sql output is supported for side threads"
         self.side_thread_id = side_thread_id
-        self.output_directory = output_directory
         self.last_checkpoint = ""
-        if self.sql:
-            self.setup_sql(filename)
-        self.log = self.log_sql if self.sql else self.log_csv
+        self.setup_sql(filename)
 
     def setup_sql(self, filename):
         """Connect to the database and get list of existing submissions, if any"""
@@ -37,7 +29,7 @@ class ThreadLogger:
         known_submissions = []
         if filename is None:
             filename = "counting.sqlite"
-        path = self.output_directory / filename
+        path = Path(filename)
         printer.debug("Writing submissions to sql database at %s", path)
         db = sqlite3.connect(path)
         try:
@@ -76,19 +68,11 @@ class ThreadLogger:
 
     def is_already_logged(self, submission):
         """
-        Determine whether a submission has already been logged based on its first
-        comment. It's important to do it this way because fetching a whole submission
-        is expensive, so we want to avoid having to do that.
+        Determine whether a given submission already exists in the database.
         """
-        if self.sql:
-            return submission.id in self.known_submissions
-        comment = submission.comments[0]
-        body = parsing.strip_markdown_links(comment.body)
-        basecount = parsing.find_count_in_text(body)
-        hoc_path = self.output_directory / Path(f"{basecount}.csv")
-        return os.path.isfile(hoc_path)
+        return submission.id in self.known_submissions
 
-    def log_sql(self, comment, df):
+    def log(self, comment, df):
         """Save one submission to a database"""
         submission = pd.Series(models.submission_to_dict(comment.submission))
         submission = submission[["submission_id", "username", "timestamp", "title", "body"]]
@@ -99,22 +83,7 @@ class ThreadLogger:
         df.to_sql("comments", self.db, index_label="position", if_exists="append")
         submission.to_frame().T.to_sql("submissions", self.db, index=False, if_exists="append")
 
-    def log_csv(self, comment, df):
-        """Save one submission to a csv file"""
-        n = base_count(df)
-        path = self.output_directory / Path(f"{n}.csv")
-
-        columns = ["username", "timestamp", "comment_id", "submission_id"]
-        output_df = df.set_index(df.index + n)[columns].iloc[1:]
-        printer.debug("Writing submission log to %s", path)
-        header = ["username", "timestamp", "comment_id", "submission_id"]
-        with open(path, "w", encoding="utf8") as f:
-            print(f"# {comment.submission.title}", file=f)
-            print(output_df.to_csv(index_label="count", header=header), file=f, end="")
-
     def update_checkpoint(self):
-        if not self.sql:
-            return
         if self.side_thread_id is not None:
             newest_submission = pd.read_sql(
                 "select submission_id from submissions "
