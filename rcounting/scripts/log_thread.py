@@ -24,6 +24,7 @@ printer = logging.getLogger("rcounting")
     help=(
         "What file to write output to. If none is specified, counting.sqlite is used as default."
     ),
+    default="counting.sqlite",
 )
 @click.option(
     "--side-thread/--main",

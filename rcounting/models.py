@@ -89,7 +89,7 @@ class Tree:
             counter += 1
         return nodes
 
-    def walk_down_tree(self, node):
+    def walk_down_tree(self, node, limit=None, cutoff=None):
         """
         Navigate the tree from node to leaf, taking the earliest child each
         time there's a choice
@@ -98,11 +98,17 @@ class Tree:
             node = self.node(node)
         if node.id not in self.nodes and node.id not in self.reversed_tree:
             return [node]
-        result = [node]
+        nodes = [node]
+        counter = 1
         while node.id in self.reversed_tree:
+            if limit is not None and counter >= limit:
+                break
+            if cutoff is not None and getattr(node, "created_utc", -float("inf")) > cutoff:
+                nodes = nodes[:-1]
+                break
             node = self.find_children(node)[0]
-            result.append(node)
-        return result
+            nodes.append(node)
+        return nodes
 
     def node(self, node_id):
         return self.nodes[node_id]
@@ -265,7 +271,7 @@ class CommentTree(Tree):
 
         return sorted(children, key=comment_order)
 
-    def add_missing_replies(self, comment):
+    def add_missing_replies(self, comment, limit: int | None = None):
         comment_id = extract_id(comment)
         if self.reddit is None:
             return []
@@ -274,7 +280,7 @@ class CommentTree(Tree):
             self.add_comments([praw_comment])
 
         praw_comment.refresh()
-        replies = find_all_replies(praw_comment)
+        replies = find_all_replies(praw_comment, limit)
         if replies:
             self.add_comments(replies)
             return [self.comment(x.id) for x in replies]
@@ -365,7 +371,7 @@ def extract_id(node):
     return node
 
 
-def find_all_replies(comment):
+def find_all_replies(comment, limit: int | None = None):
     """Return a list of all replies to a comment, with each `MoreComments`
     instance expanded. The comments might be out of order, and due to reddit
     weirdness a comment might appear multiple times. That's OK, since the tree
@@ -374,7 +380,8 @@ def find_all_replies(comment):
     comments = comment.replies.list()
     replies = []
     submission = comment.submission
-    while comments:
+    counter = 0
+    while comments and counter != limit:
         item = comments.pop(0)
         if isinstance(item, MoreComments):
             if item.submission is None:
@@ -382,4 +389,5 @@ def find_all_replies(comment):
             comments = item.comments(update=False).list() + comments
         else:
             replies.append(item)
+            counter += 1
     return replies

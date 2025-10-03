@@ -8,19 +8,20 @@ from pathlib import Path
 import click
 import pandas as pd
 from fuzzywuzzy import fuzz
-from prawcore.exceptions import TooManyRequests
 
-from rcounting import configure_logging, counters, ftf, models, parsing, units
+from rcounting import configure_logging, counters, ftf, models, parsing, side_threads, units
 from rcounting import thread_directory as td
-from rcounting import thread_navigation as tn
+from rcounting.scripts import log_all_side_threads
 
 printer = logging.getLogger("rcounting")
 
 WEEK = 7 * units.DAY
+temp_filename = Path("temp.sqlite")
+temp_db = sqlite3.connect(temp_filename)
 
 
 def find_directory_revision(subreddit, threshold):
-    """Find the first directory revision which was made after a threshold
+    """Find the earliest directory revision which was made after a threshold
     timestamp. If no such revision exists, return the latest revision.
 
     """
@@ -35,119 +36,58 @@ def find_directory_revision(subreddit, threshold):
 
 
 def get_directory_counts(reddit, directory, ftf_timestamp, db):
-    threshold = ftf_timestamp - WEEK
-    multiple = 1
-    try:
-        threads = pd.read_sql("select * from threads", db).set_index("thread_id")
-    except pd.io.sql.DatabaseError:
-        threads = pd.DataFrame()
-
-    for row in directory.rows[1:]:
-        try:
-            checkpoint_timestamp = threads.loc[row.first_submission, "checkpoint_timestamp"]
-        except KeyError:
-            checkpoint_timestamp = 0
-        if checkpoint_timestamp == threshold:
-            printer.info("row %s has already been logged this week!", row.name)
-        else:
-            printer.info("Getting history for %s", row.name)
-            while True:
-                try:
-                    submissions, comments = get_side_thread_counts(reddit, row, threshold)
-                    multiple = 1
-                    break
-                except TooManyRequests:
-                    time.sleep(30 * multiple)
-                    multiple *= 1.5
-            df = pd.DataFrame([models.comment_to_dict(c) for c in comments])
-            if not df.empty:
-                df = df[df["timestamp"] < ftf_timestamp]
-                df.to_sql("comments", db, if_exists="append", index=False)
-            write_submissions(db, submissions, row.first_submission)
-            update_checkpoint(db, row.first_submission, row.name, threshold)
-    query = (
-        "SELECT comments.*, submissions.thread_id "
-        "FROM comments JOIN submissions ON comments.submission_id==submissions.submission_id "
-        f"WHERE comments.timestamp >= {threshold}"
-    )
-    comments = pd.read_sql(query, db).drop_duplicates()
-    threads = pd.read_sql("select * from threads", db)
-
-    return pd.merge(comments, threads, left_on="thread_id", right_on="thread_id", how="left")
-
-
-def update_checkpoint(db, thread_id, name, timestamp):
-    row = {"thread_id": thread_id, "thread_name": name, "checkpoint_timestamp": timestamp}
-    try:
-        threads = pd.read_sql("select * from threads", db)
-        if (threads["thread_id"] == thread_id).any():
-            threads.loc[threads["thread_id"] == thread_id, "checkpoint_timestamp"] = timestamp
-        else:
-            threads = pd.concat([threads, pd.DataFrame([row])])
-    except pd.io.sql.DatabaseError:
-        threads = pd.DataFrame([row])
-
-    threads.to_sql("threads", db, index=False, if_exists="replace")
-
-
-def write_submissions(db, submissions, thread_id):
-    df = pd.DataFrame([models.submission_to_dict(submission) for submission in submissions])
-    df["thread_id"] = thread_id
-    try:
-        existing_submissions = pd.read_sql("select * from submissions", db)
-    except pd.io.sql.DatabaseError:
-        existing_submissions = pd.DataFrame()
-
-    new_submissions = pd.concat([existing_submissions, df]).drop_duplicates()
-    new_submissions.to_sql("submissions", db, index=False, if_exists="replace")
-
-
-def get_side_thread_counts(reddit, row, threshold):
-    """Return a list of all counts in the side thread represented by row that
-    occurred after `threshold`, as well as the corresponding submissions the
-    comments belong to.
+    """
+    Find all side thread counts on threads logged in the thread directory
+    starting one week before the ftf_timestamp. Use the thread directory to log
+    the current threads, and use the database to log completed threads.
 
     """
-    submission_id = row.submission_id
-    comment_id = row.comment_id
-    submission = reddit.submission(submission_id)
-    comments = []
-    submissions = [submission]
-    while submission.created_utc >= threshold:
-        printer.debug("Fetching submission %s", submission.title)
+    threshold = ftf_timestamp - WEEK
+    try:
+        df = pd.read_sql("select distinct thread_id from comments", temp_db)
+        completed_rows = list(df["thread_id"])
+    except pd.io.sql.DatabaseError:
+        completed_rows = []
+    for row in directory.rows[1:]:
+        if row.first_submission in completed_rows:
+            continue
+        printer.info("Getting latest history for %s", row.name)
         tree = models.CommentTree(reddit=reddit, get_missing_replies=False)
-        new_comments = tree.walk_up_tree(comment_id)
-        if new_comments is not None:
-            comments += new_comments[:-1]
-        submission_id, comment_id = tn.find_previous_submission(submission)
-        if not comment_id:
-            # No comment was linked in the post. We're
-            # either at the first submission, or at an incorrectly
-            # formatted link. In any case, we bail here
-            return submissions, comments
-        submission = reddit.submission(submission_id)
-        submissions.append(submission)
-    tree = models.CommentTree(reddit=reddit, get_missing_replies=False)
-    new_comments = tree.walk_up_tree(comment_id, cutoff=threshold)
-    if new_comments is not None:
-        comments += new_comments
-    return submissions, comments
+        comments = tree.walk_up_tree(row.comment_id, cutoff=threshold) or []
+        tree.add_missing_replies(row.comment_id, limit=10)
+        st = side_threads.get_side_thread(row.thread_type)
+        tree.prune(st, row.comment_id)
+        replies = tree.walk_down_tree(row.comment_id, cutoff=ftf_timestamp) or []
+        df = pd.DataFrame([models.comment_to_dict(c) for c in comments + replies])
+        df["thread_id"] = row.first_submission
+        df.to_sql("comments", temp_db, index=False, if_exists="append")
+    query = (
+        f"SELECT comments.*, thread_id FROM comments JOIN submissions "
+        f"ON comments.submission_id == submissions.submission_id "
+        f"WHERE comments.timestamp >= {threshold}"
+    )
+
+    completed_threads = pd.read_sql(query, db)
+    partial_threads = pd.read_sql("select * from comments", temp_db)
+    combined = pd.concat([completed_threads, partial_threads])
+    return combined[combined["timestamp"] <= ftf_timestamp].drop_duplicates()
 
 
 def get_weekly_stats(reddit, subreddit, ftf_timestamp, filename):
+    log_all_side_threads.log_side_threads(filename=filename, verbose=False, quiet=False)
     db = sqlite3.connect(filename)
-
     revision = find_directory_revision(subreddit, ftf_timestamp)
     contents = revision["page"].content_md.replace("\r\n", "\n")
     directory = td.Directory(parsing.parse_directory_page(contents), "directory")
-    return get_directory_counts(reddit, directory, ftf_timestamp, db)
+    name_mapping = {row.first_submission: row.name for row in directory.rows[1:]}
+    return get_directory_counts(reddit, directory, ftf_timestamp, db), name_mapping
 
 
 def pprint(date):
     return date.strftime("%A %B %d, %Y")
 
 
-def stats_post(stats, ftf_timestamp):
+def stats_post(stats, ftf_timestamp, name_mapping=None):
     end = dt.date.fromtimestamp(ftf_timestamp)
     start = dt.date.fromtimestamp(ftf_timestamp - WEEK)
     stats["canonical_username"] = stats["username"].apply(counters.apply_alias)
@@ -167,9 +107,10 @@ def stats_post(stats, ftf_timestamp):
     top_counters.index += 1
     tc = top_counters["canonical_username"].to_numpy()
 
-    top_threads = (
-        stats.groupby("thread_name").size().sort_values(ascending=False).to_frame().reset_index()
-    )
+    top_threads = stats.groupby("thread_id").size().sort_values(ascending=False).to_frame()
+    if name_mapping is not None:
+        top_threads.index = [name_mapping[i] for i in top_threads.index]
+    top_threads = top_threads.reset_index()
     top_threads.index += 1
     s = (
         f"Weekly side thread stats from {pprint(start)} to {pprint(end)}. "
@@ -222,8 +163,8 @@ def generate_stats_post(filename, dry_run, verbose, quiet):
     from rcounting.reddit_interface import reddit, subreddit
 
     configure_logging.setup(printer, verbose, quiet)
-    stats = get_weekly_stats(reddit, subreddit, ftf_timestamp, filename)
-    body = stats_post(stats, ftf_timestamp)
+    stats, name_mapping = get_weekly_stats(reddit, subreddit, ftf_timestamp, filename)
+    body = stats_post(stats, ftf_timestamp, name_mapping)
     if dry_run:
         print(body)
     else:
@@ -237,3 +178,4 @@ def generate_stats_post(filename, dry_run, verbose, quiet):
             s = "Not posting stats comment. Existing comment found at https://www.reddit.com%s"
             printer.warning(s, link)
     printer.warning("Running the script took %s", dt.datetime.now() - t_start)
+    Path.unlink(temp_filename)

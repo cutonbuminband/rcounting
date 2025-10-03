@@ -6,7 +6,7 @@ See the subcommands for details on their behaviour.
 import click
 
 from .ftf import pin_or_create_ftf
-from .log_all_side_threads import log_side_threads
+from .log_all_side_threads import main
 from .log_thread import log
 from .update_thread_directory import update_directory
 from .validate import validate
@@ -20,7 +20,7 @@ from .weekly_side_thread_stats import generate_stats_post
         update_directory,
         pin_or_create_ftf,
         generate_stats_post,
-        log_side_threads,
+        main,
     ],
     context_settings=dict(help_option_names=["-h", "--help"]),
 )
