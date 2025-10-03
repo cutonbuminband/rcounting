@@ -51,8 +51,6 @@ def log_side_threads(
             previous_get,
             all_counts=True,
             filename=filename,
-            output_directory=".",
-            sql=True,
             side_thread=True,
             verbose=verbose,
             quiet=quiet,
