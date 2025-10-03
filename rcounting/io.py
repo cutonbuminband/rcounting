@@ -43,7 +43,9 @@ class ThreadLogger:
                 known_submissions = pd.read_sql("select submission_id from submissions", db)
             known_submissions = list(known_submissions["submission_id"])
         except pd.io.sql.DatabaseError:
-            # The database error is for when the table doesn't exist in the database
+            # The database error is for when the table doesn't exist in the
+            # database. That's not a big deal, so we just write a log message
+            # and continue merrily on our way.
             printer.warning("Finding known submissions failed")
             pass
         try:
