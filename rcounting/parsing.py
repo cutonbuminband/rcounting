@@ -1,6 +1,7 @@
 """A collection of functions for parsing texts and extracting urls and counts"""
 
 import re
+import warnings
 
 from rcounting.reddit_interface import extract_from_short_link
 
@@ -160,11 +161,23 @@ def parse_row(markdown_row):
 
 def find_urls_in_submission(submission):
     """Extract urls from both the body of the submission and the top-level comments"""
-    # Get everything that looks like a url in the body of the post
-    yield from find_urls_in_text(submission.selftext)
-    # And then in every top-level comment
+    # Get everything that looks like a url in every top level comment
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error")
+        try:
+            submission.comment_sort = "new"
+        except UserWarning:
+            from rcounting.reddit_interface import reddit
+
+            submission = reddit.submission(submission.id)
+            submission.comment_sort = "new"
+
     for comment in submission.comments:
         yield from find_urls_in_text(comment.body)
+    # And then in the body of the post. The reason for doing it in this order
+    # is that it is possible for outsiders to add a comment afterwards to point at the
+    # correct link, but it is not possible for them to edit the post body
+    yield from find_urls_in_text(submission.selftext)
 
 
 def is_revived(title):
