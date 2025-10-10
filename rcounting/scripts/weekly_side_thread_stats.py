@@ -2,7 +2,6 @@
 import datetime as dt
 import logging
 import sqlite3
-import time
 from pathlib import Path
 
 import click
@@ -74,7 +73,6 @@ def get_directory_counts(reddit, directory, ftf_timestamp, db):
 
 
 def get_weekly_stats(reddit, subreddit, ftf_timestamp, filename):
-    log_all_side_threads.log_side_threads(filename=filename, verbose=False, quiet=False)
     db = sqlite3.connect(filename)
     revision = find_directory_revision(subreddit, ftf_timestamp)
     contents = revision["page"].content_md.replace("\r\n", "\n")
@@ -87,25 +85,41 @@ def pprint(date):
     return date.strftime("%A %B %d, %Y")
 
 
-def stats_post(stats, ftf_timestamp, name_mapping=None):
+def stats_post(stats, old_counts, ftf_timestamp, name_mapping=None):
     end = dt.date.fromtimestamp(ftf_timestamp)
     start = dt.date.fromtimestamp(ftf_timestamp - WEEK)
-    stats["canonical_username"] = stats["username"].apply(counters.apply_alias)
+    stats["username"] = stats["username"].apply(counters.apply_alias)
+    new_counts = stats.groupby("username").size().to_frame(name="new_count").reset_index()
+    combined = pd.merge(
+        left=old_counts, right=new_counts, left_on="username", right_on="username", how="outer"
+    ).fillna(0)
 
+    combined["old_count"] = combined["old_count"].astype(int)
+    combined["new_count"] = combined["new_count"].astype(int)
+    combined["total"] = combined["old_count"] + combined["new_count"]
+    combined = (
+        combined.sort_values(["total"], ascending=False)
+        .reset_index(drop=True)
+        .reset_index(names=["host_rank"])
+    )
+    combined = (
+        combined.sort_values(["old_count"], ascending=False)
+        .reset_index(drop=True)
+        .reset_index(names=["old_host_rank"])
+    )
+    combined["delta"] = combined["host_rank"] - combined["old_host_rank"]
     top_counters = (
-        stats.groupby("canonical_username")
-        .size()
-        .sort_values(ascending=False)
-        .to_frame()
-        .reset_index()
+        combined.loc[~combined["username"].apply(counters.is_banned_counter)]
+        .sort_values("new_count", ascending=False)
+        .reset_index(drop=True)
+        .head(15)
+        .copy()
     )
 
-    top_counters = top_counters[
-        ~top_counters["canonical_username"].apply(counters.is_banned_counter)
-    ].reset_index(drop=True)
-
     top_counters.index += 1
-    tc = top_counters["canonical_username"].to_numpy()
+    top_counters["host"] = top_counters.apply(add_delta, axis=1)
+    columns = ["username", "new_count", "host"]
+    tc = top_counters["username"].to_numpy()
 
     top_threads = stats.groupby("thread_id").size().sort_values(ascending=False).to_frame()
     if name_mapping is not None:
@@ -118,7 +132,9 @@ def stats_post(stats, ftf_timestamp, name_mapping=None):
     )
     s += f"Total weekly side thread counts: **{len(stats)}**\n\n"
     s += "Top 15 side thread counters:\n\n"
-    s += top_counters.head(15).to_markdown(headers=["**Rank**", "**User**", "**Counts**"])
+    s += top_counters[columns].to_markdown(
+        headers=["**Rank**", "**User**", "**Counts**", "**HoST Rank**"]
+    )
     s += "\n\nTop 5 side threads:\n\n"
     s += top_threads.head(5).to_markdown(headers=["**Rank**", "**Thread**", "**Counts**"])
     s += "\n\n----\n\n"
@@ -140,15 +156,24 @@ def is_duplicate(body, post):
 @click.option(
     "--dry-run", is_flag=True, help="Write results to console instead of making a comment"
 )
+@click.option(
+    "--update-db/--no-update-db",
+    default=False,
+    help=("If set, add the data for all newly completed side threads to the database"),
+)
 @click.option("--verbose", "-v", count=True, help="Print more output")
 @click.option("--quiet", "-q", is_flag=True, default=False, help="Suppress output")
 @click.option(
     "--filename",
     "-f",
     type=click.Path(path_type=Path),
-    help=("What file to write to. If none is specified, side_threads.sqlite is used"),
+    help=(
+        "Where to find (and optionally write) previous side thread stats. "
+        "If none is specified, side_threads.sqlite is used"
+    ),
+    default="side_threads.sqlite",
 )
-def generate_stats_post(filename, dry_run, verbose, quiet):
+def generate_stats_post(filename, update_db, dry_run, verbose, quiet):
     """Load all the side thread counts made in the previous FTF period and
     store them in a database. Then post a side thread stats comment in the
     current FTF as long as:
@@ -159,12 +184,25 @@ def generate_stats_post(filename, dry_run, verbose, quiet):
     """
     t_start = dt.datetime.now()
     ftf_timestamp = ftf.get_ftf_timestamp().timestamp()
+    threshold = ftf_timestamp - WEEK
 
     from rcounting.reddit_interface import reddit, subreddit
 
     configure_logging.setup(printer, verbose, quiet)
+    if update_db:
+        log_all_side_threads.log_side_threads(filename=filename, verbose=verbose, quiet=quiet)
     stats, name_mapping = get_weekly_stats(reddit, subreddit, ftf_timestamp, filename)
-    body = stats_post(stats, ftf_timestamp, name_mapping)
+    db = sqlite3.connect(filename)
+    query = (
+        f"SELECT canonical_username as username, count() as old_count "
+        f"FROM comments join counters on counters.username == comments.username "
+        f"WHERE comments.position > 0 and comments.timestamp <= {threshold} "
+        f"GROUP by canonical_username"
+    )
+
+    old_counts = pd.read_sql(query, db)
+    db.close()
+    body = stats_post(stats, old_counts, ftf_timestamp, name_mapping)
     if dry_run:
         print(body)
     else:
@@ -179,3 +217,13 @@ def generate_stats_post(filename, dry_run, verbose, quiet):
             printer.warning(s, link)
     printer.warning("Running the script took %s", dt.datetime.now() - t_start)
     Path.unlink(temp_filename)
+
+
+def add_delta(series):
+    up_arrow = "◮"
+    down_arrow = "⧩"
+    delta = series["delta"]
+    if delta == 0:
+        return f"{series['host_rank'] + 1}"
+    else:
+        return f"{series['host_rank']} ({up_arrow if delta < 0 else down_arrow}{abs(delta)})"
