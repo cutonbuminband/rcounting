@@ -3,6 +3,7 @@ import difflib
 import logging
 
 from praw.exceptions import DuplicateReplaceException
+from prawcore.exceptions import Forbidden
 
 from rcounting import models, parsing
 from rcounting.reddit_interface import reddit
@@ -43,13 +44,21 @@ def find_previous_submission(submission, similarity_threshold=0.5):
     )
     threshold_met = False
     for previous_submission_id, previous_get_id in urls:
-        if result[0] is None:
-            result = (previous_submission_id, previous_get_id)
+        old_result = result
+        try:
+            if result[0] is None:
+                result = (previous_submission_id, previous_get_id)
 
-        if result[1] is None and previous_get_id:
-            result = (previous_submission_id, previous_get_id)
+            if result[1] is None and previous_get_id:
+                result = (previous_submission_id, previous_get_id)
 
-        matcher.set_seq1(reddit.submission(previous_submission_id).title)
+            matcher.set_seq1(reddit.submission(previous_submission_id).title)
+        except Forbidden:
+            # The link we are looking at is probably for a deleted account. In
+            # any case, it's definitely not one we want to be following. We
+            # restore the old link (if any) and continue our search
+            result = old_result
+            continue
         if matcher.ratio() >= similarity_threshold:
             if previous_get_id:
                 result = (previous_submission_id, previous_get_id)
