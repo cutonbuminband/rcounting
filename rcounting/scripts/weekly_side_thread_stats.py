@@ -192,7 +192,7 @@ def generate_stats_post(filename, update_db, dry_run, verbose, quiet):
     query = (
         f"SELECT canonical_username as username, count() as old_count "
         f"FROM comments join counters on counters.username == comments.username "
-        f"WHERE comments.position > 0 and comments.timestamp <= {threshold} "
+        f"WHERE comments.position > 0 and comments.timestamp < {threshold} "
         f"GROUP by canonical_username"
     )
 
