@@ -10,15 +10,20 @@ from .log_thread import log_undecorated
 printer = logging.getLogger("rcounting")
 
 
-def log_side_threads(filename, verbose, quiet):
+def log_side_threads(filename, verbose, quiet, archive=False):
     from rcounting import configure_logging
     from rcounting import thread_directory as td
     from rcounting import thread_navigation as tn
     from rcounting.reddit_interface import reddit, subreddit
 
     configure_logging.setup(printer, verbose, quiet)
-    directory = td.load_wiki_page(subreddit, "directory")
-    for row in directory.rows[1:]:
+    if not archive:
+        directory = td.load_wiki_page(subreddit, "directory")
+        rows = directory.rows[1:]
+    else:
+        directory = td.load_wiki_page(subreddit, "directory/archive")
+        rows = [row for row in directory.rows if row.first_submission in known_thread_ids]
+    for row in rows:
         if row.first_submission == row.initial_submission_id:
             continue
         side_thread_id = row.first_submission
@@ -59,9 +64,21 @@ def log_side_threads(filename, verbose, quiet):
 )
 @click.option("--verbose", "-v", count=True, help="Print more output")
 @click.option("--quiet", "-q", is_flag=True, default=False, help="Suppress output")
+@click.option(
+    "--archive",
+    "-a",
+    is_flag=True,
+    default=False,
+    help="Add the known side threads from the archive",
+)
 def main(
     filename,
     verbose,
     quiet,
+    archive,
 ):
-    log_side_threads(filename, verbose, quiet)
+    """Log every side thread in the thread directory and write it to an sql
+    database. Warning: This will take a long time
+
+    """
+    log_side_threads(filename, verbose, quiet, archive)
