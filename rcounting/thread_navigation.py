@@ -11,7 +11,7 @@ from rcounting.reddit_interface import reddit
 printer = logging.getLogger(__name__)
 
 
-def find_previous_submission(submission, similarity_threshold=0.5):
+def find_previous_submission(submission, similarity_threshold=0.6):
     """Decide which link in a submission most likely represents the intended
     link to the previous submission.
 
@@ -36,7 +36,7 @@ def find_previous_submission(submission, similarity_threshold=0.5):
 
     submission = submission if hasattr(submission, "id") else reddit.submission(submission)
     matcher = difflib.SequenceMatcher()
-    matcher.set_seq2(submission.title)
+    matcher.set_seq2(submission.title.split("|")[0])
     result = (None, None)
     urls = filter(
         lambda x: int(x[0], 36) < int(submission.id, 36),
@@ -52,7 +52,7 @@ def find_previous_submission(submission, similarity_threshold=0.5):
             if result[1] is None and previous_get_id:
                 result = (previous_submission_id, previous_get_id)
 
-            matcher.set_seq1(reddit.submission(previous_submission_id).title)
+            matcher.set_seq1(reddit.submission(previous_submission_id).title.split("|")[0])
         except Forbidden:
             # The link we are looking at is probably for a deleted account. In
             # any case, it's definitely not one we want to be following. We
