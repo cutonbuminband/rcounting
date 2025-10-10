@@ -97,14 +97,10 @@ def stats_post(stats, old_counts, ftf_timestamp, name_mapping=None):
     combined["old_count"] = combined["old_count"].astype(int)
     combined["new_count"] = combined["new_count"].astype(int)
     combined["total"] = combined["old_count"] + combined["new_count"]
-    combined = (
-        combined.sort_values(["total"], ascending=False)
-        .reset_index(drop=True)
-        .reset_index(names=["host_rank"])
-    )
+    combined = combined.sort_values(["total"], ascending=False).reset_index(drop=True)
     combined = (
         combined.sort_values(["old_count"], ascending=False)
-        .reset_index(drop=True)
+        .reset_index(names=["host_rank"])
         .reset_index(names=["old_host_rank"])
     )
     combined["delta"] = combined["host_rank"] - combined["old_host_rank"]
