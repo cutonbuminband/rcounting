@@ -122,3 +122,10 @@ def update_counters_table(db):
 
 def base_count(df):
     return int(round((df["body"].apply(parsing.wrapped_count_in_text) - df.index).median(), -3))
+
+
+def relabel_thread(db, old_id, new_id):
+    for table in ["threads", "submissions", "checkpoints"]:
+        df = pd.read_sql(f"select * from {table}", db)
+        df.loc[df["thread_id"] == old_id, "thread_id"] = new_id
+        df.drop_duplicates().to_sql(table, db, index=False, if_exists="replace")
