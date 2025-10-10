@@ -143,23 +143,28 @@ class Tree:
         """
         Find the depth of a node.
 
-        The root nodes have depth 0. Otherwise, each node is one deeper than its parent.
+        The root nodes have depth 1. Otherwise, each node is one deeper than its parent.
         """
         node_id = extract_id(node)
-        if node_id in self.root_ids:
-            return 1
-        if node_id in self.depths:
-            return self.depths[node_id]
-        depth = 1 + self.find_depth(self.parent(node_id))
-        self.depths[node_id] = depth
-        return depth
+        if node_id not in self.depths:
+            self.calculate_depths()
+        return self.depths[node_id]
+
+    def calculate_depths(self):
+        to_be_expanded = [(root_id, 1) for root_id in self.root_ids]
+        while to_be_expanded:
+            node_id, depth = to_be_expanded.pop()
+            children = self.find_children(node_id)
+            to_be_expanded += [(child.id, depth + 1) for child in children]
+            self.depths[node_id] = depth
 
     @property
     def deepest_node(self):
         max_depth = 0
         result = None
+        self.calculate_depths()
         for leaf in self.leaves:
-            depth = self.find_depth(leaf)
+            depth = self.depths[extract_id(leaf)]
             if depth > max_depth:
                 max_depth = depth
                 result = leaf
