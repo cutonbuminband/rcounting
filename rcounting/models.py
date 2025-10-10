@@ -1,9 +1,10 @@
 import logging
 from collections import defaultdict, deque
+from time import sleep
 
 from praw.exceptions import ClientException
 from praw.models import MoreComments
-from prawcore.exceptions import ServerError
+from prawcore.exceptions import ServerError, TooManyRequests
 
 from rcounting import parsing, utils
 
@@ -235,7 +236,16 @@ class CommentTree(Tree):
             self.add_comments([praw_comment])
             return
         try:
-            praw_comment.refresh()
+            sleep_interval = 10
+            while True:
+                try:
+                    praw_comment.refresh()
+                    break
+                except TooManyRequests:
+                    printer.warning(f"Getting rate limited. Sleeping for {sleep_interval}s.")
+                    sleep(sleep_interval)
+                    sleep_interval *= 1.5
+
             if self._parent_counter == 0:
                 printer.info("Fetching ancestors of comment %s", normalise(praw_comment.body))
                 self._parent_counter = self.refresh_counter
