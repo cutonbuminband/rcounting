@@ -68,7 +68,7 @@ def generate_new_body(previous_ftf_id, threshold_date, bot=True):
 
 def make_directory_row(post):
     date = dt.date.fromtimestamp(post.created_utc)
-    link = f"[FTF #{post.title.split('#')[1]}](/{post.id})"
+    link = f"[FTF #{post.title.split('#')[1]}](/comments/{post.id})"
     formatted_date = date.strftime("%b %d, %Y")
     author = apply_alias(str(post.author))
     return f"|{link}|{formatted_date}|{author}"
