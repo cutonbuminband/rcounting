@@ -2,22 +2,24 @@
 """Validate the thread ending at COMMENT_ID according to the specified rule."""
 
 import click
+from fuzzywuzzy import fuzz
 
-rule_dict = {
-    "default": "default",
-    "wait2": "wait 2",
-    "wait3": "wait 3",
-    "wait9": "wait 9",
-    "wait10": "wait 10",
-    "once_per_thread": "once per thread",
-    "slow": "slow",
-    "slower": "slower",
-    "slowestest": "slowestest",
-    "only_double_counting": "only double counting",
-    "fast_or_slow": "fast or slow",
-    "no_repeating": "no repeating digits",
-    "not_any": "not any of those",
-}
+from rcounting.side_threads import known_thread_ids
+
+
+def add_whitespace(rule):
+    translation = str.maketrans("_-", "  ")
+    return str.translate(rule, translation)
+
+
+def find_side_thread(rule):
+    thread_names = list(known_thread_ids.values())
+    rule = add_whitespace(rule)
+    ratios = [fuzz.ratio(thread_name, rule) for thread_name in thread_names]
+    ordered = sorted(thread_names, key=lambda x: fuzz.ratio(x, rule), reverse=True)
+    ordered_ratios = sorted(ratios, reverse=True)
+    if ordered_ratios[0] > 95:
+        return ordered[0]
 
 
 @click.command(no_args_is_help=True)
@@ -25,7 +27,6 @@ rule_dict = {
     "--rule",
     help="Which rule to apply. Default is no double counting",
     default="default",
-    type=click.Choice(list(rule_dict.keys()), case_sensitive=False),
 )
 @click.argument("comment_id")
 def validate(comment_id, rule):
@@ -37,9 +38,10 @@ def validate(comment_id, rule):
     from rcounting.reddit_interface import reddit
 
     comment = reddit.comment(comment_id)
-    print(f"Validating thread: '{comment.submission.title}' according to rule {rule}")
+    side_thread_name = find_side_thread(rule)
+    print(f"Validating thread: '{comment.submission.title}' according to rule {side_thread_name}")
     comments = pd.DataFrame(tn.fetch_comments(comment))
-    side_thread = st.get_side_thread(rule_dict[rule])
+    side_thread = st.get_side_thread(side_thread_name)
     result = side_thread.is_valid_thread(comments)
     if result[0]:
         print("All counts were valid")
@@ -51,5 +53,11 @@ def validate(comment_id, rule):
                 f"The last count in the thread has an incorrect value. "
                 f"Earlier errors can be found at {errors}"
             )
+            filename = "thread.csv"
+            print(
+                f"Saving thread data to disk at {filename} to help finding "
+                f"the correct value of the last count"
+            )
+            comments.to_csv(filename, index=False)
     else:
         print(f"Invalid count found at http://reddit.com{reddit.comment(result[1]).permalink}!")
