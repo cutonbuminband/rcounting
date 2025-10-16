@@ -13,13 +13,24 @@ def add_whitespace(rule):
 
 
 def find_side_thread(rule):
+    original_rule = rule
     thread_names = list(known_thread_ids.values())
-    rule = add_whitespace(rule)
-    ratios = [fuzz.ratio(thread_name, rule) for thread_name in thread_names]
-    ordered = sorted(thread_names, key=lambda x: fuzz.ratio(x, rule), reverse=True)
-    ordered_ratios = sorted(ratios, reverse=True)
-    if ordered_ratios[0] > 95:
-        return ordered[0]
+    rule = add_whitespace(rule).lower()
+    if rule in thread_names:
+        return rule
+    else:
+        ordered = sorted(thread_names, key=lambda x: fuzz.ratio(x, rule), reverse=True)
+        result = None
+        while result not in ["a", "b", "c"]:
+            print(
+                f"No exact match found for {original_rule}. The three closest matches are:\n"
+                f"a) {ordered[0]}\n"
+                f"b) {ordered[1]}\n"
+                f"c) {ordered[2]}\n"
+            )
+            result = input("select a, b or c\n").strip()
+        mapping = {"a": 0, "b": 1, "c": 2}
+        return ordered[mapping[result]]
 
 
 @click.command(no_args_is_help=True)
