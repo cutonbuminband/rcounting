@@ -2,7 +2,7 @@ name: Test directory script
 
 on:
   schedule:
-    - cron: '45 11,23 * * *'
+    - cron: '45 5,17 * * *'
 
 jobs:
   directory:
