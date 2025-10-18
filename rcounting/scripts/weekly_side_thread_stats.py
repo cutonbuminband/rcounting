@@ -222,4 +222,4 @@ def add_delta(series):
     if delta == 0:
         return f"{series['host_rank'] + 1}"
     else:
-        return f"{series['host_rank']} ({up_arrow if delta < 0 else down_arrow}{abs(delta)})"
+        return f"{series['host_rank'] + 1} ({up_arrow if delta < 0 else down_arrow}{abs(delta)})"
