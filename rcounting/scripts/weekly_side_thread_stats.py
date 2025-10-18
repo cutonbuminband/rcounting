@@ -103,6 +103,7 @@ def stats_post(stats, old_counts, ftf_timestamp, name_mapping=None):
         .reset_index(names=["host_rank"])
         .reset_index(names=["old_host_rank"])
     )
+    combined.loc[:, ["host_rank", "old_host_rank"]] += 1
     combined["delta"] = combined["host_rank"] - combined["old_host_rank"]
     top_counters = (
         combined.loc[~combined["username"].apply(counters.is_banned_counter)]
@@ -220,6 +221,6 @@ def add_delta(series):
     down_arrow = "⧩"
     delta = series["delta"]
     if delta == 0:
-        return f"{series['host_rank'] + 1}"
+        return f"{series['host_rank']}"
     else:
         return f"{series['host_rank']} ({up_arrow if delta < 0 else down_arrow}{abs(delta)})"
