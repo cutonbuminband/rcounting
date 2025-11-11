@@ -18,7 +18,6 @@ from .dfa import dfa_threads
 from .forms import CommentType
 from .rules import CountingRule, FastOrSlow, OnlyDoubleCounting
 from .side_threads import SideThread
-from .validate_count import base_n_count
 from .validate_form import base_n, validate_from_tokens
 
 module_dir = os.path.dirname(__file__)
@@ -390,7 +389,7 @@ known_threads.update(base_n_threads)
 
 known_threads.update(
     {
-        thread: SideThread(CommentType(form=base_10, comment_to_count=base_n_count(10)))
+        thread: SideThread(CommentType(form=base_10, comment_to_count=parsing.find_count_in_text))
         for thread in ["by meters", "sheep", "word association"]
     }
 )

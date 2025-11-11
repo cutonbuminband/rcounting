@@ -8,7 +8,6 @@ import pandas as pd
 from rcounting import parsing, utils
 from rcounting import thread_navigation as tn
 
-from .validate_count import base_n_count
 from .validate_form import permissive
 
 printer = logging.getLogger(__name__)
@@ -53,7 +52,9 @@ class CommentType:
 
     def wrapped_comment_to_count(self, comment):
         comment_to_count = (
-            self.comment_to_count if self.comment_to_count is not None else base_n_count(10)
+            self.comment_to_count
+            if self.comment_to_count is not None
+            else parsing.find_count_in_text
         )
         try:
             return comment_to_count(comment)
