@@ -322,6 +322,13 @@ known_threads = {
         CommentType(form=base_10, comment_to_count=increasing_type_count(1))
     ),
     "invisible numbers": SideThread(CommentType(form=base_n(10, strip_links=False))),
+    "ipv4": SideThread(
+        BaseNType(
+            tokens=[str(x) for x in range(256)],
+            tokenizer=lambda x, _: x.split("\n")[0].split("."),
+            separator=".",
+        )
+    ),
     "isenary": SideThread(BaseNType(tokens=["Gard", "They're", "Taking", "The", "Hobbits", "To"])),
     "japanese": SideThread(CommentType(form=validate_from_tokens("一二三四五六七八九十百千"))),
     "letter permutations": SideThread(CommentType(comment_to_count=letter_permutation_count)),
@@ -471,7 +478,6 @@ default_threads = {
     "factoradic": 720,
     "feet and inches": 600,
     "hoi4 states": 806,
-    "ipv4": 1024,
     "lucas numbers": 200,
     "seconds minutes hours": 1200,
     "time": 900,
