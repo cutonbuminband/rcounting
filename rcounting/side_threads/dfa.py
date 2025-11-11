@@ -8,6 +8,7 @@ import scipy.sparse
 
 from rcounting import parsing
 
+from .forms import CommentType
 from .rules import default_rule
 from .side_threads import SideThread
 from .validate_form import alphanumeric, base_n
@@ -331,7 +332,7 @@ class BarelyRepeatingDigitsDFA(DFA):
         return transition_matrix
 
 
-class DFAThread(SideThread):
+class DFAType(CommentType):
     """Describing side threads using a deterministic finite automaton.
 
     A lot of side threads have rules like "valid counts are those were every
@@ -379,7 +380,6 @@ class DFAThread(SideThread):
         self,
         dfa_base=3,
         n=10,
-        rule=default_rule,
         dfa: DFA | None = None,
         indices: Sequence[int] | None = None,
         offset=0,
@@ -395,7 +395,7 @@ class DFAThread(SideThread):
         # otherwhise be valid, so we add an offset to account for that
         self.offset = offset
 
-        super().__init__(rule=rule, form=form, comment_to_count=self.count)
+        super().__init__(form=form, comment_to_count=self.count)
 
     def matrix(self, n):
         if n not in self.matrices:
@@ -492,12 +492,16 @@ barely_repeating_dfa = BarelyRepeatingDigitsDFA()
 barely_repeating = [barely_repeating_dfa.encode((x, 1)) for x in range(2, 11)]
 
 dfa_threads = {
-    "mostly repeating digits": DFAThread(dfa=compressed_dfa, indices=mostly_repeating),
-    "no consecutive digits": DFAThread(dfa=dfa_10_2, indices=no_consecutive),
-    "no repeating digits": DFAThread(dfa=compressed_dfa, indices=no_repeating),
-    "no successive digits": DFAThread(indices=no_successive, dfa=LastDigitDFA()),
-    "only consecutive digits": DFAThread(dfa=dfa_10_2, indices=only_consecutive, offset=9),
-    "only repeating digits": DFAThread(dfa=compressed_dfa, indices=only_repeating),
-    "not any of those": DFAThread(dfa=not_any_dfa, indices=not_any),
-    "barely repeating digits": DFAThread(dfa=barely_repeating_dfa, indices=barely_repeating),
+    "mostly repeating digits": SideThread(DFAType(dfa=compressed_dfa, indices=mostly_repeating)),
+    "no consecutive digits": SideThread(DFAType(dfa=dfa_10_2, indices=no_consecutive)),
+    "no repeating digits": SideThread(DFAType(dfa=compressed_dfa, indices=no_repeating)),
+    "no successive digits": SideThread(DFAType(indices=no_successive, dfa=LastDigitDFA())),
+    "only consecutive digits": SideThread(
+        DFAType(dfa=dfa_10_2, indices=only_consecutive, offset=9)
+    ),
+    "only repeating digits": SideThread(DFAType(dfa=compressed_dfa, indices=only_repeating)),
+    "not any of those": SideThread(DFAType(dfa=not_any_dfa, indices=not_any)),
+    "barely repeating digits": SideThread(
+        DFAType(dfa=barely_repeating_dfa, indices=barely_repeating)
+    ),
 }

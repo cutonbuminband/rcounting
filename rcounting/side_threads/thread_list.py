@@ -13,8 +13,9 @@ from rcounting import parsing, utils
 from rcounting import thread_navigation as tn
 from rcounting.units import DAY, HOUR, MINUTE
 
-from .base_n_threads import BaseNThread
+from .base_n_threads import BaseNType
 from .dfa import dfa_threads
+from .forms import CommentType
 from .rules import CountingRule, FastOrSlow, OnlyDoubleCounting
 from .side_threads import SideThread
 from .validate_count import base_n_count
@@ -24,6 +25,15 @@ module_dir = os.path.dirname(__file__)
 printer = logging.getLogger(__name__)
 
 base_10 = base_n(10)
+base_10_type = BaseNType(10)
+
+
+def charwise_tokenizer(comment_body, tokens):
+    return [x for x in comment_body.split("\n")[0].lower() if x in tokens]
+
+
+letters_type = BaseNType(tokens=string.ascii_lowercase, tokenizer=charwise_tokenizer)
+
 balanced_ternary = validate_from_tokens("T-0+")
 brainfuck = validate_from_tokens("><+-.,[]")
 roman_numeral = validate_from_tokens("IVXLCDMↁↂↇ")
@@ -118,8 +128,9 @@ def powerball_count(comment):
     return permutation_order(balls, alphabet, ordered=True) * 26 + int(powerball) - 1
 
 
-u_squares = [11035, 65039, 129003, 129002, 128998, 129001, 129000, 128999, 128997, 11036]
-colored_squares_form = validate_from_tokens([chr(x) for x in u_squares])
+squares = [chr(x) for x in [11035, 129003, 129002, 128998, 129001, 129000, 128999, 128997, 11036]]
+
+colored_squares_form = validate_from_tokens(squares)
 
 
 @functools.cache
@@ -273,89 +284,106 @@ def update_from_traversal(count, chain):
 
 
 known_threads = {
-    "-illion": SideThread(form=illion_form, length=1000),
-    "2d20 experimental v theoretical": SideThread(form=d20_form, length=1000),
-    "balanced ternary": SideThread(form=balanced_ternary, length=729),
-    "base 16 roman": SideThread(form=roman_numeral),
-    "base 2i": SideThread(form=base_n(4), comment_to_count=gaussian_integer_count),
-    "beenary": SideThread(length=1024, form=validate_from_tokens(["bee", "movie"])),
-    "bijective base 2": SideThread(form=base_n(3), length=1024),
-    "binary encoded decimal": SideThread(form=base_n(2), comment_to_count=bcd_count),
-    "binary encoded hexadecimal": SideThread(form=base_n(2), length=1024),
-    "binary palindromes": SideThread(form=base_n(2), comment_to_count=binary_palindrome_count),
-    "by 3s in base 7": SideThread(form=base_n(7)),
-    "collatz conjecture": SideThread(comment_to_count=collatz_count, form=base_10),
-    "colored squares": SideThread(form=colored_squares_form, length=729),
-    "constant sum factoradic": SideThread(form=base_10, comment_to_count=cw_factoradic_count),
-    "constant weight binary": SideThread(form=base_n(2), comment_to_count=cw_binary_count),
-    "cyclical bases": SideThread(form=base_n(16)),
-    "dates": SideThread(form=base_10, update_function=update_dates),
-    "decimal": BaseNThread(base=10),
-    "decimal encoded sexagesimal": SideThread(length=900, form=base_10),
-    "dollars and cents": SideThread(form=base_n(4)),
-    "double increasing": SideThread(form=base_10, comment_to_count=increasing_type_count(2)),
-    "fast or slow": SideThread(rule=FastOrSlow()),
-    "four fours": SideThread(form=validate_from_tokens("4")),
-    "hexadecimal palindromes": SideThread(form=base_n(16), comment_to_count=hex_palindrome_count),
-    "increasing sequences": SideThread(form=base_10, comment_to_count=increasing_type_count(1)),
-    "invisible numbers": SideThread(form=base_n(10, strip_links=False)),
-    "isenary": BaseNThread(tokens=["Gard", "They're", "Taking", "The", "Hobbits", "To"]),
-    "japanese": SideThread(form=validate_from_tokens("一二三四五六七八九十百千")),
-    "letter permutations": SideThread(comment_to_count=letter_permutation_count),
-    "mayan numerals": SideThread(length=800, form=mayan_form),
-    "no repeating letters": SideThread(comment_to_count=nrl_count),
-    "o/l binary": SideThread(form=validate_from_tokens("ol"), length=1024),
-    "once per thread": SideThread(form=base_10, rule=CountingRule(wait_n=None)),
-    "only double counting": SideThread(form=base_10, rule=OnlyDoubleCounting()),
-    "ordered pairs": SideThread(form=base_10, comment_to_count=ordered_pairs_count),
-    "palindromes": SideThread(form=base_10, comment_to_count=palindrome_count),
-    "parentheses": SideThread(form=parentheses_form),
-    "periodic table": BaseNThread(tokens=elements, bijective=True, tokenizer=element_tokenize),
-    "permutations": SideThread(form=base_10, comment_to_count=permutation_count),
-    "previous dates": SideThread(form=base_10, update_function=update_previous_dates),
-    "planetary octal": BaseNThread(
-        tokens=["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]
+    "-illion": SideThread(CommentType(form=illion_form, length=1000)),
+    "2d20 experimental v theoretical": SideThread(CommentType(form=d20_form, length=1000)),
+    "balanced ternary": SideThread(CommentType(form=balanced_ternary, length=729)),
+    "base 16 roman": SideThread(CommentType(form=roman_numeral)),
+    "base 2i": SideThread(CommentType(form=base_n(4), comment_to_count=gaussian_integer_count)),
+    "beenary": SideThread(BaseNType(tokens=["bee", "movie"])),
+    "bijective base 2": SideThread(BaseNType(2, bijective=True)),
+    "binary encoded decimal": SideThread(CommentType(form=base_n(2), comment_to_count=bcd_count)),
+    "binary encoded hexadecimal": SideThread(BaseNType(2)),
+    "binary palindromes": SideThread(
+        CommentType(form=base_n(2), comment_to_count=binary_palindrome_count)
     ),
-    "powerball": SideThread(comment_to_count=powerball_count, form=base_10),
-    "rainbow": BaseNThread(
-        tokens=["red", "orange", "yellow", "green", "blue", "indigo", "violet"]
+    "by 3s in base 7": SideThread(CommentType(form=base_n(7))),
+    "collatz conjecture": SideThread(CommentType(comment_to_count=collatz_count, form=base_10)),
+    "colored squares": SideThread(BaseNType(tokens=squares, tokenizer=charwise_tokenizer)),
+    "constant sum factoradic": SideThread(
+        CommentType(form=base_10, comment_to_count=cw_factoradic_count)
     ),
-    "reddit usernames": SideThread(length=722, form=reddit_username_form),
-    "rgb values": SideThread(form=base_10, comment_to_count=rgb_count),
-    "roman progressbar": SideThread(form=roman_numeral),
-    "roman": SideThread(form=roman_numeral),
-    "slow": SideThread(form=base_10, rule=CountingRule(thread_time=MINUTE)),
-    "slower": SideThread(form=base_10, rule=CountingRule(user_time=HOUR)),
-    "slowestest": SideThread(form=base_10, rule=CountingRule(thread_time=HOUR, user_time=DAY)),
-    "symbols": SideThread(form=validate_from_tokens("!@#$%^&*()")),
-    "throwaways": SideThread(form=throwaway_form),
-    "triple increasing": SideThread(form=base_10, comment_to_count=increasing_type_count(3)),
-    "twitter handles": SideThread(length=1369, form=twitter_form),
-    "unary": SideThread(form=validate_from_tokens("|")),
-    "unicode": SideThread(form=base_n(16), length=1024),
-    "us states": BaseNThread(tokens=us_states, bijective=True),
-    "using 12345": SideThread(form=validate_from_tokens("12345")),
-    "valid brainfuck programs": SideThread(form=brainfuck),
-    "wait 10": SideThread(form=base_10, rule=CountingRule(wait_n=10)),
-    "wait 2 - letters": SideThread(rule=CountingRule(wait_n=2)),
-    "wait 2": SideThread(form=base_10, rule=CountingRule(wait_n=2)),
-    "wait 3": SideThread(form=base_10, rule=CountingRule(wait_n=3)),
-    "wait 4": SideThread(form=base_10, rule=CountingRule(wait_n=4)),
-    "wait 5s": SideThread(form=base_10, rule=CountingRule(thread_time=5)),
-    "wait 9": SideThread(form=base_10, rule=CountingRule(wait_n=9)),
-    "wave": SideThread(form=base_10, comment_to_count=wave_count),
+    "constant weight binary": SideThread(
+        CommentType(form=base_n(2), comment_to_count=cw_binary_count)
+    ),
+    "cyclical bases": SideThread(CommentType(form=base_n(16))),
+    "dates": SideThread(CommentType(form=base_10, update_function=update_dates)),
+    "decimal": SideThread(base_10_type),
+    "decimal encoded sexagesimal": SideThread(CommentType(length=900, form=base_10)),
+    "dollars and cents": SideThread(CommentType(form=base_n(4))),
+    "double increasing": SideThread(
+        CommentType(form=base_10, comment_to_count=increasing_type_count(2))
+    ),
+    "fast or slow": SideThread(base_10_type, rule=FastOrSlow()),
+    "four fours": SideThread(CommentType(form=validate_from_tokens("4"))),
+    "hexadecimal palindromes": SideThread(
+        CommentType(form=base_n(16), comment_to_count=hex_palindrome_count)
+    ),
+    "increasing sequences": SideThread(
+        CommentType(form=base_10, comment_to_count=increasing_type_count(1))
+    ),
+    "invisible numbers": SideThread(CommentType(form=base_n(10, strip_links=False))),
+    "isenary": SideThread(BaseNType(tokens=["Gard", "They're", "Taking", "The", "Hobbits", "To"])),
+    "japanese": SideThread(CommentType(form=validate_from_tokens("一二三四五六七八九十百千"))),
+    "letter permutations": SideThread(CommentType(comment_to_count=letter_permutation_count)),
+    "letters": SideThread(letters_type),
+    "mayan numerals": SideThread(CommentType(length=800, form=mayan_form)),
+    "no repeating letters": SideThread(CommentType(comment_to_count=nrl_count)),
+    "o/l binary": SideThread(BaseNType(tokens="OL")),
+    "once per thread": SideThread(base_10_type, rule=CountingRule(wait_n=None)),
+    "only double counting": SideThread(base_10_type, rule=OnlyDoubleCounting()),
+    "ordered pairs": SideThread(CommentType(form=base_10, comment_to_count=ordered_pairs_count)),
+    "palindromes": SideThread(CommentType(form=base_10, comment_to_count=palindrome_count)),
+    "parentheses": SideThread(CommentType(form=parentheses_form)),
+    "periodic table": SideThread(
+        BaseNType(tokens=elements, bijective=True, tokenizer=element_tokenize)
+    ),
+    "permutations": SideThread(CommentType(form=base_10, comment_to_count=permutation_count)),
+    "previous dates": SideThread(CommentType(form=base_10, update_function=update_previous_dates)),
+    "planetary octal": SideThread(
+        BaseNType(
+            tokens=["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]
+        )
+    ),
+    "powerball": SideThread(CommentType(comment_to_count=powerball_count, form=base_10)),
+    "rainbow": SideThread(
+        BaseNType(tokens=["red", "orange", "yellow", "green", "blue", "indigo", "violet"])
+    ),
+    "reddit usernames": SideThread(CommentType(length=722, form=reddit_username_form)),
+    "rgb values": SideThread(CommentType(form=base_10, comment_to_count=rgb_count)),
+    "roman progressbar": SideThread(CommentType(form=roman_numeral)),
+    "roman": SideThread(CommentType(form=roman_numeral)),
+    "slow": SideThread(base_10_type, rule=CountingRule(thread_time=MINUTE)),
+    "slower": SideThread(base_10_type, rule=CountingRule(user_time=HOUR)),
+    "slowestest": SideThread(base_10_type, rule=CountingRule(thread_time=HOUR, user_time=DAY)),
+    "symbols": SideThread(CommentType(form=validate_from_tokens("!@#$%^&*()"))),
+    "throwaways": SideThread(CommentType(form=throwaway_form)),
+    "triple increasing": SideThread(
+        CommentType(form=base_10, comment_to_count=increasing_type_count(3))
+    ),
+    "twitter handles": SideThread(CommentType(length=1369, form=twitter_form)),
+    "unary": SideThread(CommentType(form=validate_from_tokens("|"))),
+    "unicode": SideThread(CommentType(form=base_n(16), length=1024)),
+    "us states": SideThread(BaseNType(tokens=us_states, bijective=True)),
+    "using 12345": SideThread(CommentType(form=validate_from_tokens("12345"))),
+    "valid brainfuck programs": SideThread(CommentType(form=brainfuck)),
+    "wait 10": SideThread(base_10_type, rule=CountingRule(wait_n=10)),
+    "wait 2 - letters": SideThread(letters_type, rule=CountingRule(wait_n=2)),
+    "wait 2": SideThread(base_10_type, rule=CountingRule(wait_n=2)),
+    "wait 3": SideThread(base_10_type, rule=CountingRule(wait_n=3)),
+    "wait 4": SideThread(base_10_type, rule=CountingRule(wait_n=4)),
+    "wait 5s": SideThread(base_10_type, rule=CountingRule(thread_time=5)),
+    "wait 9": SideThread(base_10_type, rule=CountingRule(wait_n=9)),
+    "wave": SideThread(CommentType(form=base_10, comment_to_count=wave_count)),
 }
 
 known_threads.update(dfa_threads)
 
-base_n_threads = {
-    f"base {n}": SideThread(form=base_n(n), comment_to_count=base_n_count(n)) for n in range(2, 37)
-}
+base_n_threads = {f"base {n}": SideThread(BaseNType(n)) for n in range(2, 37)}
 known_threads.update(base_n_threads)
 
 known_threads.update(
     {
-        thread: SideThread(form=base_10, comment_to_count=base_n_count(10))
+        thread: SideThread(CommentType(form=base_10, comment_to_count=base_n_count(10)))
         for thread in ["by meters", "sheep", "word association"]
     }
 )
@@ -397,7 +425,9 @@ by_xs = [
 ]
 known_threads.update(
     {
-        f"by {x}s": SideThread(form=base_10, comment_to_count=functools.partial(by_x_count, x=x))
+        f"by {x}s": SideThread(
+            CommentType(form=base_10, comment_to_count=functools.partial(by_x_count, x=x))
+        )
         for x in by_xs
     }
 )
@@ -430,7 +460,10 @@ default_threads = [
     "william the conqueror",
 ]
 known_threads.update(
-    {thread_name: SideThread(form=base_10, length=1000) for thread_name in default_threads}
+    {
+        thread_name: SideThread(CommentType(length=1000, form=base_10))
+        for thread_name in default_threads
+    }
 )
 
 default_threads = {
@@ -444,7 +477,10 @@ default_threads = {
     "time": 900,
 }
 known_threads.update(
-    {key: SideThread(form=base_10, length=length) for key, length in default_threads.items()}
+    {
+        key: SideThread(CommentType(form=base_10, length=length))
+        for key, length in default_threads.items()
+    }
 )
 
 
@@ -459,7 +495,6 @@ no_validation = {
     "cards": 676,
     "degrees": 900,
     "iterate each letter": None,
-    "letters": 676,
     "musical notes": 1008,
     "octal letter stack": 1024,
     "palindromes - letters": 676,
@@ -469,7 +504,7 @@ no_validation = {
     "youtube": 1024,
 }
 
-known_threads.update({k: SideThread(length=v) for k, v in no_validation.items()})
+known_threads.update({k: SideThread(CommentType(length=v)) for k, v in no_validation.items()})
 
 default_thread_varying_length = [
     "2d tug of war",
@@ -510,9 +545,9 @@ def get_side_thread(thread_name):
     if thread_name in known_threads:
         return known_threads[thread_name]
     if thread_name in default_thread_unknown_length:
-        return SideThread(form=base_10)
+        return SideThread(CommentType(form=base_10))
     if thread_name in default_thread_varying_length:
-        return SideThread(update_function=update_from_traversal, form=base_10)
+        return SideThread(CommentType(update_function=update_from_traversal, form=base_10))
     if thread_name != "default":
         printer.info(
             (

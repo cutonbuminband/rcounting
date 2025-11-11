@@ -198,7 +198,9 @@ class Row:
             for comment in self.submission.comments:
                 comments.add_missing_replies(comment)
         elif self.comment_id is None:
-            comment = next(filter(side_thread.looks_like_count, self.submission.comments))
+            comment = next(
+                filter(lambda x: side_thread.looks_like_count(x.body), self.submission.comments)
+            )
             comments.add_missing_replies(comment)
         else:
             comments.add_missing_replies(self.comment_id)

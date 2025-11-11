@@ -1,20 +1,20 @@
-import functools
 from math import ceil, floor
+from typing import Callable
 
 from rcounting import parsing
 
-from .side_threads import SideThread
+from .forms import CommentType
 from .validate_count import count_from_token_list, fuzzy_tokenize
 from .validate_form import alphanumeric, validate_from_tokens
 
 
-class BaseNThread(SideThread):
+class BaseNType(CommentType):
     def __init__(
         self,
         base=None,
         tokens: str | list[str] | None = None,
         bijective=False,
-        tokenizer=fuzzy_tokenize,
+        tokenizer: Callable[[str, list[str]], list[str]] = fuzzy_tokenize,
         separator=None,
     ):
         super().__init__()
@@ -29,12 +29,12 @@ class BaseNThread(SideThread):
             tokens = list(alphanumeric[int(bijective) : base + int(bijective)])
             simple = True
 
-        self.mapping = tokens
+        self.tokens = tokens
         self.reverse_mapping = {
-            idx + int(bijective): symbol for idx, symbol in enumerate(self.mapping)
+            idx + int(bijective): symbol for idx, symbol in enumerate(self.tokens)
         }
         self.bijective = bijective
-        self.form = functools.partial(validate_from_tokens, valid_tokens=tokens)
+        self.form = validate_from_tokens(self.tokens)
         self.base = len(tokens)
         if simple:
 
@@ -46,16 +46,17 @@ class BaseNThread(SideThread):
             self.tokenizer = simple_tokenizer
         else:
             self.tokenizer = tokenizer
-        max_len = max(len(x) for x in self.mapping)
+        max_len = max(len(x) for x in self.tokens)
         if separator is None:
             self.separator = " " if max_len > 1 else ""
         else:
             self.separator = separator
+        self.comment_to_count = self.base_n_count
 
-    def comment_to_count(self, comment_body):
+    def base_n_count(self, comment_body):
         return count_from_token_list(
             comment_body,
-            alphabet=self.mapping,
+            alphabet=self.tokens,
             bijective=self.bijective,
             tokenize=self.tokenizer,
         )
