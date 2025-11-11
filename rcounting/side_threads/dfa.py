@@ -9,9 +9,16 @@ import scipy.sparse
 from rcounting import parsing
 
 from .forms import CommentType
-from .rules import default_rule
 from .side_threads import SideThread
 from .validate_form import alphanumeric, base_n
+
+
+def base_n_encode(count, base):
+    result = []
+    while count:
+        result = [count % base] + result
+        count = count // base
+    return "".join(alphanumeric[x] for x in result)
 
 
 class DFA:
@@ -425,6 +432,27 @@ class DFAType(CommentType):
                 enumeration += self._enumerate(self.encoded_symbols[1:], matrix_power - 1)
             enumeration += self._enumerate(states, matrix_power)
         return enumeration + self.word_is_valid(word) - self.offset
+
+    def count_to_comment(self, count: int) -> str:
+        target = count
+        current = count
+        while self.count(base_n_encode(current, self.n)) >= target:
+            current = current // 2
+        low = current
+        while self.count(base_n_encode(current, self.n)) < target:
+            low = current
+            current *= 2
+        high = current
+        while self.count(base_n_encode(high, self.n)) != target:
+            mid = (high + low) // 2
+            mid_count = self.count(base_n_encode(mid, self.n))
+            if mid_count < target:
+                low = mid
+            else:
+                high = mid
+        while not self.word_is_valid(base_n_encode(high, self.n)):
+            high -= 1
+        return base_n_encode(high, self.n)
 
     def _enumerate(self, states, n):
         """Given a list of states, how many success strings will we have after

@@ -129,20 +129,21 @@ class CommentType:
         ), "No comment to count function found. Unable to perform the inverse operation"
         target = count
         current = count
-        while (value := self.comment_to_count(str(current))) >= target:
-            current /= 2
-        low = value
-        while (value := self.comment_to_count(str(current))) < target:
-            low = value
+        while self.comment_to_count(str(current)) >= target:
+            current = current // 2
+        low = current
+        while self.comment_to_count(str(current)) < target:
+            low = current
             current *= 2
-        high = value
-        while low != target:
-            mid = self.comment_to_count(str(int((high + low) / 2)))
-            if mid <= target:
+        high = current
+        while self.comment_to_count(str(high)) != target:
+            mid = (high + low) // 2
+            mid_value = self.comment_to_count(str(mid))
+            if mid_value < target:
                 low = mid
             else:
                 high = mid
-        return str(low)
+        return str(high)
 
 
 default_type = CommentType()
