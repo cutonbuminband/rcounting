@@ -64,11 +64,18 @@ def validate(comment_id, rule):
                 f"The last count in the thread has an incorrect value. "
                 f"Earlier errors can be found at {errors}"
             )
-            filename = "thread.csv"
-            print(
-                f"Saving thread data to disk at {filename} to help finding "
-                f"the correct value of the last count"
-            )
-            comments.to_csv(filename, index=False)
+            try:
+                target_count = side_thread.comment_type.comment_to_count(
+                    side_thread.history.loc[0, "body"]
+                ) + len(side_thread.history)
+                target_string = side_thread.comment_type.count_to_comment(target_count)
+                print(f"The last count should have been {target_string}")
+            except:
+                filename = "thread.csv"
+                print(
+                    f"Saving thread data to disk at {filename} to help finding "
+                    f"the correct value of the last count"
+                )
+
     else:
         print(f"Invalid count found at http://reddit.com{reddit.comment(result[1]).permalink}!")
