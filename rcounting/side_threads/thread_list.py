@@ -9,15 +9,15 @@ import string
 from fuzzywuzzy import fuzz
 from scipy.special import binom
 
-from rcounting import parsing
+from rcounting import parsing, utils
 from rcounting import thread_navigation as tn
-from rcounting import utils
 from rcounting.units import DAY, HOUR, MINUTE
 
+from .base_n_threads import BaseNThread
 from .dfa import dfa_threads
 from .rules import CountingRule, FastOrSlow, OnlyDoubleCounting
 from .side_threads import SideThread
-from .validate_count import base_n_count, by_ns_count, count_from_word_list
+from .validate_count import base_n_count
 from .validate_form import base_n, validate_from_tokens
 
 module_dir = os.path.dirname(__file__)
@@ -48,35 +48,15 @@ def illion_form(comment_body):
     return fuzz.partial_ratio("illion", comment_body) > 80
 
 
-isenary = {"they're": 1, "taking": 2, "the": 3, "hobbits": 4, "to": 5, "isengard": 0, "gard": 0}
-isenary_form = validate_from_tokens(list(isenary.keys()))
-isenary_count = functools.partial(count_from_word_list, alphabet=isenary, ignored_chars="!>")
-
-planets = ["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]
-planetary_form = validate_from_tokens(planets)
-planetary_count = functools.partial(count_from_word_list, alphabet=planets)
-
-colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"]
-rainbow_form = validate_from_tokens(colors)
-rainbow_count = functools.partial(count_from_word_list, alphabet=colors)
-
 with open(os.path.join(module_dir, "us_states.txt"), encoding="utf8") as f:
     us_states = [x.strip().lower() for x in f.readlines()]
-us_states_form = validate_from_tokens(us_states)
-us_states_count = functools.partial(count_from_word_list, alphabet=us_states, bijective=True)
 
 with open(os.path.join(module_dir, "elements.txt"), encoding="utf8") as f:
     elements = [x.strip() for x in f.readlines()]
-element_form = validate_from_tokens(elements)
 
 
 def element_tokenize(comment_body, _):
     return re.findall("[A-Z][^A-Z]*", comment_body.split("\n")[0])
-
-
-element_count = functools.partial(
-    count_from_word_list, alphabet=elements, tokenize=element_tokenize, bijective=True
-)
 
 
 def permutation_order(word, alphabet, ordered=False, no_leading_zeros=False):
@@ -304,17 +284,13 @@ known_threads = {
     "binary encoded hexadecimal": SideThread(form=base_n(2), length=1024),
     "binary palindromes": SideThread(form=base_n(2), comment_to_count=binary_palindrome_count),
     "by 3s in base 7": SideThread(form=base_n(7)),
-    "by 3s": SideThread(comment_to_count=by_ns_count(3)),
-    "by 4s": SideThread(comment_to_count=by_ns_count(4)),
-    "by 5s": SideThread(comment_to_count=by_ns_count(5)),
-    "by 7s": SideThread(comment_to_count=by_ns_count(7)),
-    "by 99s": SideThread(comment_to_count=by_ns_count(99)),
     "collatz conjecture": SideThread(comment_to_count=collatz_count, form=base_10),
     "colored squares": SideThread(form=colored_squares_form, length=729),
     "constant sum factoradic": SideThread(form=base_10, comment_to_count=cw_factoradic_count),
     "constant weight binary": SideThread(form=base_n(2), comment_to_count=cw_binary_count),
     "cyclical bases": SideThread(form=base_n(16)),
     "dates": SideThread(form=base_10, update_function=update_dates),
+    "decimal": BaseNThread(base=10),
     "decimal encoded sexagesimal": SideThread(length=900, form=base_10),
     "dollars and cents": SideThread(form=base_n(4)),
     "double increasing": SideThread(form=base_10, comment_to_count=increasing_type_count(2)),
@@ -323,7 +299,7 @@ known_threads = {
     "hexadecimal palindromes": SideThread(form=base_n(16), comment_to_count=hex_palindrome_count),
     "increasing sequences": SideThread(form=base_10, comment_to_count=increasing_type_count(1)),
     "invisible numbers": SideThread(form=base_n(10, strip_links=False)),
-    "isenary": SideThread(form=isenary_form, comment_to_count=isenary_count),
+    "isenary": BaseNThread(tokens=["Gard", "They're", "Taking", "The", "Hobbits", "To"]),
     "japanese": SideThread(form=validate_from_tokens("一二三四五六七八九十百千")),
     "letter permutations": SideThread(comment_to_count=letter_permutation_count),
     "mayan numerals": SideThread(length=800, form=mayan_form),
@@ -334,12 +310,16 @@ known_threads = {
     "ordered pairs": SideThread(form=base_10, comment_to_count=ordered_pairs_count),
     "palindromes": SideThread(form=base_10, comment_to_count=palindrome_count),
     "parentheses": SideThread(form=parentheses_form),
-    "periodic table": SideThread(form=element_form, comment_to_count=element_count),
+    "periodic table": BaseNThread(tokens=elements, bijective=True, tokenizer=element_tokenize),
     "permutations": SideThread(form=base_10, comment_to_count=permutation_count),
     "previous dates": SideThread(form=base_10, update_function=update_previous_dates),
-    "planetary octal": SideThread(comment_to_count=planetary_count, form=planetary_form),
+    "planetary octal": BaseNThread(
+        tokens=["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]
+    ),
     "powerball": SideThread(comment_to_count=powerball_count, form=base_10),
-    "rainbow": SideThread(comment_to_count=rainbow_count, form=rainbow_form),
+    "rainbow": BaseNThread(
+        tokens=["red", "orange", "yellow", "green", "blue", "indigo", "violet"]
+    ),
     "reddit usernames": SideThread(length=722, form=reddit_username_form),
     "rgb values": SideThread(form=base_10, comment_to_count=rgb_count),
     "roman progressbar": SideThread(form=roman_numeral),
@@ -353,7 +333,7 @@ known_threads = {
     "twitter handles": SideThread(length=1369, form=twitter_form),
     "unary": SideThread(form=validate_from_tokens("|")),
     "unicode": SideThread(form=base_n(16), length=1024),
-    "us states": SideThread(form=us_states_form, comment_to_count=us_states_count),
+    "us states": BaseNThread(tokens=us_states, bijective=True),
     "using 12345": SideThread(form=validate_from_tokens("12345")),
     "valid brainfuck programs": SideThread(form=brainfuck),
     "wait 10": SideThread(form=base_10, rule=CountingRule(wait_n=10)),
@@ -390,7 +370,31 @@ def by_x_count(comment_body: str, x=1.0):
     return int(float(count_string) / x)
 
 
-by_xs = [0.01, 0.02, 0.025, 0.05, 6, 7, 8, 10, 11, 12, 20, 23, 29, 40, 50, 64, 69, 123, 1000]
+by_xs = [
+    0.01,
+    0.02,
+    0.025,
+    0.05,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    10,
+    11,
+    12,
+    20,
+    23,
+    29,
+    40,
+    50,
+    64,
+    69,
+    99,
+    123,
+    1000,
+]
 known_threads.update(
     {
         f"by {x}s": SideThread(form=base_10, comment_to_count=functools.partial(by_x_count, x=x))
@@ -408,7 +412,6 @@ default_threads = [
     "by 2s odd",
     "california license plates",
     "chess matches",
-    "decimal",
     "four squares",
     "n read as base n number",
     "negative numbers",

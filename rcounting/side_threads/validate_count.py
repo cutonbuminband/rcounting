@@ -47,7 +47,7 @@ def fuzzy_tokenize(comment_body, tokens, ignored_chars=">", threshold=80):
     return values
 
 
-def count_from_word_list(
+def count_from_token_list(
     comment_body: str,
     alphabet: str | Iterable[str] | Mapping[str, int] = "0123456789",
     tokenize: Callable[[str, list[str]], list[str]] = fuzzy_tokenize,

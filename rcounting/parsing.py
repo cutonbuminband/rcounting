@@ -10,12 +10,12 @@ def find_body(post):
     return post.body if hasattr(post, "body") else post.selftext
 
 
-def extract_count_string(body: str, base: int = 10):
+def extract_count_string(body: str, base: int = 10, bijective=False):
     """
     Extract a normalized base n representation of an integer from a messy comment.
     Try to account for various strategies for separating thousands digits.
     """
-    characters = "0123456789abcdefghijklmnopqrstuvwxyz"[:base]
+    characters = "0123456789abcdefghijklmnopqrstuvwxyz"[int(bijective) : base + int(bijective)]
     separators = "' ,.*/"  # non-whitespace separators people have used
     first_line = "".join(normalize_comment_body(body).split()).translate(
         str.maketrans("", "", separators)
