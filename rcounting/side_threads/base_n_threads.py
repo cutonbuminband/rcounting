@@ -8,7 +8,7 @@ from .validate_count import count_from_token_list, fuzzy_tokenize
 from .validate_form import alphanumeric, validate_from_tokens
 
 
-class BaseNType(CommentType):
+class BaseN(CommentType):
     def __init__(
         self,
         base=None,

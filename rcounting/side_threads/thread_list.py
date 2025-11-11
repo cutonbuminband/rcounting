@@ -13,7 +13,7 @@ from rcounting import parsing, utils
 from rcounting import thread_navigation as tn
 from rcounting.units import DAY, HOUR, MINUTE
 
-from .base_n_threads import BaseNType
+from .base_n_threads import BaseN
 from .dfa import dfa_threads
 from .forms import CommentType
 from .rules import CountingRule, FastOrSlow, OnlyDoubleCounting
@@ -25,14 +25,14 @@ module_dir = os.path.dirname(__file__)
 printer = logging.getLogger(__name__)
 
 base_10 = base_n(10)
-base_10_type = BaseNType(10)
+base_10_type = BaseN(10)
 
 
 def charwise_tokenizer(comment_body, tokens):
     return [x for x in comment_body.split("\n")[0].lower() if x in tokens]
 
 
-letters_type = BaseNType(tokens=string.ascii_lowercase, tokenizer=charwise_tokenizer)
+letters_type = BaseN(tokens=string.ascii_lowercase, tokenizer=charwise_tokenizer)
 
 balanced_ternary = validate_from_tokens("T-0+")
 brainfuck = validate_from_tokens("><+-.,[]")
@@ -289,16 +289,16 @@ known_threads = {
     "balanced ternary": SideThread(CommentType(form=balanced_ternary, length=729)),
     "base 16 roman": SideThread(CommentType(form=roman_numeral)),
     "base 2i": SideThread(CommentType(form=base_n(4), comment_to_count=gaussian_integer_count)),
-    "beenary": SideThread(BaseNType(tokens=["bee", "movie"])),
-    "bijective base 2": SideThread(BaseNType(2, bijective=True)),
+    "beenary": SideThread(BaseN(tokens=["bee", "movie"])),
+    "bijective base 2": SideThread(BaseN(2, bijective=True)),
     "binary encoded decimal": SideThread(CommentType(form=base_n(2), comment_to_count=bcd_count)),
-    "binary encoded hexadecimal": SideThread(BaseNType(2)),
+    "binary encoded hexadecimal": SideThread(BaseN(2)),
     "binary palindromes": SideThread(
         CommentType(form=base_n(2), comment_to_count=binary_palindrome_count)
     ),
     "by 3s in base 7": SideThread(CommentType(form=base_n(7))),
     "collatz conjecture": SideThread(CommentType(comment_to_count=collatz_count, form=base_10)),
-    "colored squares": SideThread(BaseNType(tokens=squares, tokenizer=charwise_tokenizer)),
+    "colored squares": SideThread(BaseN(tokens=squares, tokenizer=charwise_tokenizer)),
     "constant sum factoradic": SideThread(
         CommentType(form=base_10, comment_to_count=cw_factoradic_count)
     ),
@@ -323,37 +323,37 @@ known_threads = {
     ),
     "invisible numbers": SideThread(CommentType(form=base_n(10, strip_links=False))),
     "ipv4": SideThread(
-        BaseNType(
+        BaseN(
             tokens=[str(x) for x in range(256)],
             tokenizer=lambda x, _: x.split("\n")[0].split("."),
             separator=".",
         )
     ),
-    "isenary": SideThread(BaseNType(tokens=["Gard", "They're", "Taking", "The", "Hobbits", "To"])),
+    "isenary": SideThread(BaseN(tokens=["Gard", "They're", "Taking", "The", "Hobbits", "To"])),
     "japanese": SideThread(CommentType(form=validate_from_tokens("一二三四五六七八九十百千"))),
     "letter permutations": SideThread(CommentType(comment_to_count=letter_permutation_count)),
     "letters": SideThread(letters_type),
     "mayan numerals": SideThread(CommentType(length=800, form=mayan_form)),
     "no repeating letters": SideThread(CommentType(comment_to_count=nrl_count)),
-    "o/l binary": SideThread(BaseNType(tokens="OL")),
+    "o/l binary": SideThread(BaseN(tokens="OL")),
     "once per thread": SideThread(base_10_type, rule=CountingRule(wait_n=None)),
     "only double counting": SideThread(base_10_type, rule=OnlyDoubleCounting()),
     "ordered pairs": SideThread(CommentType(form=base_10, comment_to_count=ordered_pairs_count)),
     "palindromes": SideThread(CommentType(form=base_10, comment_to_count=palindrome_count)),
     "parentheses": SideThread(CommentType(form=parentheses_form)),
     "periodic table": SideThread(
-        BaseNType(tokens=elements, bijective=True, tokenizer=element_tokenize)
+        BaseN(tokens=elements, bijective=True, tokenizer=element_tokenize)
     ),
     "permutations": SideThread(CommentType(form=base_10, comment_to_count=permutation_count)),
     "previous dates": SideThread(CommentType(form=base_10, update_function=update_previous_dates)),
     "planetary octal": SideThread(
-        BaseNType(
+        BaseN(
             tokens=["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]
         )
     ),
     "powerball": SideThread(CommentType(comment_to_count=powerball_count, form=base_10)),
     "rainbow": SideThread(
-        BaseNType(tokens=["red", "orange", "yellow", "green", "blue", "indigo", "violet"])
+        BaseN(tokens=["red", "orange", "yellow", "green", "blue", "indigo", "violet"])
     ),
     "reddit usernames": SideThread(CommentType(length=722, form=reddit_username_form)),
     "rgb values": SideThread(CommentType(form=base_10, comment_to_count=rgb_count)),
@@ -370,7 +370,7 @@ known_threads = {
     "twitter handles": SideThread(CommentType(length=1369, form=twitter_form)),
     "unary": SideThread(CommentType(form=validate_from_tokens("|"))),
     "unicode": SideThread(CommentType(form=base_n(16), length=1024)),
-    "us states": SideThread(BaseNType(tokens=us_states, bijective=True)),
+    "us states": SideThread(BaseN(tokens=us_states, bijective=True)),
     "using 12345": SideThread(CommentType(form=validate_from_tokens("12345"))),
     "valid brainfuck programs": SideThread(CommentType(form=brainfuck)),
     "wait 10": SideThread(base_10_type, rule=CountingRule(wait_n=10)),
@@ -385,7 +385,7 @@ known_threads = {
 
 known_threads.update(dfa_threads)
 
-base_n_threads = {f"base {n}": SideThread(BaseNType(n)) for n in range(2, 37)}
+base_n_threads = {f"base {n}": SideThread(BaseN(n)) for n in range(2, 37)}
 known_threads.update(base_n_threads)
 
 known_threads.update(
