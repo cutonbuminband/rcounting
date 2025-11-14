@@ -362,6 +362,7 @@ known_threads = {
     "slower": SideThread(base_10_type, rule=CountingRule(user_time=HOUR)),
     "slowestest": SideThread(base_10_type, rule=CountingRule(thread_time=HOUR, user_time=DAY)),
     "symbols": SideThread(CommentType(form=validate_from_tokens("!@#$%^&*()"))),
+    "t/f binary": SideThread(BaseN(["f", "t"])),
     "throwaways": SideThread(CommentType(form=throwaway_form)),
     "triple increasing": SideThread(
         CommentType(form=base_10, comment_to_count=increasing_type_count(3))
@@ -415,11 +416,13 @@ by_xs = [
     6,
     7,
     8,
+    9,
     10,
     11,
     12,
     20,
     23,
+    25,
     29,
     40,
     50,
