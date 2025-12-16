@@ -13,7 +13,7 @@ printer = logging.getLogger(__name__)
 
 class SideThread:
     """A side thread class, which consists of a validation part and an update
-    part In addition to checking whether a collection of counts is valid
+    part. In addition to checking whether a collection of counts is valid
     according to the side thread rule, the class can take a mapping
     comment->count and using this try and identify when errors were made in the
     chain. The class will also attempt to determine how many total counts have

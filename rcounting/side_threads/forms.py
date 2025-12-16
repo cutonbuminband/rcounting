@@ -145,5 +145,12 @@ class CommentType:
                 high = mid
         return str(high)
 
+    def find_correct_count(self, history):
+        assert (
+            self.comment_to_count is not None
+        ), "No comment to count function found. Unable to find the correct count"
+        target_count = self.comment_to_count(history.loc[0, "body"]) + len(history)
+        return self.count_to_comment(target_count)
+
 
 default_type = CommentType()

@@ -65,11 +65,8 @@ def validate(comment_id, rule):
                 f"Earlier errors can be found at {errors}"
             )
             try:
-                target_count = side_thread.comment_type.comment_to_count(
-                    side_thread.history.loc[0, "body"]
-                ) + len(side_thread.history)
-                target_string = side_thread.comment_type.count_to_comment(target_count)
-                print(f"The last count should have been {target_string}")
+                target_string = side_thread.comment_type.find_correct_count(comments)
+                print(f"The last comment should have been {target_string}")
             except:
                 filename = "thread.csv"
                 print(
