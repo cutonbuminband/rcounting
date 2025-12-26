@@ -79,7 +79,7 @@ def update_directory(post, subreddit):
     wiki = subreddit.wiki["ftf_directory"]
     contents_list = wiki.content_md.split("\n")
     links = [parse_markdown_links(x) for x in contents_list]
-    known_posts = [x[0][1][1:] for x in links if x]
+    known_posts = [x[0][1].replace("/comments/", "") for x in links if x]
     if post.id not in known_posts:
         new_contents = "\n".join(contents_list + [row])
         wiki.edit(content=new_contents, reason="Added latest FTF")
