@@ -149,7 +149,7 @@ class CommentType:
         assert (
             self.comment_to_count is not None
         ), "No comment to count function found. Unable to find the correct count"
-        target_count = self.comment_to_count(history.loc[0, "body"]) + len(history)
+        target_count = self.comment_to_count(history.loc[0, "body"]) + len(history) - 1
         return self.count_to_comment(target_count)
 
 
