@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "rcounting"
 dynamic = ["version"]
 description = "A collection of tools for working with comments made on www.reddit.com/r/counting"
+license = "GPL-3.0-or-later"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{name = "CutOnBumInBand", email = "cutonbuminband@gmail.com"}]
@@ -20,7 +21,6 @@ dependencies = [
 classifiers = [
     "Programming Language :: Python :: 3",
     "Development Status :: 3 - Alpha",
-    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Operating System :: OS Independent"
 ]
 
