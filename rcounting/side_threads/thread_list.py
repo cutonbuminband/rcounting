@@ -306,7 +306,6 @@ known_threads = {
     ),
     "cyclical bases": SideThread(CommentType(form=base_n(16))),
     "dates": SideThread(CommentType(form=base_10, update_function=update_dates)),
-    "decimal": SideThread(base_10_type),
     "decimal encoded sexagesimal": SideThread(CommentType(length=900, form=base_10)),
     "dollars and cents": SideThread(CommentType(form=base_n(4))),
     "double increasing": SideThread(
@@ -387,6 +386,8 @@ known_threads.update(dfa_threads)
 
 base_n_threads = {f"base {n}": SideThread(BaseN(n)) for n in range(2, 37)}
 known_threads.update(base_n_threads)
+known_threads["decimal"] = known_threads["base 10"]
+known_threads["main"] = known_threads["base 10"]
 
 known_threads.update(
     {
