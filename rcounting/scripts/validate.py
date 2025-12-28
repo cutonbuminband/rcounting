@@ -21,16 +21,18 @@ def find_side_thread(rule):
     else:
         ordered = sorted(thread_names, key=lambda x: fuzz.ratio(x, rule), reverse=True)
         result = None
-        while result not in ["a", "b", "c"]:
-            print(
-                f"No exact match found for {original_rule}. The three closest matches are:\n"
-                f"a) {ordered[0]}\n"
-                f"b) {ordered[1]}\n"
-                f"c) {ordered[2]}\n"
-            )
-            result = input("select a, b or c\n").strip()
+        print(
+            f"No exact match found for {original_rule}. The three closest matches are:\n"
+            f"a) {ordered[0]}\n"
+            f"b) {ordered[1]}\n"
+            f"c) {ordered[2]}\n"
+        )
+        result = input("select a, b or c, or try writing the rule again\n").strip()
         mapping = {"a": 0, "b": 1, "c": 2}
-        return ordered[mapping[result]]
+        if result in mapping:
+            return ordered[mapping[result]]
+        else:
+            return find_side_thread(result)
 
 
 @click.command(no_args_is_help=True)
