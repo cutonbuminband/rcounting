@@ -571,3 +571,8 @@ def get_side_thread(thread_name):
 config = configparser.ConfigParser()
 config.read(os.path.join(module_dir, "side_threads.ini"))
 known_thread_ids = config["threads"]
+known_thread_names = list(
+    set(known_threads.keys())
+    | set(default_thread_unknown_length)
+    | set(default_thread_varying_length)
+)

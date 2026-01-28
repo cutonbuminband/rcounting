@@ -4,7 +4,7 @@
 import click
 from fuzzywuzzy import fuzz
 
-from rcounting.side_threads import known_thread_ids
+from rcounting.side_threads import known_thread_names
 
 
 def add_whitespace(rule):
@@ -14,12 +14,11 @@ def add_whitespace(rule):
 
 def find_side_thread(rule):
     original_rule = rule
-    thread_names = list(known_thread_ids.values())
     rule = add_whitespace(rule).lower()
-    if rule in thread_names:
+    if rule in known_thread_names:
         return rule
     else:
-        ordered = sorted(thread_names, key=lambda x: fuzz.ratio(x, rule), reverse=True)
+        ordered = sorted(known_thread_names, key=lambda x: fuzz.ratio(x, rule), reverse=True)
         result = None
         print(
             f"No exact match found for {original_rule}. The three closest matches are:\n"
