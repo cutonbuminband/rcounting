@@ -153,7 +153,11 @@ def parse_row(markdown_row):
     first_submission_id = first_submission.split("/")[-1]
     title, link = parse_markdown_links(current)[0]
     title = title.strip()
-    submission_id, comment_id = find_urls_in_text(link)[0]
+    try:
+        submission_id, comment_id = find_urls_in_text(link)[0]
+    except:
+        print(markdown_row)
+        raise
     comment_id = None if not comment_id else comment_id
     count = count.strip()
     return name, first_submission_id, title, submission_id, comment_id, count
