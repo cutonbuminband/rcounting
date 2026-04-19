@@ -4,6 +4,7 @@ Antichess,antechiss,AntichessSideThread,AutomatedCountingBot,RC_IS_DEAD,thephils
 artbn,artbn7
 BensReddits,bens_brawl
 Bepkoyt,Bepkoyt2
+BobRoss938,fourteensquares
 Christmas_Missionary,ChristSaveMePlz
 ClockButTakeOutTheL,Responsible_Staff_45
 colby6666,cobly69,colby6667
@@ -40,8 +41,10 @@ PotatoTheMemer,pota2wothememer
 rideride,overdrafts
 rschaosid,FartyMcRemovedsolid,MooraellyGray,Robert_Salad,Robert_Schaosid,Robert_Spoopsid,was_rschaosid
 Smartstocks,SsPincus,TestSsSpeed
+SSoto_21,SSoto_42
 The_NecromancerTin,The_Necromancer10
 thephilsblogbar2,buy_me_a_pint,philnewcount,thephilsblogbar,thephilsblogbar3,thyphilsblogbar2
+treje,trejejeje
 Trial-Name,Perma-Name,Perma_Name,Trial-Nombre
 Urbul,Urbul_bot
 WGJC8463,WGJC3107
