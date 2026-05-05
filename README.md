@@ -33,16 +33,7 @@ If for some reason you want log all side threads, there's a script to help you d
 This script will try to log every thread back to the very first submission in the chain, and can therefore take a very long time to run. It saves checkpoints, so that updating an existing database will take much less time than generating a new one. If you want a copy of the existing database, please message the maintainer here, on reddit, or via email.
 
 ### Validation
-The package can also validate threads according to specific rules. This is done by typing `rcounting validate`, and the program takes an additional `--rule` parameter specifying which rule should be checked. The following options are available:
-
-- default: No counter can reply to themselves
-- wait2: Counters can only count once two others have counted
-- wait3: Counters can only count once three others have counted
-- once\_per\_thread: Counters can only count once on a given reddit submission
-- slow: One minute must elapse between counts
-- slower: Counters must wait one hour between each of their counts
-- slowestest: One hour must elapse between each count, and counters must wait 24h between each of their counts
-- only\_double\_counting: Counters must reply to themselves exactly once before it's somebody else's turn.
+The package can also validate threads according to specific rules. This is done by typing `rcounting validate`, and the program takes an additional `--rule` parameter specifying which rule should be checked. If the rule exactly matches the internal name of a thread or side thread, then that rule is used. Otherwise, the program uses fuzzy matching to find the three closest rules and lets the user choose between those three, or supply another rule
 
 If no rule is supplied, the program will only check that nobody double counted.
 
