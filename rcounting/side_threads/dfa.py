@@ -505,6 +505,40 @@ only_consecutive = sorted(
     ]
 )
 
+
+def get_mostly_consecutive_indices(size=10):
+    # If we make a bitstring of which digits are present in a number of not,
+    # then the valid bitstrings consist of a run of digits and then a single
+    # digit by itself. We can describe this by three increasing digits i, j, k
+    # which indicate that digit i and range [j, k) are set, To ensure that the
+    # digit truly is isolated, we must have j - i <= 2. If k - j = 1, this
+    # corresponds to the situation where only two bits are set, which is also
+    # a valid index. The final option is that the single digit happens after
+    # the run. This can again be described by a triple of increasing digits,
+    # which now indicate that bits [i, j) and k are set. To avoid double
+    # counting the two-bit strings, we can require that the run have length >=
+    # 2, which corresponds to saying j - i >= 2. Inspection shows that the
+    # valid triples are the same in the two cases except that the first allows
+    # k = size, while the second doesn't. We'll generate the cases in the same
+    # pass over the triples, and the remove the invalid ones
+
+    index_triples = [
+        (i, (j, k)) if first else (k, (i, j))
+        for i in range(size + 1)
+        for j in range(i + 2, size + 1)
+        for k in range(j + 1, size + 1)
+        for first in [1, 0]
+    ]
+    index_triples = [i for i in index_triples if i[0] < size]
+
+    powers = 2 ** np.arange(size)
+    indices = np.zeros((len(index_triples), size), dtype=bool)
+    for row, (single, (left, right)) in enumerate(index_triples):
+        indices[row, single] = 1
+        indices[row, left:right] = 1
+    return sorted((indices * powers).sum(axis=1))
+
+
 not_any_dfa = NotAnyOfThoseDFA()
 not_any_mask = [
     not_any_dfa.int_to_mask(x)
@@ -526,6 +560,9 @@ dfa_threads = {
     "no successive digits": SideThread(DFAType(indices=no_successive, dfa=LastDigitDFA())),
     "only consecutive digits": SideThread(
         DFAType(dfa=dfa_10_2, indices=only_consecutive, offset=9)
+    ),
+    "mostly consecutive digits": SideThread(
+        DFAType(dfa=dfa_10_2, indices=get_mostly_consecutive_indices(), offset=72)
     ),
     "only repeating digits": SideThread(DFAType(dfa=compressed_dfa, indices=only_repeating)),
     "not any of those": SideThread(DFAType(dfa=not_any_dfa, indices=not_any)),
