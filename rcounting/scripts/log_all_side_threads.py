@@ -55,6 +55,7 @@ def log_side_threads(filename, verbose, quiet, archive=False):
                 ]
             ).set_index("thread_id")
             threads = pd.concat([threads, new_row])
+        threads.loc[side_thread_id, "thread_name"] = side_thread_name
         # If this is the first submission in the thread, or the already-known
         # leaf submission then there are no new submissions to log, so we just
         # continue to the next row in the directory
