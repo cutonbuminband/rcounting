@@ -470,6 +470,7 @@ default_threads = [
     "triangular numbers",
     "unordered consecutive digits",
     "william the conqueror",
+    "star replacement",
 ]
 known_threads.update(
     {
