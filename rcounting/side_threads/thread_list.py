@@ -388,6 +388,7 @@ base_n_threads = {f"base {n}": SideThread(BaseN(n)) for n in range(2, 37)}
 known_threads.update(base_n_threads)
 known_threads["decimal"] = known_threads["base 10"]
 known_threads["main"] = known_threads["base 10"]
+known_threads["nrd"] = known_threads["no repeating digits"]
 
 known_threads.update(
     {
