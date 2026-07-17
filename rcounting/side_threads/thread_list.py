@@ -473,6 +473,7 @@ default_threads = [
     "unordered consecutive digits",
     "william the conqueror",
     "star replacement",
+    "xkcd",
 ]
 known_threads.update(
     {
@@ -544,6 +545,7 @@ default_thread_varying_length = [
     "post karma",
     "total karma",
     "tug of war",
+    "volleyball tow",
 ]
 
 default_thread_unknown_length = [
