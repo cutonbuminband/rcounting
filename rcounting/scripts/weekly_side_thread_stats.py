@@ -10,6 +10,7 @@ from fuzzywuzzy import fuzz
 
 from rcounting import configure_logging, counters, ftf, models, parsing, side_threads, units
 from rcounting import thread_directory as td
+from rcounting.counters import is_banned_counter
 from rcounting.scripts import log_all_side_threads
 
 printer = logging.getLogger("rcounting")
@@ -69,7 +70,9 @@ def get_directory_counts(reddit, directory, ftf_timestamp, db):
     completed_threads = pd.read_sql(query, db)
     partial_threads = pd.read_sql("select * from comments", temp_db)
     combined = pd.concat([completed_threads, partial_threads])
-    return combined[combined["timestamp"] <= ftf_timestamp].drop_duplicates()
+    return combined.loc[
+        (~combined["username"].apply(is_banned_counter)) & (combined["timestamp"] <= ftf_timestamp)
+    ].drop_duplicates()
 
 
 def get_weekly_stats(reddit, subreddit, ftf_timestamp, filename):
@@ -120,6 +123,7 @@ def stats_post(stats, old_counts, ftf_timestamp, name_mapping=None):
 
     top_threads = stats.groupby("thread_id").size().sort_values(ascending=False).to_frame()
     if name_mapping is not None:
+        name_mapping["5h0i88"] = "XKCD"
         top_threads.index = [name_mapping[i] for i in top_threads.index]
     top_threads = top_threads.reset_index()
     top_threads.index += 1
@@ -194,7 +198,7 @@ def generate_stats_post(filename, update_db, dry_run, verbose, quiet):
         f"SELECT canonical_username as username, count() as old_count "
         f"FROM comments join counters on counters.username == comments.username "
         f"WHERE comments.position > 0 and comments.timestamp < {threshold} "
-        f"GROUP by canonical_username"
+        f"and counters.is_banned != 1 GROUP by canonical_username"
     )
 
     old_counts = pd.read_sql(query, db)
