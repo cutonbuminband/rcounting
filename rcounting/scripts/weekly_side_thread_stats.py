@@ -68,7 +68,7 @@ def get_directory_counts(reddit, directory, ftf_timestamp, db):
     )
 
     completed_threads = pd.read_sql(query, db)
-    partial_threads = pd.read_sql("select * from comments", temp_db)
+    partial_threads = pd.read_sql(f"select * from comments where timestamp > {threshold}", temp_db)
     combined = pd.concat([completed_threads, partial_threads])
     return combined.loc[
         (~combined["username"].apply(is_banned_counter)) & (combined["timestamp"] <= ftf_timestamp)
