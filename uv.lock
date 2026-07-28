@@ -2038,7 +2038,7 @@ wheels = [
 
 [[package]]
 name = "rcounting"
-version = "0.8.dev0+g864278162.d20251226"
+version = "0.8.dev15+g5f933f851"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
