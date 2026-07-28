@@ -12,12 +12,12 @@ jobs:
       praw_refresh_token:  ${{secrets.PRAW_REFRESH_TOKEN}}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v9
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
         with:
-          version: "0.5.1"
+          version: "0.12.0"
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
