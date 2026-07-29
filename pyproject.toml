@@ -32,7 +32,6 @@ rcounting = "rcounting.scripts.cli:cli"
 
 [project.optional-dependencies]
 analysis = [
-    "jupyter>=1.1.1",
     "matplotlib>=3.9.2",
     "networkx>=3.4.2",
     "scikit-learn>=1.7.1",
