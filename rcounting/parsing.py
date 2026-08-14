@@ -3,6 +3,8 @@
 import re
 import warnings
 
+from praw.exceptions import ClientException
+
 from rcounting.reddit_interface import extract_from_short_link
 
 
@@ -16,6 +18,12 @@ def extract_count_string(body: str, base: int = 10, bijective=False):
     Try to account for various strategies for separating thousands digits.
     """
     characters = "0123456789abcdefghijklmnopqrstuvwxyz"[int(bijective) : base + int(bijective)]
+    extra_characters = {2: "0b", 8: "0o", 16: "0x"}
+    characters = (
+        "".join(set(characters + extra_characters[base]))
+        if base in extra_characters
+        else characters
+    )
     separators = "' ,.*/"  # non-whitespace separators people have used
     first_line = "".join(normalize_comment_body(body).split()).translate(
         str.maketrans("", "", separators)
@@ -170,7 +178,7 @@ def find_urls_in_submission(submission):
         warnings.filterwarnings("error")
         try:
             submission.comment_sort = "new"
-        except UserWarning:
+        except (UserWarning, ClientException):
             from rcounting.reddit_interface import reddit
 
             submission = reddit.submission(submission.id)

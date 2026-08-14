@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 import click
+from pandas.errors import DatabaseError
 
 from rcounting.side_threads import known_thread_ids
 
