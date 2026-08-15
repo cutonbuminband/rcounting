@@ -4,6 +4,8 @@ from collections import defaultdict
 from functools import reduce
 from pathlib import Path
 
+import pandas as pd
+
 from rcounting.reddit_interface import subreddit
 
 printer = logging.getLogger(__name__)
@@ -163,5 +165,7 @@ def is_ignored_counter(username):
     return username.lower() in ignored_counters
 
 
-def is_banned_counter(username):
-    return username in banned_counters
+def is_banned_counter(username: str | pd.Series) -> bool | pd.Series:
+    if isinstance(username, str):
+        return username in banned_counters
+    return username.isin(banned_counters)
