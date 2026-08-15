@@ -399,7 +399,7 @@ def find_all_replies(comment, limit: int | None = None):
     while comments and counter != limit:
         item = comments.pop(0)
         if isinstance(item, MoreComments):
-            if item.submission is None:
+            if getattr(item, "submission", None) is None:
                 item.submission = submission
             comments = item.comments(update=False).list() + comments
         else:
