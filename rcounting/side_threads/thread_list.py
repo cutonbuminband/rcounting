@@ -232,6 +232,33 @@ def cw_binary_count(comment_body):
     return shorter_counts + fewer_ones + earlier_counts
 
 
+def compositions_count(comment):
+    split = [int(x) for x in parsing.normalize_comment_body(comment).split(",")]
+    total = 1
+    # count previous segments of sum
+    for x in range(sum(split) - 1):
+        total += 2**x
+    # count previous of length, but same sum
+    for x in range(sum(split) - 1, sum(split) - len(split), -1):
+        total += binom(sum(split) - 1, x)
+    # convert to constant-weight binary
+    cwb = ""
+    for x in split:
+        cwb += "1" * (x - 1)
+        cwb += "0"
+    cwb = cwb[:-1]
+    # add index within segment by converting cwb to combinadic
+    # taken from /comments/18z0of2/_/kgii6c0/
+    index = 0
+    k = 1
+    for i, bit in enumerate(reversed(cwb)):
+        if bit == "1":
+            index += binom(i, k)
+            k += 1
+    total += index
+    return int(total)
+
+
 @functools.cache
 def mahonian(n, k):
     if n == 1 and k == 0:
@@ -298,6 +325,7 @@ known_threads = {
     "by 3s in base 7": SideThread(CommentType(form=base_n(7))),
     "collatz conjecture": SideThread(CommentType(comment_to_count=collatz_count, form=base_10)),
     "colored squares": SideThread(BaseN(tokens=squares, tokenizer=charwise_tokenizer)),
+    "compositions": SideThread(CommentType(form=base_10, comment_to_count=compositions_count)),
     "constant sum factoradic": SideThread(
         CommentType(form=base_10, comment_to_count=cw_factoradic_count)
     ),
