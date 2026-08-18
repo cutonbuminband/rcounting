@@ -72,7 +72,7 @@ def get_directory_counts(reddit, directory, ftf_timestamp, db):
     combined = pd.concat([completed_threads, partial_threads])
     return combined.loc[
         (~combined["username"].apply(is_banned_counter)) & (combined["timestamp"] <= ftf_timestamp)
-    ].drop_duplicates()
+    ].drop_duplicates(subset=["comment_id"])
 
 
 def get_weekly_stats(reddit, subreddit, ftf_timestamp, filename):
