@@ -29,7 +29,7 @@ class DFA:
 
     """
 
-    def __init__(self, n_symbols: int, n_states: int, sparse=True):
+    def __init__(self, n_symbols: int, n_states: int, sparse=True, bijective=True):
         self.n_states = n_states
         self.n_symbols = n_symbols
         self.size = self.n_states**self.n_symbols
@@ -37,10 +37,14 @@ class DFA:
         self.lookup = {str(i): str(min(i + 1, n_states - 1)) for i in range(n_states)}
         self.transitions = None
         self.transition_matrix = None
+        self.bijective = bijective  # whether words are allowed to start with zero
+        if not self.bijective:
+            self.unbijectify()
 
     def __getitem__(self, i):
         if self.transitions is None:
             self.transitions = [self.generate_identity()]
+        if self.transition_matrix is None:
             self.transition_matrix = self.generate_transition_matrix()
         while len(self.transitions) <= i:
             self.transitions.append(self.transitions[-1] @ self.transition_matrix)
@@ -60,8 +64,6 @@ class DFA:
         ]
         result = defaultdict(int)
         for j in js:
-            if j == 1:
-                continue
             result[j] += 1
         return (
             len(result),
@@ -84,6 +86,16 @@ class DFA:
             (data[:ix], (x[:ix], y[:ix])),
             shape=(self.size, self.size),
         ).tocsc()
+
+    def unbijectify(self):
+        """Remove the edge from the empty state to the zero state"""
+        if self.bijective:
+            if self.transition_matrix is None:
+                self.transition_matrix = self.generate_transition_matrix()
+            empty = self.encode("")
+            zero = self.encode("0")
+            self.transition_matrix[empty, zero] -= 1
+            self.bijective = False
 
     def encode(self, state: str) -> int:
         """Converts a word to an integer encoding of the corresponding state vector"""
@@ -217,7 +229,7 @@ class NotAnyOfThoseDFA(DFA):
                 for c in range(3):
                     if b == 0 and c > 0:
                         continue
-                    if b == sum(mask) and c == 0:
+                    if b > 0 and b == sum(mask) and c == 0:
                         continue
                     itos_map[idx] = mask, b, c
                     idx += 1
@@ -416,6 +428,8 @@ class DFAType(CommentType):
         return self.dfa.encode(word) in self.indices
 
     def count(self, comment_body: str, bijective=False) -> int:
+        if not bijective:
+            self.dfa.unbijectify()
         word = parsing.extract_count_string(comment_body, self.n).lower()
         word_length = len(word)
 
@@ -425,11 +439,9 @@ class DFAType(CommentType):
             prefix = word[:i]
             current_char = word[i]
             suffixes = alphanumeric[i == 0 : alphanumeric.index(current_char)]
-            states = [self.dfa.encode(prefix + suffix) for suffix in suffixes]
-            if bijective:
-                states += [self.dfa.encode("")]
-            elif matrix_power > 0:
-                enumeration += self._enumerate(self.encoded_symbols[1:], matrix_power - 1)
+            states = [self.dfa.encode(prefix + suffix) for suffix in suffixes] + [
+                self.dfa.encode("")
+            ]
             enumeration += self._enumerate(states, matrix_power)
         return enumeration + self.word_is_valid(word) - self.offset
 
