@@ -254,12 +254,12 @@ class NotAnyOfThoseDFA(DFA):
 
     def __init__(self, n=10):
         super().__init__(n_symbols=n, n_states=3)
-        self.itos_map = self.initialize_itos_map()
-        self.stoi_map = {v: k for k, v in self.itos_map.items()}
+        self.stoi_map = self.initialize_stoi_map()
+        self.itos_map = {v: k for k, v in self.stoi_map.items()}
         self.size = len(self.itos_map)
 
-    def initialize_itos_map(self):
-        itos_map = {}
+    def initialize_stoi_map(self):
+        stoi_map = {}
         idx = 0
         for mask in itertools.product([False, True], repeat=self.n_symbols):
             for b in range(sum(mask) + 1):
@@ -268,9 +268,9 @@ class NotAnyOfThoseDFA(DFA):
                         continue
                     if b > 0 and b == sum(mask) and c == 0:
                         continue
-                    itos_map[idx] = mask, b, c
+                    stoi_map[(mask, b, c)] = idx
                     idx += 1
-        return itos_map
+        return stoi_map
 
     def _find_next_states(self, mask: Tuple[bool, ...], b: int, c: int):
         total = sum(mask)
