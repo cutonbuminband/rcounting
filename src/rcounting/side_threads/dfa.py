@@ -135,8 +135,8 @@ class CompressedDFA(DFA):
     decreases the number of states to keep track of from ~60k to ~60 for
     10-symbol words"""
 
-    def __init__(self, n_symbols):
-        super().__init__(n_symbols=n_symbols, n_states=3)
+    def __init__(self, n_symbols, sparse=False):
+        super().__init__(n_symbols=n_symbols, n_states=3, sparse=sparse)
         self.size = math.comb(n_symbols + 2, n_symbols)
         self.total_lengths = [
             len(range(max(i - n_symbols, 0), i // 2 + 1)) for i in range(2 * n_symbols + 1)
@@ -162,7 +162,9 @@ class CompressedDFA(DFA):
         for state in states:
             for count, new_state in self._find_next_states(state):
                 transition_matrix[self.encode(state), self.encode(new_state)] = count
-        return transition_matrix
+        if not self.sparse:
+            return transition_matrix
+        return scipy.sparse.csc_matrix(transition_matrix)
 
     def encode(self, state: str | Sequence[int]) -> int:
         if isinstance(state, str):
