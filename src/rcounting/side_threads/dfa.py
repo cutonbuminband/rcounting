@@ -119,11 +119,21 @@ class DFA:
             self.transition_matrix[-1, -1] = 1
             self.transition_matrix[-1, self.encode("")] = 1
 
-    def encode(self, state: str) -> int:
-        """Converts a word to an integer encoding of the corresponding state vector"""
-        counts = Counter(state)
+    def encode(self, word: str) -> int:
+        return self.state_to_int(self.word_to_state(word))
+
+    def word_to_state(self, word: str):
+        """Converts a word to a state vector"""
+        counts = Counter(word)
+        result = defaultdict(int)
+        for k in counts:
+            result[k] = min(self.n_states - 1, counts[k])
+        return result
+
+    def state_to_int(self, state) -> int:
+        """Converts a state vector to its integer encoding. Only relevant for the matrix routines"""
         return sum(
-            (self.n_states**pos) * min(self.n_states - 1, counts[digit])
+            (self.n_states**pos) * state[digit]
             for pos, digit in enumerate(alphanumeric[: self.n_symbols])
         )
 
@@ -161,19 +171,18 @@ class CompressedDFA(DFA):
         ]
         for state in states:
             for count, new_state in self._find_next_states(state):
-                transition_matrix[self.encode(state), self.encode(new_state)] = count
+                transition_matrix[self.state_to_int(state), self.state_to_int(new_state)] = count
         if not self.sparse:
             return transition_matrix
         return scipy.sparse.csc_matrix(transition_matrix)
 
-    def encode(self, state: str | Sequence[int]) -> int:
-        if isinstance(state, str):
-            counts = Counter([min(x, 2) for x in Counter(state).values()])
-        else:
-            counts = state
-        digit_sum = counts[1] + 2 * counts[2]
+    def word_to_state(self, word: str):
+        return Counter([min(x, 2) for x in Counter(word).values()])
+
+    def state_to_int(self, state: Sequence[int]) -> int:
+        digit_sum = state[1] + 2 * state[2]
         predecessors = sum(self.total_lengths[:digit_sum])
-        return predecessors + counts[1] // 2
+        return predecessors + state[1] // 2
 
 
 class LastDigitDFA(DFA):
@@ -190,15 +199,19 @@ class LastDigitDFA(DFA):
     def generate_transition_matrix(self):
         return np.array([[0, self.n_symbols, 0], [0, self.n_symbols - 1, 0], [0, 0, 0]])
 
-    def encode(self, state: str):
-        if not state:
+    def word_to_state(self, word: str):
+        if not word:
             return 0
         previous = ""
-        for char in state:
+        for char in word:
             if char == previous:
                 return 2
             previous = char
         return 1
+
+    def state_to_int(self, state):
+        """This is a bit silly, but for this particular dfa there are only three possible states, so there isn't really any structure in the state vector which is lost when moving to the matrix index"""
+        return state
 
 
 class NotAnyOfThoseDFA(DFA):
@@ -303,21 +316,25 @@ class NotAnyOfThoseDFA(DFA):
             shape=(self.size, self.size),
         ).tocsc()
 
-    def encode(self, state: str) -> int:
+    def word_to_state(self, word: str) -> tuple:
         symbols = alphanumeric[: self.n_symbols]
-        bitmask = [symbol in state for symbol in symbols]
+        bitmask = [symbol in word for symbol in symbols]
         current = ""
         c = 0
-        for char in state:
+        for char in word:
             if char == current:
                 c = 2
                 break
             current = char
-        counts = Counter(state)
-        if c != 2 and state:
-            c = min(counts[state[-1]], 2) - 1
+        counts = Counter(word)
+        if c != 2 and word:
+            c = min(counts[word[-1]], 2) - 1
         b = Counter([min(x, 2) for x in counts.values()])[2]
-        return self.stoi_map[tuple(bitmask), b, c]
+        state = tuple(bitmask), b, c
+        return state
+
+    def state_to_int(self, state):
+        return self.stoi_map[state]
 
 
 class BarelyRepeatingDigitsDFA(DFA):
@@ -337,13 +354,14 @@ class BarelyRepeatingDigitsDFA(DFA):
         super().__init__(n_symbols=n_symbols, n_states=3, sparse=False)
         self.size = 2 * (n_symbols + 1)
 
-    def encode(self, state: str | Sequence[int]):
-        if isinstance(state, str):
-            counts = Counter([min(x, 3) for x in Counter(state).values()])
-            digits_present = counts[1] + counts[2]
-            repeat = counts[2] if not counts[3] else -1
-        else:
-            digits_present, repeat = state
+    def word_to_state(self, word: str):
+        counts = Counter([min(x, 3) for x in Counter(word).values()])
+        digits_present = counts[1] + counts[2]
+        repeat = counts[2] if not counts[3] else -1
+        return (digits_present, repeat)
+
+    def state_to_int(self, state):
+        digits_present, repeat = state
 
         if digits_present > self.n_symbols or digits_present < 0 or repeat not in [0, 1]:
             return 0
@@ -369,7 +387,7 @@ class BarelyRepeatingDigitsDFA(DFA):
         ]
         for state in states:
             for count, new_state in self._find_next_states(state):
-                transition_matrix[self.encode(state), self.encode(new_state)] = count
+                transition_matrix[self.state_to_int(state), self.state_to_int(new_state)] = count
         transition_matrix[0] = 0
         transition_matrix[:, 0] = 0
         return transition_matrix
@@ -528,9 +546,9 @@ def no_consecutive_states(n_symbols):
 
 no_consecutive = sorted([int(x, 2) for x in no_consecutive_states(10)])[1:]
 no_successive = [1]
-no_repeating = [compressed_dfa.encode((x, 10 - x, 0)) for x in range(10)]
-only_repeating = [compressed_dfa.encode((x, 0, 10 - x)) for x in range(10)]
-mostly_repeating = [compressed_dfa.encode((x, 1, 10 - x - 1)) for x in range(10 - 1)]
+no_repeating = [compressed_dfa.state_to_int((x, 10 - x, 0)) for x in range(10)]
+only_repeating = [compressed_dfa.state_to_int((x, 0, 10 - x)) for x in range(10)]
+mostly_repeating = [compressed_dfa.state_to_int((x, 1, 10 - x - 1)) for x in range(10 - 1)]
 
 # The only consecutive indices are sums of adjacent powers of two
 only_consecutive = sorted(
@@ -587,7 +605,7 @@ not_any = sorted(
 )
 
 barely_repeating_dfa = BarelyRepeatingDigitsDFA()
-barely_repeating = [barely_repeating_dfa.encode((x, 1)) for x in range(2, 11)]
+barely_repeating = [barely_repeating_dfa.state_to_int((x, 1)) for x in range(2, 11)]
 
 dfa_threads = {
     "mostly repeating digits": SideThread(DFAType(dfa=compressed_dfa, indices=mostly_repeating)),
