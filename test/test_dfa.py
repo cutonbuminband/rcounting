@@ -15,7 +15,7 @@ def test_nrd_invalid():
 
 def test_nrd_count():
     nrd = dfa.dfa_threads["no repeating digits"].comment_type
-    assert nrd.comment_to_count("1000000") == 168570
+    assert nrd.comment_to_count("999999") == 168570
 
 
 def test_mrd_valid():
@@ -35,7 +35,7 @@ def test_mrd_invalid():
 
 def test_mrd_count():
     mrd = dfa.dfa_threads["mostly repeating digits"].comment_type
-    assert mrd.comment_to_count("1000000") == 50059
+    assert mrd.comment_to_count("999999") == 50058
 
 
 def test_ncd_valid():
@@ -50,7 +50,7 @@ def test_ncd_invalid():
 
 def test_ncd_count():
     ncd = dfa.dfa_threads["no consecutive digits"].comment_type
-    assert ncd.comment_to_count("1000000") == 103890
+    assert ncd.comment_to_count("999999") == 103890
 
 
 def test_nsd_valid():
@@ -65,7 +65,7 @@ def test_nsd_invalid():
 
 def test_nsd_count():
     nsd = dfa.dfa_threads["no successive digits"].comment_type
-    assert nsd.comment_to_count("1000000") == 597870
+    assert nsd.comment_to_count("999999") == 597870
 
 
 def test_ocd_valid():
@@ -80,7 +80,7 @@ def test_ocd_invalid():
 
 def test_ocd_count():
     ocd = dfa.dfa_threads["only consecutive digits"].comment_type
-    assert ocd.comment_to_count("1000000") == 33555
+    assert ocd.comment_to_count("999999") == 33554
 
 
 def test_mcd_valid():
@@ -100,7 +100,7 @@ def test_mcd_invalid():
 
 def test_mcd_count():
     mcd = dfa.dfa_threads["mostly consecutive digits"].comment_type
-    assert mcd.comment_to_count("1000000") == 179488
+    assert mcd.comment_to_count("999999") == 179488
 
 
 def test_ord_valid():
@@ -115,7 +115,7 @@ def test_ord_invalid():
 
 def test_ord_count():
     ord = dfa.dfa_threads["only repeating digits"].comment_type
-    assert ord.comment_to_count("1000000") == 12843
+    assert ord.comment_to_count("999999") == 12843
 
 
 def test_naot_valid():
@@ -155,7 +155,7 @@ def test_naot_ocd_invalid():
 
 def test_naot_count():
     naot = dfa.dfa_threads["not any of those"].comment_type
-    assert naot.comment_to_count("1000000") == 298692
+    assert naot.comment_to_count("999999") == 298692
 
 
 def test_brd_valid():
@@ -175,4 +175,4 @@ def test_brd_invalid():
 
 def test_brd_count():
     brd = dfa.dfa_threads["barely repeating digits"].comment_type
-    assert brd.comment_to_count("1000000") == 457731
+    assert brd.comment_to_count("999999") == 457731
