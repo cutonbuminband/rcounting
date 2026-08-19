@@ -55,4 +55,11 @@ line-length = 99
 [dependency-groups]
 dev = [
     "pre-commit>=4.0.1",
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = "src"
+addopts = [
+    "--import-mode=importlib",
 ]
