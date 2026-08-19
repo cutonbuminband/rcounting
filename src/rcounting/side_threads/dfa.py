@@ -150,9 +150,10 @@ class CompressedDFA(DFA):
     def __init__(self, n_symbols, sparse=False):
         super().__init__(n_symbols=n_symbols, n_states=3, sparse=sparse)
         self.size = math.comb(n_symbols + 2, n_symbols)
-        self.total_lengths = [
+        total_lengths = [
             len(range(max(i - n_symbols, 0), i // 2 + 1)) for i in range(2 * n_symbols + 1)
         ]
+        self.predecessors = np.pad(np.cumsum(total_lengths), (1, 0))
 
     def _find_next_states(self, state: Sequence[int]):
         result = []
@@ -162,29 +163,21 @@ class CompressedDFA(DFA):
             result.append((state[1], [state[0], state[1] - 1, state[2] + 1]))
         if state[2]:
             result.append((state[2], state))
-        return result
-
-    def generate_transition_matrix(self):
-        transition_matrix = np.zeros((self.size, self.size), dtype=int)
-        states = [
-            (x, y, self.n_symbols - x - y)
-            for x in range(self.n_symbols + 1)
-            for y in range(self.n_symbols + 1 - x)
-        ]
-        for state in states:
-            for count, new_state in self._find_next_states(state):
-                transition_matrix[self.state_to_int(state), self.state_to_int(new_state)] = count
-        if not self.sparse:
-            return transition_matrix
-        return scipy.sparse.csc_matrix(transition_matrix)
+        return len(result), [self.state_to_int(x[1]) for x in result], [x[0] for x in result]
 
     def word_to_state(self, word: str):
         return Counter([min(x, 2) for x in Counter(word).values()])
 
     def state_to_int(self, state: Sequence[int]) -> int:
         digit_sum = state[1] + 2 * state[2]
-        predecessors = sum(self.total_lengths[:digit_sum])
-        return predecessors + state[1] // 2
+        return self.predecessors[digit_sum] + state[1] // 2
+
+    def int_to_state(self, i: int):
+        weight = (self.predecessors > i).argmax() - 1
+        delta = i - self.predecessors[weight]
+        ones = 2 * delta + weight % 2
+        twos = (weight - ones) // 2
+        return (self.n_symbols - ones - twos, ones, twos)
 
 
 class LastDigitDFA(DFA):
