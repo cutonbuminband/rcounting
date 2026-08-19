@@ -51,10 +51,10 @@ class DFA:
 
         return self.transitions[i]
 
-    def generate_identity(self):
+    def generate_identity(self, augmented=False):
         if self.sparse:
-            return scipy.sparse.eye(self.size, dtype=int, format="csc")
-        return np.eye(self.size, dtype=int)
+            return scipy.sparse.eye(self.size + int(augmented), dtype=int, format="csc")
+        return np.eye(self.size + int(augmented), dtype=int)
 
     def _connections(self, i):
         state = np.base_repr(i, self.n_states).zfill(self.n_symbols)
@@ -82,10 +82,13 @@ class DFA:
             y[ix : ix + length] = js
             data[ix : ix + length] = new_data
             ix += length
-        return scipy.sparse.coo_matrix(
+        array = scipy.sparse.coo_matrix(
             (data[:ix], (x[:ix], y[:ix])),
             shape=(self.size, self.size),
         ).tocsc()
+        if self.sparse:
+            return array
+        return array.toarray()
 
     def unbijectify(self):
         """Remove the edge from the empty state to the zero state"""
@@ -96,6 +99,25 @@ class DFA:
             zero = self.encode("0")
             self.transition_matrix[empty, zero] -= 1
             self.bijective = False
+
+    def augment(self):
+        if self.transition_matrix is None:
+            self.transition_matrix = self.generate_transition_matrix()
+
+        self.transitions = [self.generate_identity(augmented=True)]
+        if self.sparse:
+            x, y = self.transition_matrix.shape
+            self.transition_matrix.resize((x, y + 1))
+            row = np.zeros(x + 1)
+            row[-1] = 1
+            row[self.encode("")] = 1
+            self.transition_matrix = scipy.sparse.vstack(
+                [self.transition_matrix, row], format="csc"
+            )
+        else:
+            self.transition_matrix = np.pad(self.transition_matrix, (0, 1))
+            self.transition_matrix[-1, -1] = 1
+            self.transition_matrix[-1, self.encode("")] = 1
 
     def encode(self, state: str) -> int:
         """Converts a word to an integer encoding of the corresponding state vector"""
