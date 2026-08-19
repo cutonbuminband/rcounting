@@ -22,7 +22,7 @@ def base_n_encode(count, base):
 
 
 class DFA:
-    """Generate and store transition matrices for discrete finite automate
+    """Generate and store transition matrices for discrete finite automata
     which track what happens when a word from an alphabet of size n_symbols is
     extended by one symbol. Calculating these can be computationally expensive,
     so the code caches them for later use.
@@ -34,7 +34,6 @@ class DFA:
         self.n_symbols = n_symbols
         self.size = self.n_states**self.n_symbols
         self.sparse = sparse
-        self.lookup = {str(i): str(min(i + 1, n_states - 1)) for i in range(n_states)}
         self.transitions = None
         self.transition_matrix = None
         self.bijective = bijective  # whether words are allowed to start with zero
@@ -56,15 +55,13 @@ class DFA:
             return scipy.sparse.eye(self.size + int(augmented), dtype=int, format="csc")
         return np.eye(self.size + int(augmented), dtype=int)
 
-    def _connections(self, i):
-        state = np.base_repr(i, self.n_states).zfill(self.n_symbols)
-        js = [
-            int(state[:ix] + self.lookup[x] + state[ix + 1 :], self.n_states)
-            for ix, x in enumerate(state)
+    def _find_next_states(self, state):
+        next_states = [
+            state | {digit: min(state[digit] + 1, self.n_states - 1)}
+            for digit in alphanumeric[: self.n_symbols]
         ]
-        result = defaultdict(int)
-        for j in js:
-            result[j] += 1
+        next_indices = [self.state_to_int(s) for s in next_states]
+        result = Counter(next_indices)
         return (
             len(result),
             np.array(list(result.keys()), dtype=int),
@@ -77,7 +74,8 @@ class DFA:
         y = np.zeros(self.n_symbols * self.size, dtype=int)
         ix = 0
         for i in range(self.size):
-            length, js, new_data = self._connections(i)
+            state = self.int_to_state(i)
+            length, js, new_data = self._find_next_states(state)
             x[ix : ix + length] = i
             y[ix : ix + length] = js
             data[ix : ix + length] = new_data
@@ -136,6 +134,10 @@ class DFA:
             (self.n_states**pos) * state[digit]
             for pos, digit in enumerate(alphanumeric[: self.n_symbols])
         )
+
+    def int_to_state(self, i: int):
+        state = np.base_repr(i, self.n_states).zfill(self.n_symbols)
+        return {key: int(count) for count, key in zip(state, alphanumeric[: self.n_symbols][::-1])}
 
 
 class CompressedDFA(DFA):
@@ -272,7 +274,8 @@ class NotAnyOfThoseDFA(DFA):
                     idx += 1
         return stoi_map
 
-    def _find_next_states(self, mask: Tuple[bool, ...], b: int, c: int):
+    def _find_next_states(self, state: Tuple[Tuple[bool, ...], int, int]):
+        mask, b, c = state
         total = sum(mask)
         result = []
         # Every digit not present in the state just results in one more bit
@@ -292,29 +295,11 @@ class NotAnyOfThoseDFA(DFA):
             # not in a success state for nsd'
             result += [(b - (c == 1), (mask, b, 1 if c != 2 else 2))]
             result += [(total - b - (c == 0), (mask, b + 1, 1 if c != 2 else 2))]
-        return [x for x in result if x[0] > 0]
+        result = [(x[0], self.state_to_int(x[1])) for x in result if x[0] > 0]
+        return len(result), [x[1] for x in result], [x[0] for x in result]
 
     def int_to_mask(self, state: int) -> Tuple[bool, ...]:
         return tuple(char == "1" for char in f"{state:0>10b}"[::-1])
-
-    def generate_transition_matrix(self):
-        i = np.empty(self.n_symbols * self.size, dtype=int)
-        j = np.empty(self.n_symbols * self.size, dtype=int)
-        data = np.empty(self.n_symbols * self.size, dtype=int)
-        idx = 0
-        for state in range(self.size):
-            next_states = self._find_next_states(*self.itos_map[state])
-            counts, new_states = zip(*next_states)
-            new_states = [self.stoi_map[ns] for ns in new_states]
-            total = len(counts)
-            i[idx : idx + total] = state
-            j[idx : idx + total] = new_states
-            data[idx : idx + total] = counts
-            idx += total
-        return scipy.sparse.coo_array(
-            (data[:idx], (i[:idx], j[:idx])),
-            shape=(self.size, self.size),
-        ).tocsc()
 
     def word_to_state(self, word: str) -> tuple:
         symbols = alphanumeric[: self.n_symbols]
@@ -335,6 +320,9 @@ class NotAnyOfThoseDFA(DFA):
 
     def state_to_int(self, state):
         return self.stoi_map[state]
+
+    def int_to_state(self, i):
+        return self.itos_map[i]
 
 
 class BarelyRepeatingDigitsDFA(DFA):
