@@ -180,6 +180,74 @@ class CompressedDFA(DFA):
         return (self.n_symbols - ones - twos, ones, twos)
 
 
+class SumDFA(DFA):
+    """A DFA that keeps track of the sum of all the digits present in each
+    string, as well as how many times each digit appears. Used for tracking
+    constant-sum threads
+
+    """
+
+    def __init__(self, n_symbols=10, n_states=3, max_sum=10, sparse=True):
+        super().__init__(n_symbols=n_symbols, n_states=n_states, sparse=sparse)
+        self.max_sum = max_sum
+        self.stoi_map = self.initialize_stoi_map()
+        self.itos_map = self.itos_map = {v: k for k, v in self.stoi_map.items()}
+        self.size = len(self.stoi_map) + 1
+
+    def smallest_potential_total(counts, total=None):
+        ones = [int(digit, self.n_symbols) for digit in state if state[digit] == 1]
+        twos = [int(digit, self.n_symbols) for digit in state if state[digit] == 2]
+        if total is None:
+            total = sum(ones) + 2 * sum(twos)
+        return total + sum(ones) - max(ones)
+
+    def initialise_stoi_map(self):
+        stoi_map = {}
+        idx = 0
+        # There are (n_states) ** n_symbols states to track without considering
+        # the sum
+        for state_index in range(n_states**n_symbols):
+            state = super().int_to_state(state_index)
+            min_total = sum((state[digit] > 0) * int(digit, self.n_symbols) for digit in state)
+            target = smallest_potential_total(state)
+            if target > self.max_sum:
+                continue
+            stoi_map[min_total, state] = idx
+            idx += 1
+            twos = [
+                val
+                for digit in state
+                if (state[digit] == 2) and ((val := int(digit, self.n_symols)) > 0)
+            ]
+            if not twos:
+                continue
+            stride = twos[0] if len(twos) == 1 else 1
+            for total in range(min_total + min(twos), self.max_sum + 1, stride):
+                stoi_map[total, state] = idx
+                idx += 1
+        return stoi_map
+
+        return stoi_map
+
+    def word_to_state(self, word: str):
+        total = sum(int(char, self.n_symbols) for char in word)
+        return total, super().word_to_state(word)
+
+    def state_to_int(self, state):
+        total, counts = state
+        if total > self.max_sum:
+            return self.size - 1
+        return self.stoi_map[(total, counts)]
+
+    def int_to_state(self, i):
+        if i == self.size - 1:
+            return (self.max_sum + 1, (0, 0, self.n_symbols))
+        return self.itos_map[i]
+
+    def _find_next_states(self, state):
+        pass
+
+
 class LastDigitDFA(DFA):
     """A DFA that keeps track of the last digit of a string, and moves to a
     failure state if the next digit is the same as the current state. Used to

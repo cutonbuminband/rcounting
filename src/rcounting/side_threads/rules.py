@@ -1,5 +1,6 @@
 import pandas as pd
 
+from rcounting.counters import is_missing_counter
 from rcounting.models import comment_to_dict
 from rcounting.units import HOUR, MINUTE
 
@@ -26,7 +27,7 @@ class CountingRule:
         n = self.n if self.n is not None else len(history)
         history = history.reset_index()
         skips = history.groupby("username")["index"].diff()
-        return skips.isna() | (skips > n)
+        return skips.isna() | (skips > n) | is_missing_counter(history["username"])
 
     def _valid_thread_time(self, history):
         if not self.thread_time:

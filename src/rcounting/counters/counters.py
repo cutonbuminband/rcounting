@@ -158,7 +158,7 @@ ignored_counters = [
     "exclaim_bot",
 ]
 ignored_counters = [x.lower() for x in ignored_counters]
-banned_counters = ["[deleted]", "Franciscouzo", "None"]
+banned_counters = ["[deleted]", "None", "Franciscouzo"]
 
 
 def is_ignored_counter(username):
@@ -169,3 +169,9 @@ def is_banned_counter(username: str | pd.Series) -> bool | pd.Series:
     if isinstance(username, str):
         return username in banned_counters
     return username.isin(banned_counters)
+
+
+def is_missing_counter(username: str | pd.Series) -> bool | pd.Series:
+    if isinstance(username, str):
+        return username in banned_counters[:-1] or username is None
+    return username.isin(banned_counters) | username.isna() | (username == None)
