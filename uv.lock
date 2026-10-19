@@ -2,9 +2,9 @@ version = 1
 revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
-    "python_full_version < '3.11'",
-    "python_full_version == '3.11.*'",
     "python_full_version >= '3.12'",
+    "python_full_version == '3.11.*'",
+    "python_full_version < '3.11'",
 ]
 
 [[package]]
@@ -1182,7 +1182,7 @@ dependencies = [
     { name = "scipy" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 analysis = [
     { name = "matplotlib" },
     { name = "networkx" },
@@ -1191,14 +1191,10 @@ analysis = [
     { name = "tabulate" },
 ]
 dev = [
-    { name = "ruff" },
-    { name = "uv" },
-]
-
-[package.dev-dependencies]
-dev = [
     { name = "pre-commit" },
     { name = "pytest" },
+    { name = "ruff" },
+    { name = "uv" },
 ]
 
 [package.metadata]
@@ -1206,23 +1202,24 @@ requires-dist = [
     { name = "click", specifier = ">=8.1.7" },
     { name = "fuzzywuzzy", specifier = ">=0.18.0" },
     { name = "levenshtein", specifier = ">=0.27.1" },
-    { name = "matplotlib", marker = "extra == 'analysis'", specifier = ">=3.9.2" },
-    { name = "networkx", marker = "extra == 'analysis'", specifier = ">=3.4.2" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "praw", specifier = ">=7.8.1" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.7.3" },
-    { name = "scikit-learn", marker = "extra == 'analysis'", specifier = ">=1.7.1" },
     { name = "scipy", specifier = ">=1.14.1" },
-    { name = "seaborn", marker = "extra == 'analysis'", specifier = ">=0.13.2" },
-    { name = "tabulate", marker = "extra == 'analysis'", specifier = ">=0.9.0" },
-    { name = "uv", marker = "extra == 'dev'", specifier = ">=0.5.1" },
 ]
-provides-extras = ["analysis", "dev"]
 
 [package.metadata.requires-dev]
+analysis = [
+    { name = "matplotlib", specifier = ">=3.9.2" },
+    { name = "networkx", specifier = ">=3.4.2" },
+    { name = "scikit-learn", specifier = ">=1.7.1" },
+    { name = "seaborn", specifier = ">=0.13.2" },
+    { name = "tabulate", specifier = ">=0.9.0" },
+]
 dev = [
     { name = "pre-commit", specifier = ">=4.0.1" },
     { name = "pytest", specifier = ">=9.1.1" },
+    { name = "ruff", specifier = ">=0.7.3" },
+    { name = "uv", specifier = ">=0.5.1" },
 ]
 
 [[package]]
