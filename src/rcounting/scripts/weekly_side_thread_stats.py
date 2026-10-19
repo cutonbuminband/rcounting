@@ -44,10 +44,12 @@ def get_directory_counts(reddit, directory, ftf_timestamp, db):
     """
     threshold = ftf_timestamp - WEEK
     try:
-        df = pd.read_sql("select distinct thread_id from comments", temp_db)
-        completed_rows = list(df["thread_id"])
+        df = pd.read_sql("select * from threads", temp_db)
+        known_rows = list(df["thread_id"])
+        completed_rows = list(df.query("checkpoint == @ftf_timestamp")["thread_id"])
     except pd.io.sql.DatabaseError:
         completed_rows = []
+        known_rows = []
     for row in directory.rows[1:]:
         if row.first_submission in completed_rows:
             continue
@@ -61,6 +63,15 @@ def get_directory_counts(reddit, directory, ftf_timestamp, db):
         df = pd.DataFrame([models.comment_to_dict(c) for c in comments + replies])
         df["thread_id"] = row.first_submission
         df.to_sql("comments", temp_db, index=False, if_exists="append")
+        if row in known_rows:
+            temp_db.execute(
+                "UPDATE threads SET checkpoint = ? WHERE thread_id == ?",
+                (ftf_timestamp, row.first_submission),
+            )
+            temp_db.commit()
+        else:
+            row = pd.DataFrame([{"thread_id": row.first_submission, "checkpoint": ftf_timestamp}])
+            row.to_sql("threads", temp_db, if_exists="append")
     query = (
         f"SELECT comments.*, thread_id FROM comments JOIN submissions "
         f"ON comments.submission_id == submissions.submission_id "
