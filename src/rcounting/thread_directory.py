@@ -198,6 +198,8 @@ class Row:
             for comment in self.submission.comments:
                 comments.add_missing_replies(comment)
         elif self.comment_id is None:
+            self.submission = submission_tree.reddit.submission(self.submission.id)
+            self.submission.comment_sort = "old"
             comment = next(
                 filter(lambda x: side_thread.looks_like_count(x.body), self.submission.comments)
             )
