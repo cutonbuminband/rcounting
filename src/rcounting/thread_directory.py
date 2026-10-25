@@ -365,7 +365,7 @@ class Directory:
         result = []
         for submission_id in new_submission_ids - self.known_submissions:
             first_submission = tree.walk_up_tree(submission_id)[-1]
-            name = f'**{first_submission.title.split("|")[0].strip()}**'
+            name = f"**{first_submission.title.split('|')[0].strip()}**"
             try:
                 title = title_from_first_comment(first_submission)
             except IndexError:
@@ -452,6 +452,6 @@ def comment_to_row(comment) -> Row:
     This is useful for when submissions need to be manually added to the directory.
     """
     submission = comment.submission
-    name = f'**{submission.title.split("|")[0].strip()}**'
+    name = f"**{submission.title.split('|')[0].strip()}**"
     title = title_from_first_comment(submission)
     return Row(name, submission.id, title, submission.id, comment.id, "-")
