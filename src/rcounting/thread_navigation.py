@@ -38,10 +38,7 @@ def find_previous_submission(submission, similarity_threshold=0.6):
     matcher = difflib.SequenceMatcher()
     matcher.set_seq2(submission.title.split("|")[0])
     result = (None, None)
-    urls = filter(
-        lambda x: int(x[0], 36) < int(submission.id, 36),
-        parsing.find_urls_in_submission(submission),
-    )
+    urls = filter(lambda x: x[0] != submission.id, parsing.find_urls_in_submission(submission))
     threshold_met = False
     for previous_submission_id, previous_get_id in urls:
         old_result = result
