@@ -4,7 +4,9 @@ See also https://github.com/cutonbuminband/rcounting/blob/main/doc/examples.org
 for examples of working with the data.
 """
 
+import sqlite3
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -149,6 +151,41 @@ def fft_kde(data, n_bins, kernel=vonmises_distribution, **params):
     x = (x + pi) / (2 * pi) * (maxval - minval) + minval
     kde /= np.trapz(kde, x=x)
     return x, kde
+
+
+def part(
+    db: str | sqlite3.Connection | None = None,
+    kind: Literal["k"] | Literal["day"] = "k",
+    first: bool = False,
+):
+    if db is None:
+        db = "counting.sqlite"
+    if kind == "k":
+        subquery = "submission_id"
+        column = "**K Part**"
+    if kind == "day":
+        subquery = "cast(timestamp as int) / (3600 * 24)"
+        column = "**Day Part**"
+    if isinstance(db, str):
+        db = sqlite3.connect(db)
+        query = (
+            "select canonical_username as username, "
+            f"count(distinct {subquery}) as result "
+            "from comments join counters on comments.username == counters.username "
+            "where position > 0 and not is_banned "
+            "group by canonical_username"
+        )
+    df = pd.read_sql(
+        query,
+        db,
+    )
+    df = (
+        df.sort_values("result", ascending=False)
+        .reset_index(drop=True)
+        .pipe(lambda x: x.set_index(x.index + 1))
+    )
+    print(df.head(15).to_markdown(headers=["**Rank**", "**Counter**", column]))
+    return df
 
 
 def even_odd_counts(df, n=50):
