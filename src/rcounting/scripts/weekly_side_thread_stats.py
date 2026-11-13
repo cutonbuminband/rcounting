@@ -17,40 +17,44 @@ printer = logging.getLogger("rcounting")
 
 WEEK = 7 * units.DAY
 temp_filename = Path("temp.sqlite")
-temp_db = sqlite3.connect(temp_filename)
+ongoing_db = sqlite3.connect(temp_filename)
 
 
-def find_directory_revision(subreddit, threshold):
-    """Find the earliest directory revision which was made after a threshold
-    timestamp. If no such revision exists, return the latest revision.
+def find_directory_revision(subreddit, threshold, kind: Literal["pre"] | Literal["post"] = "post"):
+    """Find the directory revision closest to a threshold timestamp.
 
+    If kind == pre, find the last revision which was made before the threshold.
+    If kind == post, find the first revision after the threshold
+
+    If the latest revision occurs before the threshold timestamp, just return that.
     """
     revisions = subreddit.wiki["directory"].revisions()
     old_revision = next(revisions)
-    first_revision = old_revision
+    if old_revision["timestamp"] < threshold:
+        return old_revision
+    loop = False
     for new_revision in revisions:
         if new_revision["timestamp"] < threshold:
-            return old_revision
+            return old_revision if kind == "post" else new_revision
         old_revision = new_revision
-    return first_revision
+        loop = True
+    return new_revision if loop else old_revision
 
 
-def get_directory_counts(reddit, directory, ftf_timestamp, db):
-    """
-    Find all side thread counts on threads logged in the thread directory
-    starting one week before the ftf_timestamp. Use the thread directory to log
-    the current threads, and use the database to log completed threads.
+def download_counts(reddit, rows, ftf_timestamp):
+    """Download all side thread counts on the active threads in the list of
+    rows starting one week before the ftf_timestamp.
 
     """
     threshold = ftf_timestamp - WEEK
     try:
-        df = pd.read_sql("select * from threads", temp_db)
+        df = pd.read_sql("select * from threads", ongoing_db)
         known_rows = list(df["thread_id"])
         completed_rows = list(df.query("checkpoint == @ftf_timestamp")["thread_id"])
     except pd.io.sql.DatabaseError:
         completed_rows = []
         known_rows = []
-    for row in directory.rows[1:]:
+    for row in rows:
         if row.first_submission in completed_rows:
             continue
         printer.info("Getting latest history for %s", row.name)
@@ -62,89 +66,142 @@ def get_directory_counts(reddit, directory, ftf_timestamp, db):
         replies = tree.walk_down_tree(row.comment_id, cutoff=ftf_timestamp) or []
         df = pd.DataFrame([models.comment_to_dict(c) for c in comments + replies])
         df["thread_id"] = row.first_submission
-        df.to_sql("comments", temp_db, index=False, if_exists="append")
+        df.to_sql("comments", ongoing_db, index=False, if_exists="append")
         if row in known_rows:
-            temp_db.execute(
+            ongoing_db.execute(
                 "UPDATE threads SET checkpoint = ? WHERE thread_id == ?",
                 (ftf_timestamp, row.first_submission),
             )
-            temp_db.commit()
+            ongoing_db.commit()
         else:
             row = pd.DataFrame([{"thread_id": row.first_submission, "checkpoint": ftf_timestamp}])
-            row.to_sql("threads", temp_db, if_exists="append")
-    query = (
-        f"SELECT comments.*, thread_id FROM comments JOIN submissions "
-        f"ON comments.submission_id == submissions.submission_id "
-        f"WHERE comments.timestamp >= {threshold}"
-    )
-
-    completed_threads = pd.read_sql(query, db)
-    partial_threads = pd.read_sql(f"select * from comments where timestamp > {threshold}", temp_db)
-    combined = pd.concat([completed_threads, partial_threads])
-    return combined.loc[
-        (~combined["username"].apply(is_banned_counter)) & (combined["timestamp"] <= ftf_timestamp)
-    ].drop_duplicates(subset=["comment_id"])
+            row.to_sql("threads", ongoing_db, if_exists="append")
 
 
-def get_weekly_stats(reddit, subreddit, ftf_timestamp, filename):
+def get_stats(reddit, subreddit, ftf_timestamp, filename):
+    """Returns a dataframe representing all side thread counts that occurred
+    from the beginning of time to the end of the ftf period, as well as a
+    mapping of thread_ids -> thread names
+
+    """
     db = sqlite3.connect(filename)
     revision = find_directory_revision(subreddit, ftf_timestamp)
     contents = revision["page"].content_md.replace("\r\n", "\n")
     directory = td.Directory(parsing.parse_directory_page(contents), "directory")
+
     name_mapping = {row.first_submission: row.name for row in directory.rows[1:]}
-    return get_directory_counts(reddit, directory, ftf_timestamp, db), name_mapping
+    name_mapping["5h0i88"] = "XKCD"
+
+    # Find the state of play just before the start of the current ftf period
+    old_revision = find_directory_revision(subreddit, ftf_timestamp - WEEK, kind="pre")
+    old_contents = old_revision["page"].content_md.replace("\r\n", "\n")
+    old_directory = td.Directory(parsing.parse_directory_page(old_contents), "directory")
+    known_rows = [(r.initial_submission_id, r.initial_comment_id) for r in old_directory.rows]
+
+    # The threads which haven't moved since can be ignored
+    rows = [
+        r
+        for r in directory.rows[1:]
+        if (r.initial_submission_id, r.initial_comment_id) not in known_rows
+    ]
+
+    download_counts(reddit, rows, ftf_timestamp)
+    query = (
+        f"SELECT comments.username, comments.timestamp, comment_id, thread_id "
+        "FROM comments JOIN submissions "
+        f"ON comments.submission_id == submissions.submission_id "
+    )
+    completed_threads = pd.read_sql(query, db)
+    partial_threads = pd.read_sql(
+        "select comment_id, username, timestamp, thread_id from comments", ongoing_db
+    )
+    combined = (
+        pd.concat([completed_threads, partial_threads])
+        .pipe(
+            lambda x: x.loc[
+                (~x["username"].apply(is_banned_counter)) & (x["timestamp"] <= ftf_timestamp)
+            ]
+        )
+        .drop_duplicates(subset=["comment_id"])
+        .pipe(lambda x: x.assign(username=x["username"].apply(counters.apply_alias)))
+    )
+    return combined, name_mapping
 
 
 def pprint(date):
     return date.strftime("%A %B %d, %Y")
 
 
-def stats_post(stats, old_counts, ftf_timestamp, name_mapping=None):
+def get_top_counters(stats, ftf_timestamp, n=15):
+    """Generate the top counters table: A table tracking the number of counts
+    made and the host rank (along with any change in the past week) for the n
+    people who made the most side thread counts in the week leading up to
+    ftf_timestamp"""
+    data = (
+        pd.merge(
+            stats.groupby("username").size().rename("total"),
+            stats.query("timestamp < @ftf_timestamp - @WEEK")
+            .groupby("username")
+            .size()
+            .rename("old"),
+            left_index=True,
+            right_index=True,
+            how="left",
+        )
+        .fillna(0)
+        .pipe(lambda x: x.assign(new=x["total"] - x["old"]))
+        .pipe(
+            lambda x: x.assign(
+                host_rank=x["total"].rank(ascending=False),
+                old_host_rank=x["old"].rank(ascending=False),
+            ),
+        )
+        .astype(int)
+        .reset_index()
+    )
+    top_counters = (
+        data.assign(delta=data["host_rank"] - data["old_host_rank"])
+        .sort_values("new", ascending=False)
+        .set_index(pd.RangeIndex(1, len(data) + 1))
+        .pipe(lambda x: x.assign(host=x.apply(add_delta, axis=1)))
+    )
+
+    return top_counters[["username", "new", "host"]]
+
+
+def get_top_threads(data, ftf_timestamp, name_mapping):
+    """Return the number of counts and the thread_ids for the n threads which
+    had the most counts in the week leading up to the timestamp represented by
+    ftf_timestamp
+
+    Parameters:
+      - data: A dataframe with rows of (timestamp, thread_id, ...) representing side thread counts
+      - name_mapping a dictionary of thread_id -> thread_name pairs
+    """
+    top_threads = (
+        data.query("timestamp >= @ftf_timestamp - @WEEK")
+        .groupby("thread_id")
+        .size()
+        .sort_values(ascending=False)
+        .to_frame()
+        .reset_index()
+        .pipe(lambda x: x.set_index(x.index + 1))
+    )
+    return top_threads.assign(thread_id=top_threads["thread_id"].map(name_mapping))
+
+
+def tables_to_body(top_counters, top_threads, ftf_timestamp):
     end = dt.date.fromtimestamp(ftf_timestamp)
     start = dt.date.fromtimestamp(ftf_timestamp - WEEK)
-    stats["username"] = stats["username"].apply(counters.apply_alias)
-    new_counts = stats.groupby("username").size().to_frame(name="new_count").reset_index()
-    combined = pd.merge(
-        left=old_counts, right=new_counts, left_on="username", right_on="username", how="outer"
-    ).fillna(0)
 
-    combined["old_count"] = combined["old_count"].astype(int)
-    combined["new_count"] = combined["new_count"].astype(int)
-    combined["total"] = combined["old_count"] + combined["new_count"]
-    combined = combined.sort_values(["total"], ascending=False).reset_index(drop=True)
-    combined = (
-        combined.sort_values(["old_count"], ascending=False)
-        .reset_index(names=["host_rank"])
-        .reset_index(names=["old_host_rank"])
-    )
-    combined.loc[:, ["host_rank", "old_host_rank"]] += 1
-    combined["delta"] = combined["host_rank"] - combined["old_host_rank"]
-    top_counters = (
-        combined.loc[~combined["username"].apply(counters.is_banned_counter)]
-        .sort_values("new_count", ascending=False)
-        .reset_index(drop=True)
-        .head(15)
-        .copy()
-    )
-
-    top_counters.index += 1
-    top_counters["host"] = top_counters.apply(add_delta, axis=1)
-    columns = ["username", "new_count", "host"]
-    tc = top_counters["username"].to_numpy()
-
-    top_threads = stats.groupby("thread_id").size().sort_values(ascending=False).to_frame()
-    if name_mapping is not None:
-        name_mapping["5h0i88"] = "XKCD"
-        top_threads.index = [name_mapping[i] for i in top_threads.index]
-    top_threads = top_threads.reset_index()
-    top_threads.index += 1
+    tc = top_counters["username"].to_list()
     s = (
         f"Weekly side thread stats from {pprint(start)} to {pprint(end)}. "
         f"Congratulations to u/{tc[0]}, u/{tc[1]}, and u/{tc[2]}!\n\n"
     )
-    s += f"Total weekly side thread counts: **{len(stats)}**\n\n"
+    s += f"Total weekly side thread counts: **{top_counters['new'].sum()}**\n\n"
     s += "Top 15 side thread counters:\n\n"
-    s += top_counters[columns].to_markdown(
+    s += top_counters.head(15).to_markdown(
         headers=["**Rank**", "**User**", "**Counts**", "**HoST Rank**"]
     )
     s += "\n\nTop 5 side threads:\n\n"
@@ -203,18 +260,10 @@ def generate_stats_post(filename, update_db, dry_run, verbose, quiet):
     configure_logging.setup(printer, verbose, quiet)
     if update_db:
         log_all_side_threads.log_side_threads(filename=filename, verbose=verbose, quiet=quiet)
-    stats, name_mapping = get_weekly_stats(reddit, subreddit, ftf_timestamp, filename)
-    db = sqlite3.connect(filename)
-    query = (
-        f"SELECT canonical_username as username, count() as old_count "
-        f"FROM comments join counters on counters.username == comments.username "
-        f"WHERE comments.position > 0 and comments.timestamp < {threshold} "
-        f"and counters.is_banned != 1 GROUP by canonical_username"
-    )
-
-    old_counts = pd.read_sql(query, db)
-    db.close()
-    body = stats_post(stats, old_counts, ftf_timestamp, name_mapping)
+    stats, name_mapping = get_stats(reddit, subreddit, ftf_timestamp, filename)
+    top_counters = get_top_counters(stats, ftf_timestamp)
+    top_threads = get_top_threads(stats, ftf_timestamp, name_mapping)
+    body = tables_to_body(top_counters, top_threads, ftf_timestamp)
     if dry_run:
         print(body)
     else:
@@ -228,7 +277,6 @@ def generate_stats_post(filename, update_db, dry_run, verbose, quiet):
             s = "Not posting stats comment. Existing comment found at https://www.reddit.com%s"
             printer.warning(s, link)
     printer.warning("Running the script took %s", dt.datetime.now() - t_start)
-    Path.unlink(temp_filename)
 
 
 def add_delta(series):
