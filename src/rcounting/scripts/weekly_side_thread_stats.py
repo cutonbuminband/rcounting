@@ -20,7 +20,7 @@ temp_filename = Path("temp.sqlite")
 ongoing_db = sqlite3.connect(temp_filename)
 
 
-def find_directory_revision(subreddit, threshold, kind: Literal["pre"] | Literal["post"] = "post"):
+def find_directory_revision(threshold, kind: Literal["pre"] | Literal["post"] = "post"):
     """Find the directory revision closest to a threshold timestamp.
 
     If kind == pre, find the last revision which was made before the threshold.
@@ -28,6 +28,8 @@ def find_directory_revision(subreddit, threshold, kind: Literal["pre"] | Literal
 
     If the latest revision occurs before the threshold timestamp, just return that.
     """
+    from rcounting.reddit_interface import subreddit
+
     revisions = subreddit.wiki["directory"].revisions()
     old_revision = next(revisions)
     if old_revision["timestamp"] < threshold:
@@ -41,12 +43,14 @@ def find_directory_revision(subreddit, threshold, kind: Literal["pre"] | Literal
     return new_revision if loop else old_revision
 
 
-def download_counts(reddit, rows, ftf_timestamp):
+def download_counts(rows, ftf_timestamp):
     """Download all side thread counts on the active threads in the list of
     rows starting one week before the ftf_timestamp.
 
     """
     threshold = ftf_timestamp - WEEK
+    from rcounting.reddit_interface import reddit
+
     try:
         df = pd.read_sql("select * from threads", ongoing_db)
         known_rows = list(df["thread_id"])
@@ -78,14 +82,14 @@ def download_counts(reddit, rows, ftf_timestamp):
             row.to_sql("threads", ongoing_db, if_exists="append")
 
 
-def get_stats(reddit, subreddit, ftf_timestamp, filename):
+def get_stats(ftf_timestamp, filename):
     """Returns a dataframe representing all side thread counts that occurred
     from the beginning of time to the end of the ftf period, as well as a
     mapping of thread_ids -> thread names
 
     """
     db = sqlite3.connect(filename)
-    revision = find_directory_revision(subreddit, ftf_timestamp)
+    revision = find_directory_revision(ftf_timestamp)
     contents = revision["page"].content_md.replace("\r\n", "\n")
     directory = td.Directory(parsing.parse_directory_page(contents), "directory")
 
@@ -93,7 +97,7 @@ def get_stats(reddit, subreddit, ftf_timestamp, filename):
     name_mapping["5h0i88"] = "XKCD"
 
     # Find the state of play just before the start of the current ftf period
-    old_revision = find_directory_revision(subreddit, ftf_timestamp - WEEK, kind="pre")
+    old_revision = find_directory_revision(ftf_timestamp - WEEK, kind="pre")
     old_contents = old_revision["page"].content_md.replace("\r\n", "\n")
     old_directory = td.Directory(parsing.parse_directory_page(old_contents), "directory")
     known_rows = [(r.initial_submission_id, r.initial_comment_id) for r in old_directory.rows]
@@ -105,7 +109,7 @@ def get_stats(reddit, subreddit, ftf_timestamp, filename):
         if (r.initial_submission_id, r.initial_comment_id) not in known_rows
     ]
 
-    download_counts(reddit, rows, ftf_timestamp)
+    download_counts(rows, ftf_timestamp)
     query = (
         f"SELECT comments.username, comments.timestamp, comment_id, thread_id "
         "FROM comments JOIN submissions "
@@ -255,12 +259,12 @@ def generate_stats_post(filename, update_db, dry_run, verbose, quiet):
     ftf_timestamp = ftf.get_ftf_timestamp().timestamp()
     threshold = ftf_timestamp - WEEK
 
-    from rcounting.reddit_interface import reddit, subreddit
+    from rcounting.reddit_interface import subreddit
 
     configure_logging.setup(printer, verbose, quiet)
     if update_db:
         log_all_side_threads.log_side_threads(filename=filename, verbose=verbose, quiet=quiet)
-    stats, name_mapping = get_stats(reddit, subreddit, ftf_timestamp, filename)
+    stats, name_mapping = get_stats(ftf_timestamp, filename)
     top_counters = get_top_counters(stats, ftf_timestamp)
     top_threads = get_top_threads(stats, ftf_timestamp, name_mapping)
     body = tables_to_body(top_counters, top_threads, ftf_timestamp)
